@@ -4,14 +4,15 @@ export type ItemCategory = 'Kabel' | 'Lautsprecher' | 'Lichttechnik' | 'Mikrofon
 
 export interface InventoryItem {
   id: string;
+  user_id: string;
   name: string;
   category: ItemCategory;
   quantity: number;
   condition: ItemCondition;
   location: string;
-  notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export const CATEGORIES: ItemCategory[] = ['Kabel', 'Lautsprecher', 'Lichttechnik', 'Mikrofone', 'Zubehör'];

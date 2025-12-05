@@ -1,124 +1,51 @@
 import { useState, useEffect, useMemo } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { InventoryItem, ItemCategory, ItemCondition } from '@/types/inventory';
-
-const STORAGE_KEY = 'eventtech-inventory';
-
-const initialItems: InventoryItem[] = [
-  {
-    id: '1',
-    name: 'XLR Kabel 10m',
-    category: 'Kabel',
-    quantity: 20,
-    condition: 'verfügbar',
-    location: 'Lager A',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '2',
-    name: 'JBL EON615 Lautsprecher',
-    category: 'Lautsprecher',
-    quantity: 4,
-    condition: 'verliehen',
-    location: 'Event München',
-    notes: 'Verliehen bis 15.12.2024',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '3',
-    name: 'Moving Head Wash',
-    category: 'Lichttechnik',
-    quantity: 8,
-    condition: 'in-einsatz',
-    location: 'Bühne B',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '4',
-    name: 'Shure SM58 Mikrofon',
-    category: 'Mikrofone',
-    quantity: 12,
-    condition: 'verfügbar',
-    location: 'Lager A',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '5',
-    name: 'DI-Box aktiv',
-    category: 'Zubehör',
-    quantity: 6,
-    condition: 'defekt',
-    location: 'Werkstatt',
-    notes: 'Netzteil defekt, Ersatz bestellt',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '6',
-    name: 'PAR LED RGBW',
-    category: 'Lichttechnik',
-    quantity: 16,
-    condition: 'verfügbar',
-    location: 'Lager B',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '7',
-    name: 'Sennheiser EW100 Funk',
-    category: 'Mikrofone',
-    quantity: 4,
-    condition: 'in-einsatz',
-    location: 'Kongress Berlin',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '8',
-    name: 'Stromverteiler 32A',
-    category: 'Zubehör',
-    quantity: 3,
-    condition: 'verfügbar',
-    location: 'Lager A',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
+import { useToast } from '@/hooks/use-toast';
 
 export function useInventory() {
   const [items, setItems] = useState<InventoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<ItemCategory | 'all'>('all');
   const [conditionFilter, setConditionFilter] = useState<ItemCondition | 'all'>('all');
+  
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setItems(parsed.map((item: any) => ({
-          ...item,
-          createdAt: new Date(item.createdAt),
-          updatedAt: new Date(item.updatedAt),
-        })));
-      } catch {
-        setItems(initialItems);
-      }
-    } else {
-      setItems(initialItems);
+  // Fetch items from database
+  const fetchItems = async () => {
+    if (!user) {
+      setItems([]);
+      setLoading(false);
+      return;
     }
-  }, []);
 
-  // Save to localStorage when items change
-  useEffect(() => {
-    if (items.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    try {
+      const { data, error } = await supabase
+        .from('inventory_items')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setItems(data as InventoryItem[]);
+    } catch (error) {
+      console.error('Error fetching items:', error);
+      toast({
+        title: "Fehler",
+        description: "Items konnten nicht geladen werden.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-  }, [items]);
+  };
+
+  useEffect(() => {
+    fetchItems();
+  }, [user]);
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
@@ -143,26 +70,75 @@ export function useInventory() {
     return { total, available, lent, inUse, defect };
   }, [items]);
 
-  const addItem = (item: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newItem: InventoryItem = {
-      ...item,
-      id: crypto.randomUUID(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setItems([newItem, ...items]);
+  const addItem = async (item: Omit<InventoryItem, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('inventory_items')
+        .insert({
+          ...item,
+          user_id: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setItems([data as InventoryItem, ...items]);
+    } catch (error) {
+      console.error('Error adding item:', error);
+      toast({
+        title: "Fehler",
+        description: "Item konnte nicht hinzugefügt werden.",
+        variant: "destructive",
+      });
+      throw error;
+    }
   };
 
-  const updateItem = (id: string, updates: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt'>) => {
-    setItems(items.map(item => 
-      item.id === id 
-        ? { ...item, ...updates, updatedAt: new Date() }
-        : item
-    ));
+  const updateItem = async (id: string, updates: Omit<InventoryItem, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('inventory_items')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setItems(items.map(item => item.id === id ? data as InventoryItem : item));
+    } catch (error) {
+      console.error('Error updating item:', error);
+      toast({
+        title: "Fehler",
+        description: "Item konnte nicht aktualisiert werden.",
+        variant: "destructive",
+      });
+      throw error;
+    }
   };
 
-  const deleteItem = (id: string) => {
-    setItems(items.filter(item => item.id !== id));
+  const deleteItem = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('inventory_items')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setItems(items.filter(item => item.id !== id));
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      toast({
+        title: "Fehler",
+        description: "Item konnte nicht gelöscht werden.",
+        variant: "destructive",
+      });
+      throw error;
+    }
   };
 
   const clearFilters = () => {
@@ -175,6 +151,7 @@ export function useInventory() {
     items: filteredItems,
     allItems: items,
     stats,
+    loading,
     searchQuery,
     setSearchQuery,
     categoryFilter,
@@ -185,5 +162,6 @@ export function useInventory() {
     addItem,
     updateItem,
     deleteItem,
+    refetch: fetchItems,
   };
 }

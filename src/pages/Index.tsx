@@ -1,11 +1,14 @@
-import { useState } from "react";
-import { Plus, Package, CheckCircle, ArrowRightLeft, AlertTriangle, Zap } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Package, CheckCircle, ArrowRightLeft, AlertTriangle, Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
 import { FilterBar } from "@/components/FilterBar";
 import { InventoryTable } from "@/components/InventoryTable";
 import { ItemForm } from "@/components/ItemForm";
+import { UserMenu } from "@/components/UserMenu";
 import { useInventory } from "@/hooks/useInventory";
+import { useAuth } from "@/hooks/useAuth";
 import { InventoryItem } from "@/types/inventory";
 import { useToast } from "@/hooks/use-toast";
 
@@ -13,10 +16,13 @@ const Index = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
 
   const {
     items,
     stats,
+    loading,
     searchQuery,
     setSearchQuery,
     categoryFilter,
@@ -29,6 +35,12 @@ const Index = () => {
     deleteItem,
   } = useInventory();
 
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/auth");
+    }
+  }, [user, authLoading, navigate]);
+
   const handleAddClick = () => {
     setEditItem(null);
     setIsFormOpen(true);
@@ -39,29 +51,45 @@ const Index = () => {
     setIsFormOpen(true);
   };
 
-  const handleDeleteClick = (id: string) => {
-    deleteItem(id);
-    toast({
-      title: "Item gelöscht",
-      description: "Das Item wurde erfolgreich entfernt.",
-    });
+  const handleDeleteClick = async (id: string) => {
+    try {
+      await deleteItem(id);
+      toast({
+        title: "Item gelöscht",
+        description: "Das Item wurde erfolgreich entfernt.",
+      });
+    } catch {
+      // Error handled in hook
+    }
   };
 
-  const handleFormSubmit = (data: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleFormSubmit = async (data: Omit<InventoryItem, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     if (editItem) {
-      updateItem(editItem.id, data);
+      await updateItem(editItem.id, data);
       toast({
         title: "Item aktualisiert",
         description: "Die Änderungen wurden gespeichert.",
       });
     } else {
-      addItem(data);
+      await addItem(data);
       toast({
         title: "Item hinzugefügt",
         description: "Das neue Item wurde erfolgreich erstellt.",
       });
     }
   };
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen p-4 md:p-8">
@@ -81,10 +109,13 @@ const Index = () => {
               </p>
             </div>
           </div>
-          <Button onClick={handleAddClick} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Neues Item
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button onClick={handleAddClick} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Neues Item
+            </Button>
+            <UserMenu />
+          </div>
         </header>
 
         {/* Stats Grid */}

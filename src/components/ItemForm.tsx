@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,11 +22,12 @@ import { InventoryItem, CATEGORIES, CONDITIONS, CONDITION_LABELS, ItemCategory, 
 interface ItemFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (item: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onSubmit: (item: Omit<InventoryItem, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>;
   editItem?: InventoryItem | null;
 }
 
 export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps) {
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     category: 'Kabel' as ItemCategory,
@@ -58,10 +59,18 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
     }
   }, [editItem, isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
-    onClose();
+    setIsLoading(true);
+    
+    try {
+      await onSubmit(formData);
+      onClose();
+    } catch (error) {
+      // Error handled in parent
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -162,11 +171,20 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
           </div>
 
           <div className="flex gap-3 pt-4">
-            <Button type="button" variant="ghost" onClick={onClose} className="flex-1">
+            <Button type="button" variant="ghost" onClick={onClose} className="flex-1" disabled={isLoading}>
               Abbrechen
             </Button>
-            <Button type="submit" className="flex-1">
-              {editItem ? 'Speichern' : 'Hinzufügen'}
+            <Button type="submit" className="flex-1" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Speichern...
+                </>
+              ) : editItem ? (
+                'Speichern'
+              ) : (
+                'Hinzufügen'
+              )}
             </Button>
           </div>
         </form>
