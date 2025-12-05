@@ -14,7 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      inventory_items: {
+        Row: {
+          category: Database["public"]["Enums"]["item_category"]
+          condition: Database["public"]["Enums"]["item_condition"]
+          created_at: string
+          id: string
+          location: string
+          name: string
+          notes: string | null
+          quantity: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["item_category"]
+          condition?: Database["public"]["Enums"]["item_condition"]
+          created_at?: string
+          id?: string
+          location: string
+          name: string
+          notes?: string | null
+          quantity?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["item_category"]
+          condition?: Database["public"]["Enums"]["item_condition"]
+          created_at?: string
+          id?: string
+          location?: string
+          name?: string
+          notes?: string | null
+          quantity?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +85,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      item_category:
+        | "Kabel"
+        | "Lautsprecher"
+        | "Lichttechnik"
+        | "Mikrofone"
+        | "Zubehör"
+      item_condition: "verfügbar" | "verliehen" | "in-einsatz" | "defekt"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +218,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      item_category: [
+        "Kabel",
+        "Lautsprecher",
+        "Lichttechnik",
+        "Mikrofone",
+        "Zubehör",
+      ],
+      item_condition: ["verfügbar", "verliehen", "in-einsatz", "defekt"],
+    },
   },
 } as const
