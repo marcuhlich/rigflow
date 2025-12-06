@@ -10,6 +10,7 @@ export function useInventory() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<ItemCategory | 'all'>('all');
   const [conditionFilter, setConditionFilter] = useState<ItemCondition | 'all'>('all');
+  const [locationFilter, setLocationFilter] = useState<string>('all');
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -47,6 +48,12 @@ export function useInventory() {
     fetchItems();
   }, [user]);
 
+  // Extract unique locations
+  const locations = useMemo(() => {
+    const uniqueLocations = [...new Set(items.map(item => item.location))];
+    return uniqueLocations.sort();
+  }, [items]);
+
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       const matchesSearch = searchQuery === '' || 
@@ -55,10 +62,11 @@ export function useInventory() {
       
       const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
       const matchesCondition = conditionFilter === 'all' || item.condition === conditionFilter;
+      const matchesLocation = locationFilter === 'all' || item.location === locationFilter;
       
-      return matchesSearch && matchesCategory && matchesCondition;
+      return matchesSearch && matchesCategory && matchesCondition && matchesLocation;
     });
-  }, [items, searchQuery, categoryFilter, conditionFilter]);
+  }, [items, searchQuery, categoryFilter, conditionFilter, locationFilter]);
 
   const stats = useMemo(() => {
     const total = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -145,6 +153,7 @@ export function useInventory() {
     setSearchQuery('');
     setCategoryFilter('all');
     setConditionFilter('all');
+    setLocationFilter('all');
   };
 
   return {
@@ -158,6 +167,9 @@ export function useInventory() {
     setCategoryFilter,
     conditionFilter,
     setConditionFilter,
+    locationFilter,
+    setLocationFilter,
+    locations,
     clearFilters,
     addItem,
     updateItem,

@@ -16,38 +16,59 @@ export type Database = {
     Tables: {
       inventory_items: {
         Row: {
+          accessories: string | null
           category: Database["public"]["Enums"]["item_category"]
           condition: Database["public"]["Enums"]["item_condition"]
           created_at: string
+          dmx_channels: number | null
+          dmx_start_address: number | null
+          dmx_universe: number | null
           id: string
+          lent_to: string | null
+          lent_until: string | null
           location: string
           name: string
           notes: string | null
           quantity: number
+          unit_price: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          accessories?: string | null
           category: Database["public"]["Enums"]["item_category"]
           condition?: Database["public"]["Enums"]["item_condition"]
           created_at?: string
+          dmx_channels?: number | null
+          dmx_start_address?: number | null
+          dmx_universe?: number | null
           id?: string
+          lent_to?: string | null
+          lent_until?: string | null
           location: string
           name: string
           notes?: string | null
           quantity?: number
+          unit_price?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          accessories?: string | null
           category?: Database["public"]["Enums"]["item_category"]
           condition?: Database["public"]["Enums"]["item_condition"]
           created_at?: string
+          dmx_channels?: number | null
+          dmx_start_address?: number | null
+          dmx_universe?: number | null
           id?: string
+          lent_to?: string | null
+          lent_until?: string | null
           location?: string
           name?: string
           notes?: string | null
           quantity?: number
+          unit_price?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -91,6 +112,7 @@ export type Database = {
         | "Lichttechnik"
         | "Mikrofone"
         | "Zubehör"
+        | "Effektgeräte"
       item_condition: "verfügbar" | "verliehen" | "in-einsatz" | "defekt"
     }
     CompositeTypes: {
@@ -225,6 +247,7 @@ export const Constants = {
         "Lichttechnik",
         "Mikrofone",
         "Zubehör",
+        "Effektgeräte",
       ],
       item_condition: ["verfügbar", "verliehen", "in-einsatz", "defekt"],
     },

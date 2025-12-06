@@ -1,4 +1,4 @@
-import { Search, Filter, X } from "lucide-react";
+import { Search, Filter, X, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +17,9 @@ interface FilterBarProps {
   onCategoryChange: (value: ItemCategory | 'all') => void;
   conditionFilter: ItemCondition | 'all';
   onConditionChange: (value: ItemCondition | 'all') => void;
+  locationFilter?: string;
+  onLocationChange?: (value: string) => void;
+  locations?: string[];
   onClearFilters: () => void;
 }
 
@@ -27,9 +30,12 @@ export function FilterBar({
   onCategoryChange,
   conditionFilter,
   onConditionChange,
+  locationFilter = 'all',
+  onLocationChange,
+  locations = [],
   onClearFilters,
 }: FilterBarProps) {
-  const hasActiveFilters = searchQuery || categoryFilter !== 'all' || conditionFilter !== 'all';
+  const hasActiveFilters = searchQuery || categoryFilter !== 'all' || conditionFilter !== 'all' || locationFilter !== 'all';
 
   return (
     <div className="glass-card p-4 animate-slide-up" style={{ animationDelay: '100ms' }}>
@@ -69,6 +75,21 @@ export function FilterBar({
               ))}
             </SelectContent>
           </Select>
+
+          {onLocationChange && locations.length > 0 && (
+            <Select value={locationFilter} onValueChange={onLocationChange}>
+              <SelectTrigger className="w-[160px] glass-input">
+                <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Standort" />
+              </SelectTrigger>
+              <SelectContent className="glass-card border-border/50">
+                <SelectItem value="all">Alle Standorte</SelectItem>
+                {locations.map((loc) => (
+                  <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           {hasActiveFilters && (
             <Button 
