@@ -3,7 +3,6 @@ import { Package, CheckCircle, ArrowRightLeft, AlertTriangle, Zap, Clock, Activi
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { StatCard } from "@/components/StatCard";
 import { useInventory } from "@/hooks/useInventory";
-import { CONDITION_LABELS } from "@/types/inventory";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 
