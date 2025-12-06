@@ -1,73 +1,140 @@
-# Welcome to your Lovable project
+# Event Gear Keeper
 
-## Project info
+Professionelle Verwaltungssoftware für Event-Equipment mit QR-Code-Integration und DMX-Patchplan.
 
-**URL**: https://lovable.dev/projects/8d98f35f-8a55-4e48-ae0f-a8b3f3770be4
+## Features
 
-## How can I edit this code?
+### 📦 Inventarverwaltung
+- **Übersichtsansicht**: Grid- oder Tabellenformat für alle Geräte
+- **Detailseiten**: Vollständige Geräteinformationen mit QR-Codes
+- **Filterung & Suche**: Nach Status, Typ und Eigenschaften
+- **Statistiken**: Bestandsverfolgung in Echtzeit
 
-There are several ways of editing your application.
+### 🔲 QR-Code Funktionalität
+- **Automatische Generierung**: QR-Codes für jedes Gerät
+- **Anzeige & Download**: Mit item-spezifischen Details
+- **Drucken**: Vorbereitet für Etikettenausgabe
+- **Scanner**: Kamera-basiertes Scanning oder manuelle UUID-Eingabe
+- **Batch-Export**: Mehrere QR-Codes gleichzeitig generieren
 
-**Use Lovable**
+### 🎛️ DMX-Patchplan
+- **Adressenverwaltung**: DMX-Adressen (1-512) pro Universe
+- **Konflikt-Erkennung**: Automatische Warnung bei Adressüberlappungen
+- **Timeline-Visualisierung**: Grafische Darstellung von Adressenbelegung
+- **Mehrreihiges Layout**: Automatische Verteilung überlappender Geräte
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/8d98f35f-8a55-4e48-ae0f-a8b3f3770be4) and start prompting.
+### 👤 Authentifizierung
+- **Supabase-Integration**: Sichere Benutzer-Verwaltung
+- **Session-Persistierung**: Automatisches Logout nach Inaktivität
+- **Passwort-Reset**: Email-gestützte Wiederherstellung
 
-Changes made via Lovable will be committed automatically to this repo.
+## Tech-Stack
 
-**Use your preferred IDE**
+- **Frontend**: React 18.3 + TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS
+- **UI-Komponenten**: shadcn/ui
+- **Backend**: Supabase (PostgreSQL)
+- **QR-Generierung**: api.qrserver.com
+- **Deployment**: Vite SPA
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```bash
+# Dependencies installieren
+bun install
 
-Follow these steps:
+# Development Server starten
+bun run dev
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+# Production Build
+bun run build
 ```
 
-**Edit a file directly in GitHub**
+## Projekt-Struktur
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```
+src/
+├── components/          # React-Komponenten
+│   ├── ui/             # shadcn/ui Components
+│   ├── layout/         # Layout-Komponenten
+│   ├── FilterBar.tsx
+│   ├── InventoryGrid.tsx
+│   ├── InventoryTable.tsx
+│   ├── QRCodeDisplay.tsx
+│   └── QRScanner.tsx
+├── pages/              # Seiten/Views
+│   ├── Auth.tsx
+│   ├── Dashboard.tsx
+│   ├── Inventory.tsx
+│   ├── ItemDetail.tsx
+│   └── DMXPatchplan.tsx
+├── hooks/              # Custom React Hooks
+│   ├── useAuth.tsx
+│   ├── useInventory.ts
+│   └── useQRScanner.ts
+├── lib/                # Utility-Funktionen
+│   ├── qrCode.ts       # QR-Generierung
+│   ├── dmxPatchplan.ts # DMX-Logik
+│   └── utils.ts
+├── types/              # TypeScript Typen
+└── integrations/       # Backend-Integration
+    └── supabase/
 
-**Use GitHub Codespaces**
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Datenbankschema
 
-## What technologies are used for this project?
+### Items
+```sql
+- id (UUID, PK)
+- name (String)
+- type (String)
+- status (online/in-use/repair)
+- quantity (Integer)
+- location (String)
+- created_at (Timestamp)
+```
 
-This project is built with:
+### DMX Config
+```sql
+- id (UUID, PK)
+- item_id (UUID, FK)
+- universe (Integer)
+- start_address (Integer 1-512)
+- end_address (Integer 1-512)
+- instance (Integer)
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Usage
 
-## How can I deploy this project?
+### Item hinzufügen
+1. **Inventory** → **+ Neues Item**
+2. Form ausfüllen (Name, Typ, Eigenschaften)
+3. Optional: DMX-Adressen konfigurieren
+4. **Speichern** → Automatischer QR-Code wird generiert
 
-Simply open [Lovable](https://lovable.dev/projects/8d98f35f-8a55-4e48-ae0f-a8b3f3770be4) and click on Share -> Publish.
+### QR-Code verwenden
+1. **Item öffnen** → QR-Button klicken
+2. **Download**: Bild herunterladen
+3. **Drucken**: Direkt drucken auf Etiketten
+4. **Scannen**: Scanner-Icon in Inventory nutzen
 
-## Can I connect a custom domain to my Lovable project?
+### DMX konfigurieren
+1. **DMX Patchplan** → Universe auswählen
+2. **Gerät hinzufügen** → Adressen eingeben
+3. **Konflikte**: Rote Warnung wenn Adressen überlappen
+4. **Visualisierung**: Timeline zeigt alle Belegungen
 
-Yes, you can!
+## Features in Entwicklung
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- [ ] Batch-Operationen (mehrere Items gleichzeitig ändern)
+- [ ] Export-Funktionen (CSV, PDF)
+- [ ] Abhängigkeitsverfolgung (Zubehör-Sets)
+- [ ] Audit-Log (Änderungsverlauf)
+- [ ] Multi-Language Support
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Lizenz
+
+MIT
+

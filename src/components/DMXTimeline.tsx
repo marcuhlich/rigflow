@@ -1,3 +1,6 @@
+// Optimized DMXTimeline component
+// Cleaned layout, smoother visuals, increased minimum width, full-width timeline, improved spacing
+
 import { PatchplanRow, DMXConflict } from '@/lib/dmxPatchplan';
 import { cn } from '@/lib/utils';
 import { AlertTriangle } from 'lucide-react';
@@ -17,163 +20,173 @@ export function DMXTimeline({
   onRowHover,
   hoveredRowId,
 }: DMXTimelineProps) {
-  // Gruppiere nach Universe
   const universeGroups = new Map<number, PatchplanRow[]>();
   rows.forEach(row => {
-    if (!universeGroups.has(row.universe)) {
-      universeGroups.set(row.universe, []);
-    }
+    if (!universeGroups.has(row.universe)) universeGroups.set(row.universe, []);
     universeGroups.get(row.universe)!.push(row);
   });
 
+  const calculateRows = (universeRows: PatchplanRow[]): PatchplanRow[][] => {
+    const sorted = [...universeRows].sort((a, b) => a.startAddress - b.startAddress);
+    const display: PatchplanRow[][] = [];
+
+    for (const device of sorted) {
+      let placed = false;
+      for (const line of display) {
+        const conflict = line.some(existing => {
+          return !(device.endAddress < existing.startAddress || device.startAddress > existing.endAddress);
+        });
+        if (!conflict) {
+          line.push(device);
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) display.push([device]);
+    }
+
+    return display;
+  };
+
   const hasConflict = (row: PatchplanRow): boolean => {
-    return conflicts.some(
-      c => 
-        (c.row1.id === row.id && c.row2.id === row.id) ||
-        (c.row1.itemId === row.itemId && c.row1.instanceNumber === row.instanceNumber) ||
-        (c.row2.itemId === row.itemId && c.row2.instanceNumber === row.instanceNumber)
-    );
+    return conflicts.some(c => c.row1.id === row.id || c.row2.id === row.id);
   };
 
   const isRelatedToHovered = (row: PatchplanRow): boolean => {
     if (!hoveredRowId) return false;
-    return conflicts.some(
-      c =>
-        (c.row1.id === hoveredRowId && c.row2.id === row.id) ||
-        (c.row2.id === hoveredRowId && c.row1.id === row.id) ||
-        (c.row1.id === hoveredRowId && c.row1.id === row.id) ||
-        (c.row2.id === hoveredRowId && c.row2.id === row.id)
-    );
+    return conflicts.some(c => c.row1.id === hoveredRowId && c.row2.id === row.id || c.row2.id === hoveredRowId && c.row1.id === row.id);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       {Array.from(universeGroups.entries())
         .sort((a, b) => a[0] - b[0])
-        .map(([universe, universeRows]) => (
-          <div
-            key={universe}
-            className="glass-card p-4 space-y-3"
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-muted-foreground">
-                Universum {universe}
-              </h3>
-              <span className="text-xs text-muted-foreground">
-                {universeRows.reduce((sum, r) => Math.max(sum, r.endAddress), 0)}/512 Kanäle genutzt
-              </span>
-            </div>
+        .map(([universe, universeRows]) => {
+          const timelineRows = calculateRows(universeRows);
 
-            {/* Visual Timeline Bar */}
-            <div className="relative h-10 bg-muted/30 rounded-lg overflow-hidden border border-border/50">
-              {/* Address markers */}
-              <div className="absolute inset-0 flex justify-between px-3 text-xs text-muted-foreground/50 pt-1">
-                <span>1</span>
-                <span>128</span>
-                <span>256</span>
-                <span>384</span>
-                <span>512</span>
+          return (
+            <div key={universe} className="glass-card p-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-semibold">Universe {universe}</h3>
+                <span className="text-sm text-muted-foreground">
+                  {universeRows.reduce((sum, r) => Math.max(sum, r.endAddress), 0)}/512 Kanäle
+                </span>
               </div>
 
-              {/* Grid lines */}
-              {[1, 128, 256, 384, 512].map(addr => (
-                <div
-                  key={addr}
-                  className="absolute top-0 h-full w-px bg-border/20"
-                  style={{ left: `${((addr - 1) / 512) * 100}%` }}
-                />
-              ))}
+{/* Ruler */}
+{(() => {
+  const minAddr = Math.min(...universeRows.map(r => r.startAddress));
+  const maxAddr = Math.max(...universeRows.map(r => r.endAddress));
+  const range = maxAddr - minAddr + 1;
+  const steps = 5;
+  const markers = Array.from({ length: steps }, (_, i) => Math.round(minAddr + (i * range) / (steps - 1)));
+  return (
+    <div className="px-2 text-xs text-muted-foreground flex justify-between">
+      {markers.map(m => <span key={m}>{m}</span>)}
+    </div>
+  );
+})()}
 
-              {/* Device blocks */}
-              {universeRows.map(row => {
-                const left = ((row.startAddress - 1) / 512) * 100;
-                const width = ((row.endAddress - row.startAddress + 1) / 512) * 100;
-                const conflict = hasConflict(row);
-                const relatedHovered = isRelatedToHovered(row);
-                const isHovered = hoveredRowId === row.id;
+<div className="space-y-3">
+  {timelineRows.map((rowDevices, idx) => (
+    <div key={idx} className="relative h-16 w-full rounded-lg border border-border/40 bg-muted/20 overflow-hidden">
+      
+      {/* Fixed DMX grid */}
+      {[128, 256, 384, 512].map(a => (
+        <div
+          key={a}
+          className="absolute top-0 h-full w-px bg-border/30"
+          style={{ left: `${(a / 512) * 100}%` }}
+        />
+      ))}
 
-                return (
-                  <div
-                    key={row.id}
-                    className={cn(
-                      'absolute top-7 h-5 rounded flex items-center justify-center text-[10px] font-medium px-1 truncate cursor-pointer transition-all',
-                      conflict
-                        ? 'bg-destructive/80 text-destructive-foreground'
-                        : 'bg-primary/70 text-primary-foreground hover:bg-primary',
-                      isHovered && 'ring-2 ring-foreground scale-105 z-10',
-                      relatedHovered && 'opacity-100 ring-2 ring-warning',
-                      hoveredRowId && !isHovered && !relatedHovered && 'opacity-30'
-                    )}
-                    style={{
-                      left: `${left}%`,
-                      width: `${Math.max(width, 2)}%`,
-                    }}
-                    onMouseEnter={() => onRowHover?.(row)}
-                    onMouseLeave={() => onRowHover?.(null)}
-                    onClick={() => onRowClick?.(row)}
-                    title={`${row.itemName} #${row.instanceNumber}: ${row.startAddress}-${row.endAddress}`}
-                  >
-                    {width > 8 && `${row.startAddress}-${row.endAddress}`}
-                  </div>
-                );
-              })}
-            </div>
+      {rowDevices.map(device => {
+        // Berechnung fix auf 512 Kanäle
+        const left = ((device.startAddress - 1) / 512) * 100;
+        const widthPercent = ((device.endAddress - device.startAddress + 1) / 512) * 100;
 
-            {/* Detailed List */}
-            <div className="space-y-1 mt-3">
-              {universeRows.map(row => {
-                const conflict = hasConflict(row);
-                const isHovered = hoveredRowId === row.id;
+        const conflict = hasConflict(device);
+        const hovered = hoveredRowId === device.id;
+        const related = isRelatedToHovered(device);
 
-                return (
-                  <div
-                    key={row.id}
-                    className={cn(
-                      'flex items-center justify-between p-2 rounded border text-sm transition-all',
-                      conflict
-                        ? 'border-destructive/50 bg-destructive/5'
-                        : 'border-border/30 bg-muted/20 hover:bg-muted/40',
-                      isHovered && 'ring-2 ring-primary'
-                    )}
-                    onMouseEnter={() => onRowHover?.(row)}
-                    onMouseLeave={() => onRowHover?.(null)}
-                    onClick={() => onRowClick?.(row)}
-                  >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      {conflict && (
-                        <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate flex items-center gap-2">
-                          {row.itemName}
-                          {row.totalInstances > 1 && (
-                            <span className="text-xs font-normal text-muted-foreground">
-                              #{row.instanceNumber}/{row.totalInstances}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {row.location}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4 text-xs font-mono whitespace-nowrap ml-2">
-                      <div className="text-right">
-                        <div className="font-medium">{row.startAddress}-{row.endAddress}</div>
-                        <div className="text-muted-foreground">{row.channels}ch</div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+        return (
+          <div
+            key={device.id}
+            className={cn(
+              "absolute top-1 bottom-1 flex items-center justify-center rounded-md text-xs font-medium px-3 truncate cursor-pointer transition-all shadow-sm min-w-[12px]",
+              conflict
+                ? "bg-destructive/80 text-destructive-foreground hover:bg-destructive"
+                : "bg-primary/70 text-primary-foreground hover:bg-primary/90",
+              hovered && "ring-2 ring-offset-1 ring-foreground scale-[1.05] z-10",
+              related && "ring-2 ring-warning z-10",
+              hoveredRowId && !hovered && !related && "opacity-40"
+            )}
+            style={{ left: `${left}%`, width: `${widthPercent}%` }}
+            onMouseEnter={() => onRowHover?.(device)}
+            onMouseLeave={() => onRowHover?.(null)}
+            onClick={() => onRowClick?.(device)}
+          >
+            {widthPercent > 1 && `${device.startAddress}-${device.endAddress}`}
           </div>
-        ))}
+        );
+      })}
+    </div>
+  ))}
+</div>
+
+              {/* Device List */}
+              <div className="border-t border-border/20 pt-4 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Geräte</p>
+
+                {universeRows.map(row => {
+                  const conflict = hasConflict(row);
+                  const hovered = hoveredRowId === row.id;
+
+                  return (
+                    <div
+                      key={row.id}
+                      className={cn(
+                        "flex items-center justify-between p-3 rounded-lg border transition-all",
+                        conflict
+                          ? "border-destructive/40 bg-destructive/10 hover:bg-destructive/20"
+                          : "border-border/30 bg-muted/10 hover:bg-muted/25",
+                        hovered && "ring-2 ring-primary/50 shadow-md"
+                      )}
+                      onMouseEnter={() => onRowHover?.(row)}
+                      onMouseLeave={() => onRowHover?.(null)}
+                      onClick={() => onRowClick?.(row)}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {conflict && <AlertTriangle className="h-4 w-4 text-destructive" />}
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 font-medium text-sm truncate">
+                            {row.itemName}
+                            {row.totalInstances > 1 && (
+                              <span className="text-xs text-muted-foreground bg-muted/40 px-2 py-0.5 rounded">
+                                #{row.instanceNumber}/{row.totalInstances}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">📍 {row.location}</div>
+                        </div>
+                      </div>
+
+                      <div className="font-mono text-xs text-right ml-4">
+                        <div className="font-semibold">{row.startAddress}-{row.endAddress}</div>
+                        <div className="text-muted-foreground">{row.channels} Kanäle</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
 
       {rows.length === 0 && (
-        <div className="glass-card p-8 text-center">
-          <p className="text-muted-foreground">Keine DMX-Geräte konfiguriert</p>
+        <div className="glass-card p-12 text-center text-muted-foreground">
+          Keine DMX-Geräte konfiguriert
         </div>
       )}
     </div>
