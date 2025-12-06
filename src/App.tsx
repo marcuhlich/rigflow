@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
+import ItemDetail from "./pages/ItemDetail";
 import DMXPatchplan from "./pages/DMXPatchplan";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -57,6 +58,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Inventory />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/inventory/:id"
+        element={
+          <ProtectedRoute>
+            <ItemDetail />
           </ProtectedRoute>
         }
       />

@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Package, Sliders, Zap } from "lucide-react";
+import { LayoutDashboard, Package, Sliders } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
 import { cn } from "@/lib/utils";
 
@@ -18,16 +18,17 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 glass-card border-b border-border/50 rounded-none">
+      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-primary/10 pulse-glow">
-              <Zap className="h-6 w-6 text-primary" />
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground font-semibold text-sm tracking-wide">
+              EGK
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">
-                EventTech <span className="gradient-text">Inventory</span>
+              <h1 className="text-base font-semibold tracking-tight leading-tight">
+                Event Gear Keeper
               </h1>
+              <p className="text-xs text-muted-foreground">Inventarverwaltung</p>
             </div>
           </div>
 

@@ -61,19 +61,19 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
-        <p className="text-muted-foreground mt-1">Übersicht über dein Equipment</p>
+        <p className="text-muted-foreground text-sm mt-1">Übersicht über dein Equipment</p>
       </div>
 
       {/* Stats Grid */}
       <section className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard title="Gesamt" value={stats.total} icon={Package} variant="default" delay={0} />
-        <StatCard title="Verfügbar" value={stats.available} icon={CheckCircle} variant="success" delay={50} />
-        <StatCard title="Verliehen" value={stats.lent} icon={ArrowRightLeft} variant="warning" delay={100} />
-        <StatCard title="Im Einsatz" value={stats.inUse} icon={Zap} variant="primary" delay={150} />
-        <StatCard title="Defekt" value={stats.defect} icon={AlertTriangle} variant="destructive" delay={200} />
+        <StatCard title="Gesamt" value={stats.total} icon={Package} variant="default" />
+        <StatCard title="Verfügbar" value={stats.available} icon={CheckCircle} variant="success" />
+        <StatCard title="Verliehen" value={stats.lent} icon={ArrowRightLeft} variant="warning" />
+        <StatCard title="Im Einsatz" value={stats.inUse} icon={Zap} variant="primary" />
+        <StatCard title="Defekt" value={stats.defect} icon={AlertTriangle} variant="destructive" />
       </section>
 
       {/* Charts and Activities */}

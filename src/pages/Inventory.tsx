@@ -1,15 +1,19 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FilterBar } from "@/components/FilterBar";
 import { InventoryGrid } from "@/components/InventoryGrid";
 import { ItemForm } from "@/components/ItemForm";
+import { QRScanner } from "@/components/QRScanner";
 import { useInventory } from "@/hooks/useInventory";
 import { InventoryItem } from "@/types/inventory";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Inventory() {
+  const navigate = useNavigate();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const { toast } = useToast();
 
@@ -53,6 +57,29 @@ export default function Inventory() {
     }
   };
 
+  const handleViewDetails = (id: string) => {
+    navigate(`/inventory/${id}`);
+  };
+
+  const handleQRScan = (itemId: string) => {
+    // Find item and navigate to details
+    const scannedItem = items.find(i => i.id === itemId);
+    if (scannedItem) {
+      setIsScannerOpen(false);
+      navigate(`/inventory/${itemId}`);
+      toast({
+        title: "Item gefunden",
+        description: `${scannedItem.name} wurde gescannt.`,
+      });
+    } else {
+      toast({
+        title: "Item nicht gefunden",
+        description: "Kein Item mit dieser ID vorhanden.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleFormSubmit = async (data: Omit<InventoryItem, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     if (editItem) {
       await updateItem(editItem.id, data);
@@ -78,18 +105,28 @@ export default function Inventory() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Inventar</h2>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground text-sm mt-1">
             {items.length} {items.length === 1 ? "Artikel" : "Artikel"} gefunden
           </p>
         </div>
-        <Button onClick={handleAddClick} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Neues Item
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setIsScannerOpen(true)}
+            className="gap-2"
+          >
+            <QrCode className="h-4 w-4" />
+            QR-Code scannen
+          </Button>
+          <Button onClick={handleAddClick} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Neues Item
+          </Button>
+        </div>
       </div>
 
       <FilterBar
@@ -109,6 +146,7 @@ export default function Inventory() {
         items={items}
         onEdit={handleEditClick}
         onDelete={handleDeleteClick}
+        onViewDetails={handleViewDetails}
       />
 
       <ItemForm
@@ -116,6 +154,12 @@ export default function Inventory() {
         onClose={() => setIsFormOpen(false)}
         onSubmit={handleFormSubmit}
         editItem={editItem}
+      />
+
+      <QRScanner
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScan={handleQRScan}
       />
     </div>
   );
