@@ -1,15 +1,18 @@
 /**
  * Generiert einen QR-Code mit einer externen API (Quick Response API)
- * Der QR-Code enthält die eindeutige Item-ID
+ * Der QR-Code enthält Item-Daten als JSON oder Item-ID
  */
 import { logger } from './logger';
+import { encodeQRPayload } from './qrPayload';
+import { InventoryItem } from '@/types/inventory';
 
 export async function generateQRCodeDataUrl(
-  itemId: string,
+  itemIdOrData: string | InventoryItem,
   options?: {
     width?: number;
     margin?: number;
     color?: { dark?: string; light?: string };
+    usePayload?: boolean; // Nutze erweiterten Payload
   }
 ): Promise<string> {
   try {
@@ -20,8 +23,20 @@ export async function generateQRCodeDataUrl(
 
     // Nutze api.qrserver.com für QR-Code Generierung
     // Dieser Service benötigt keine Installation
-    const encodedId = encodeURIComponent(itemId);
-    const url = `https://api.qrserver.com/v1/create-qr-code/?size=${width}x${width}&data=${encodedId}&margin=${margin}&color=${darkColor}&bgcolor=${lightColor}`;
+    let data: string;
+    
+    if (typeof itemIdOrData === 'string') {
+      data = itemIdOrData;
+    } else if (options?.usePayload) {
+      // Nutze erweiterten Payload mit Item-Daten
+      data = encodeQRPayload(itemIdOrData);
+    } else {
+      // Fallback: nur die ID
+      data = itemIdOrData.id;
+    }
+
+    const encodedData = encodeURIComponent(data);
+    const url = `https://api.qrserver.com/v1/create-qr-code/?size=${width}x${width}&data=${encodedData}&margin=${margin}&color=${darkColor}&bgcolor=${lightColor}`;
 
     return url;
   } catch (error) {

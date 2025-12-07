@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { FilterBar } from "@/components/FilterBar";
 import { InventoryGrid } from "@/components/InventoryGrid";
 import { ItemForm } from "@/components/ItemForm";
-import { QRScanner } from "@/components/QRScanner";
+import { EnhancedQRScanner } from "@/components/EnhancedQRScanner";
 import { useInventory } from "@/hooks/useInventory";
 import { InventoryItem } from "@/types/inventory";
 import { useToast } from "@/hooks/use-toast";
@@ -105,26 +105,28 @@ export default function Inventory() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Inventar</h2>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">
             {items.length} {items.length === 1 ? "Artikel" : "Artikel"} gefunden
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <Button 
             variant="outline" 
             onClick={() => setIsScannerOpen(true)}
-            className="gap-2"
+            className="gap-2 flex-1 sm:flex-none text-xs sm:text-sm"
           >
             <QrCode className="h-4 w-4" />
-            QR-Code scannen
+            <span className="hidden sm:inline">QR scannen</span>
+            <span className="sm:hidden">Scan</span>
           </Button>
-          <Button onClick={handleAddClick} className="gap-2">
+          <Button onClick={handleAddClick} className="gap-2 flex-1 sm:flex-none text-xs sm:text-sm">
             <Plus className="h-4 w-4" />
-            Neues Item
+            <span className="hidden sm:inline">Neues Item</span>
+            <span className="sm:hidden">Item</span>
           </Button>
         </div>
       </div>
@@ -156,10 +158,11 @@ export default function Inventory() {
         editItem={editItem}
       />
 
-      <QRScanner
+      <EnhancedQRScanner
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
-        onScan={handleQRScan}
+        onItemFound={handleQRScan}
+        onNavigateToItem={handleViewDetails}
       />
     </div>
   );
