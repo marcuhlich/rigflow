@@ -73,19 +73,10 @@ export function DMXTimeline({
                 </span>
               </div>
 
-{/* Ruler */}
-{(() => {
-  const minAddr = Math.min(...universeRows.map(r => r.startAddress));
-  const maxAddr = Math.max(...universeRows.map(r => r.endAddress));
-  const range = maxAddr - minAddr + 1;
-  const steps = 5;
-  const markers = Array.from({ length: steps }, (_, i) => Math.round(minAddr + (i * range) / (steps - 1)));
-  return (
-    <div className="px-2 text-xs text-muted-foreground flex justify-between">
-      {markers.map(m => <span key={m}>{m}</span>)}
-    </div>
-  );
-})()}
+              {/* Ruler - immer 1-512 */}
+              <div className="px-2 text-xs text-muted-foreground flex justify-between">
+                {[1, 128, 256, 384, 512].map(m => <span key={m}>{m}</span>)}
+              </div>
 
 <div className="space-y-3">
   {timelineRows.map((rowDevices, idx) => (
