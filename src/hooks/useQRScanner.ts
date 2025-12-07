@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import jsQR from 'jsqr';
 
 export interface QRScannerResult {
   itemId: string;
@@ -8,7 +9,7 @@ export interface QRScannerResult {
 
 /**
  * Hook für QR-Code Scanning mit HTML5 Camera API
- * Nutzt jsQR Bibliothek für Dekodierung (wird inline eingebunden)
+ * Nutzt jsQR Bibliothek für Dekodierung
  */
 export function useQRScanner() {
   const [isScanning, setIsScanning] = useState(false);
@@ -17,6 +18,7 @@ export function useQRScanner() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animationIdRef = useRef<number | null>(null);
+  const isScanningRef = useRef(false);
   const { toast } = useToast();
 
   /**
@@ -52,12 +54,14 @@ export function useQRScanner() {
       videoRef.current.onloadedmetadata = () => {
         videoRef.current?.play();
         setIsScanning(true);
+        isScanningRef.current = true;
       };
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Kamera konnte nicht geöffnet werden';
       setError(errorMessage);
       setIsScanning(false);
+      isScanningRef.current = false;
       toast({
         title: 'Fehler',
         description: errorMessage,
@@ -71,6 +75,7 @@ export function useQRScanner() {
    */
   const stopScanning = useCallback(() => {
     setIsScanning(false);
+    isScanningRef.current = false;
 
     if (animationIdRef.current) {
       cancelAnimationFrame(animationIdRef.current);
@@ -89,89 +94,79 @@ export function useQRScanner() {
 
   /**
    * Scanne einen Frame und suche nach QR-Code
-   * Nutzt einfache Mustererkennung (für echte QR-Codes: jsQR Bibliothek verwenden)
    */
   const scanFrame = useCallback(
-    async (onScan: (result: QRScannerResult) => void): Promise<void> => {
-      if (!videoRef.current || !canvasRef.current || !isScanning) return;
+    (onScan: (result: QRScannerResult) => void): void => {
+      if (!videoRef.current || !canvasRef.current || !isScanningRef.current) return;
 
+      const video = videoRef.current;
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
 
       if (!ctx) return;
 
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
+      // Warte bis Video Dimensionen hat
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        if (isScanningRef.current) {
+          animationIdRef.current = requestAnimationFrame(() => scanFrame(onScan));
+        }
+        return;
+      }
 
-      ctx.drawImage(videoRef.current, 0, 0);
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      ctx.drawImage(video, 0, 0);
 
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
       // Verwende jsQR für QR-Code Dekodierung
-      // jsQR ist leicht und wird bei Bedarf geladen
-      try {
-        const result = await decodeQRCodeFromImageData(imageData);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'dontInvert',
+      });
 
-        if (result) {
-          // QR-Code gefunden!
-          const isValidId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-            result
-          );
+      if (code) {
+        // QR-Code gefunden!
+        const result = code.data;
+        const isValidId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          result
+        );
 
-          onScan({ itemId: result, isValid: isValidId });
+        onScan({ itemId: result, isValid: isValidId });
 
-          if (isValidId) {
-            toast({
-              title: 'Erfolg',
-              description: `Item gescannt: ${result.slice(0, 8)}...`,
-            });
-          } else {
-            toast({
-              title: 'Warnung',
-              description: 'QR-Code gescannt, aber keine gültige Item-ID',
-              variant: 'destructive',
-            });
-          }
+        if (isValidId) {
+          toast({
+            title: 'Erfolg',
+            description: `Item gescannt: ${result.slice(0, 8)}...`,
+          });
+        } else {
+          toast({
+            title: 'Warnung',
+            description: 'QR-Code gescannt, aber keine gültige Item-ID',
+            variant: 'destructive',
+          });
         }
-      } catch (err) {
-        // Stille Fehlerbehandlung - Scanner versucht weiterhin zu scannen
+        return; // Stop scanning after successful scan
       }
 
-      // ✅ NUR wenn noch scanning: AnimationFrame starten
-      if (isScanning) {
+      // Weiter scannen
+      if (isScanningRef.current) {
         animationIdRef.current = requestAnimationFrame(() => scanFrame(onScan));
       }
     },
-    [isScanning, toast] // ✅ stopScanning entfernt - zirkuläre Abhängigkeit
+    [toast]
   );
 
-  // ✅ WICHTIG: Separates useEffect für Cleanup
+  // Cleanup bei Unmount
   useEffect(() => {
     return () => {
+      isScanningRef.current = false;
       if (animationIdRef.current) {
         cancelAnimationFrame(animationIdRef.current);
         animationIdRef.current = null;
       }
     };
   }, []);
-
-  /**
-   * Dekodiert QR-Code aus ImageData
-   * Für eine vollständige Implementierung: jsQR installieren
-   * Momentan: Vereinfachte Erkennung
-   */
-  async function decodeQRCodeFromImageData(
-    imageData: ImageData
-  ): Promise<string | null> {
-    // Hinweis: Für echte QR-Code Dekodierung sollte jsQR installiert sein:
-    // npm install jsqr
-    // import jsQR from 'jsqr';
-    // Dann: const code = jsQR(imageData.data, imageData.width, imageData.height);
-
-    // Für jetzt: Dummy-Implementierung
-    // In Produktion: Echte jsQR Bibliothek verwenden
-    return null;
-  }
 
   return {
     videoRef,
