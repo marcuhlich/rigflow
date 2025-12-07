@@ -155,7 +155,9 @@ export default function DMXPatchplan() {
           rows={patchplan}
           conflicts={conflicts}
           hoveredRowId={hoveredRowId}
-          onRowHover={setHoveredRowId}
+          onRowHover={(row) => setHoveredRowId(row?.id ?? null)}
+          onAddressChange={updateItemDMXAddress}
+          onUniverseChange={updateItemDMXUniverse}
         />
       ) : (
         <DMXPatchplanTable
