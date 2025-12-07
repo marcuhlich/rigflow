@@ -60,31 +60,37 @@ export function calculateInstanceAddresses(
   startingAddress: number,
   universe: number
 ): PatchedInstance[] {
+  const MAX_DMX_ADDRESS = 512;
+  
   if (!item.dmx_channels || !item.dmx_start_address) {
     return [];
   }
 
   const instances: PatchedInstance[] = [];
   const channelsPerInstance = item.dmx_channels;
+  let currentAddress = startingAddress;
 
   for (let i = 1; i <= item.quantity; i++) {
-    const startAddr = startingAddress + (i - 1) * channelsPerInstance;
+    const startAddr = currentAddress;
     const endAddr = startAddr + channelsPerInstance - 1;
 
-    // DMX hat nur 512 Kanäle pro Universum
-    if (startAddr > 512) {
+    // ✅ WICHTIG: Prüfe dass ALLES in Range ist
+    if (endAddr > MAX_DMX_ADDRESS) {
       console.warn(
-        `Device ${item.name} Instanz ${i} überschreitet DMX-Limit in Universe ${universe}`
+        `Device "${item.name}" Instanz ${i} in Universe ${universe} überschreitet DMX-Limit. ` +
+        `Benötigt: ${channelsPerInstance} Kanäle ab ${startAddr}, aber nur ${MAX_DMX_ADDRESS - startAddr + 1} verfügbar.`
       );
-      continue;
+      break; // ✅ Abbrechen wenn nicht genug Platz
     }
 
     instances.push({
       instanceNumber: i,
       startAddress: startAddr,
-      endAddress: Math.min(endAddr, 512),
-      channels: channelsPerInstance,
+      endAddress: endAddr,
+      channels: channelsPerInstance, // ✅ Konsistent mit Adressen!
     });
+
+    currentAddress = endAddr + 1; // ✅ Zur nächsten verfügbaren Adresse
   }
 
   return instances;

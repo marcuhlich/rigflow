@@ -34,11 +34,10 @@ function QRScannerModal({ isOpen, onClose, onItemFound }: QRScannerModalProps) {
     }
 
     return () => {
-      if (isScanning) {
-        stopScanning();
-      }
+      // ✅ Bedingungslos aufräumen
+      stopScanning();
     };
-  }, [isOpen, scanMethod, isScanning, startScanning, stopScanning]);
+  }, [isOpen, scanMethod, startScanning, stopScanning]); // ✅ isScanning entfernt
 
   // Starte Scanning Loop wenn Kamera läuft
   useEffect(() => {

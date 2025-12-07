@@ -28,7 +28,12 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="glass" size="icon" className="rounded-full">
+        <Button
+          variant="glass"
+          size="icon"
+          className="rounded-full"
+          aria-label="Benutzermenü öffnen"
+        >
           <User className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>

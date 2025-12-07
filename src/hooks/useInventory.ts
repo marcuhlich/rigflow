@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { InventoryItem, ItemCategory, ItemCondition } from '@/types/inventory';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/lib/logger';
 
 export function useInventory() {
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -16,37 +17,57 @@ export function useInventory() {
   const { toast } = useToast();
 
   // Fetch items from database
-  const fetchItems = async () => {
-    if (!user) {
-      setItems([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('inventory_items')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      setItems(data as InventoryItem[]);
-    } catch (error) {
-      console.error('Error fetching items:', error);
-      toast({
-        title: "Fehler",
-        description: "Items konnten nicht geladen werden.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchItems();
-  }, [user]);
+    let isMounted = true;
+
+    const fetchItemsSafely = async () => {
+      if (!user) {
+        if (isMounted) {
+          setItems([]);
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('inventory_items')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // ✅ Prüfe ob Component noch gemountet ist
+        if (isMounted) {
+          setItems(data as InventoryItem[]);
+        }
+      } catch (error) {
+        if (isMounted) {
+          logger.error('Error fetching items:', error);
+          
+          const errorMessage = error instanceof Error 
+            ? error.message 
+            : 'Items konnten nicht geladen werden. Prüfe deine Internetverbindung.';
+          
+          toast({
+            title: "Fehler beim Laden",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchItemsSafely();
+
+    return () => {
+      isMounted = false; // ✅ Cleanup: Verhindere State Updates nach Unmount
+    };
+  }, [user, toast]); // ✅ Alle Dependencies hinzugefügt
 
   // Extract unique locations
   const locations = useMemo(() => {
@@ -95,7 +116,7 @@ export function useInventory() {
 
       setItems([data as InventoryItem, ...items]);
     } catch (error) {
-      console.error('Error adding item:', error);
+      logger.error('Error adding item:', error);
       toast({
         title: "Fehler",
         description: "Item konnte nicht hinzugefügt werden.",
@@ -118,7 +139,7 @@ export function useInventory() {
 
       setItems(items.map(item => item.id === id ? data as InventoryItem : item));
     } catch (error) {
-      console.error('Error updating item:', error);
+      logger.error('Error updating item:', error);
       toast({
         title: "Fehler",
         description: "Item konnte nicht aktualisiert werden.",
@@ -139,7 +160,7 @@ export function useInventory() {
 
       setItems(items.filter(item => item.id !== id));
     } catch (error) {
-      console.error('Error deleting item:', error);
+      logger.error('Error deleting item:', error);
       toast({
         title: "Fehler",
         description: "Item konnte nicht gelöscht werden.",
@@ -154,6 +175,29 @@ export function useInventory() {
     setCategoryFilter('all');
     setConditionFilter('all');
     setLocationFilter('all');
+  };
+
+  // ✅ Refetch-Funktion - triggert manuelles Neuladen
+  const refetch = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('inventory_items')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setItems(data as InventoryItem[]);
+    } catch (error) {
+      logger.error('Error refetching items:', error);
+      toast({
+        title: "Fehler beim Neuladen",
+        description: "Items konnten nicht neu geladen werden.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return {
@@ -174,6 +218,6 @@ export function useInventory() {
     addItem,
     updateItem,
     deleteItem,
-    refetch: fetchItems,
+    refetch,
   };
 }

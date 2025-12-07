@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { InventoryItem, CATEGORIES, CONDITIONS, CONDITION_LABELS, ItemCategory, ItemCondition, DMX_CATEGORIES } from "@/types/inventory";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { validators } from "@/lib/validators";
 
 interface ItemFormProps {
   isOpen: boolean;
@@ -44,6 +45,8 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
     dmx_universe: '',
     unit_price: '',
   });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const showDMXFields = DMX_CATEGORIES.includes(formData.category);
   const showLentFields = formData.condition === 'verliehen';
@@ -87,6 +90,52 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    const newErrors: Record<string, string> = {};
+    
+    // Validate basic fields
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name ist erforderlich';
+    }
+    
+    if (showDMXFields) {
+      // Validate DMX fields only if they are shown
+      if (formData.dmx_start_address) {
+        const addrValidation = validators.dmxAddress(formData.dmx_start_address);
+        if (!addrValidation.valid && addrValidation.error) {
+          newErrors.dmx_start_address = addrValidation.error;
+        }
+      }
+      
+      if (formData.dmx_channels) {
+        const channelsValidation = validators.dmxChannels(formData.dmx_channels);
+        if (!channelsValidation.valid && channelsValidation.error) {
+          newErrors.dmx_channels = channelsValidation.error;
+        }
+      }
+      
+      if (formData.dmx_universe) {
+        const universeValidation = validators.universe(formData.dmx_universe);
+        if (!universeValidation.valid && universeValidation.error) {
+          newErrors.dmx_universe = universeValidation.error;
+        }
+      }
+    }
+    
+    if (formData.quantity) {
+      const qtyValidation = validators.quantity(formData.quantity.toString());
+      if (!qtyValidation.valid && qtyValidation.error) {
+        newErrors.quantity = qtyValidation.error;
+      }
+    }
+    
+    // If there are errors, show them and don't submit
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setIsLoading(false);
+      return;
+    }
+    
+    setErrors({});
     
     try {
       await onSubmit({
@@ -131,8 +180,9 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="z.B. Moving Head LED"
                 required
-                className="glass-input"
+                className={`glass-input ${errors.name ? 'border-destructive' : ''}`}
               />
+              {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -162,8 +212,9 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
                   value={formData.quantity}
                   onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
                   required
-                  className="glass-input"
+                  className={`glass-input ${errors.quantity ? 'border-destructive' : ''}`}
                 />
+                {errors.quantity && <p className="text-xs text-destructive">{errors.quantity}</p>}
               </div>
             </div>
 
@@ -266,8 +317,9 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
                       value={formData.dmx_universe}
                       onChange={(e) => setFormData({ ...formData, dmx_universe: e.target.value })}
                       placeholder="1"
-                      className="glass-input"
+                      className={`glass-input ${errors.dmx_universe ? 'border-destructive' : ''}`}
                     />
+                    {errors.dmx_universe && <p className="text-xs text-destructive">{errors.dmx_universe}</p>}
                   </div>
 
                   <div className="space-y-2">
@@ -280,8 +332,9 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
                       value={formData.dmx_start_address}
                       onChange={(e) => setFormData({ ...formData, dmx_start_address: e.target.value })}
                       placeholder="1"
-                      className="glass-input"
+                      className={`glass-input ${errors.dmx_start_address ? 'border-destructive' : ''}`}
                     />
+                    {errors.dmx_start_address && <p className="text-xs text-destructive">{errors.dmx_start_address}</p>}
                   </div>
 
                   <div className="space-y-2">
@@ -293,8 +346,9 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
                       value={formData.dmx_channels}
                       onChange={(e) => setFormData({ ...formData, dmx_channels: e.target.value })}
                       placeholder="z.B. 16"
-                      className="glass-input"
+                      className={`glass-input ${errors.dmx_channels ? 'border-destructive' : ''}`}
                     />
+                    {errors.dmx_channels && <p className="text-xs text-destructive">{errors.dmx_channels}</p>}
                   </div>
                 </div>
               </div>

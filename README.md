@@ -1,4 +1,4 @@
-# Event Gear Keeper
+# Gearflow Inventory App
 
 Professionelle Verwaltungssoftware für Event-Equipment mit QR-Code-Integration und DMX-Patchplan.
 

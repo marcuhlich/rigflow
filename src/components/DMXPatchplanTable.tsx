@@ -14,6 +14,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { AlertTriangle, Edit2, Check, X, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/lib/logger';
 
 interface DMXPatchplanTableProps {
   rows: PatchplanRow[];
@@ -108,7 +109,7 @@ export function DMXPatchplanTable({
       setEditState(null);
       setEditingItem(null);
     } catch (error) {
-      console.error('Error saving edit:', error);
+      logger.error('Error saving edit:', error);
       toast({
         title: 'Fehler',
         description: 'Änderung konnte nicht gespeichert werden',

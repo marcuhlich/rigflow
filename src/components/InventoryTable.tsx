@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Pencil, Trash2, MoreVertical, Package, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "@/components/StatusBadge";
 import { QRCodeDisplay } from "@/components/QRCodeDisplay";
-import { InventoryItem } from "@/types/inventory";
+import { InventoryItem, ItemCondition } from "@/types/inventory";
 import { cn } from "@/lib/utils";
 
 interface InventoryTableProps {
@@ -27,7 +27,7 @@ interface InventoryTableProps {
   onViewDetails?: (id: string) => void;
 }
 
-export function InventoryTable({ items, onEdit, onDelete, onViewDetails }: InventoryTableProps) {
+export const InventoryTable = React.memo(function InventoryTable({ items, onEdit, onDelete, onViewDetails }: InventoryTableProps) {
   const [qrItemId, setQrItemId] = useState<string | null>(null);
   const qrItem = items.find(i => i.id === qrItemId);
 
@@ -88,7 +88,12 @@ export function InventoryTable({ items, onEdit, onDelete, onViewDetails }: Inven
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        aria-label="Elementaktionen"
+                      >
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -137,4 +142,4 @@ export function InventoryTable({ items, onEdit, onDelete, onViewDetails }: Inven
       )}
     </>
   );
-}
+});

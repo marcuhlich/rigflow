@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Pencil, Trash2, MapPin, Calendar, User, Package, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -14,7 +14,7 @@ interface InventoryGridProps {
   onViewDetails?: (id: string) => void;
 }
 
-export function InventoryGrid({ items, onEdit, onDelete, onViewDetails }: InventoryGridProps) {
+export const InventoryGrid = React.memo(function InventoryGrid({ items, onEdit, onDelete, onViewDetails }: InventoryGridProps) {
   const [qrItemId, setQrItemId] = useState<string | null>(null);
   const qrItem = items.find(i => i.id === qrItemId);
 
@@ -144,4 +144,4 @@ export function InventoryGrid({ items, onEdit, onDelete, onViewDetails }: Invent
       )}
     </>
   );
-}
+});

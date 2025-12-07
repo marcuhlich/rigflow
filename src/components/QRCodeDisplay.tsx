@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { generateQRCodeDataUrl, downloadQRCode, printQRCode } from '@/lib/qrCode';
 import { Download, Printer, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/lib/logger';
 
 interface QRCodeDisplayProps {
   itemId: string;
@@ -47,17 +48,29 @@ export function QRCodeDisplay({
   const loadQRCode = async () => {
     try {
       setLoading(true);
+      setQrCodeUrl(null); // ✅ Reset vor neuem Load
+      
       const url = await generateQRCodeDataUrl(itemId, { width: sizePixels });
+      
+      if (!url) {
+        throw new Error('QR-Code URL ist leer');
+      }
+      
       setQrCodeUrl(url);
     } catch (error) {
-      console.error('Error loading QR code:', error);
+      logger.error('Error loading QR code:', error);
+      
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Unbekannter Fehler';
+      
       toast({
-        title: 'Fehler',
-        description: 'QR-Code konnte nicht geladen werden',
+        title: 'QR-Code Fehler',
+        description: `${errorMessage}. Prüfe deine Internetverbindung.`,
         variant: 'destructive',
       });
     } finally {
-      setLoading(false);
+      setLoading(false); // ✅ MUSS SEIN - auch bei Fehler!
     }
   };
 
@@ -69,7 +82,7 @@ export function QRCodeDisplay({
         description: 'QR-Code wurde heruntergeladen',
       });
     } catch (error) {
-      console.error('Error downloading QR code:', error);
+      logger.error('Error downloading QR code:', error);
       toast({
         title: 'Fehler',
         description: 'QR-Code konnte nicht heruntergeladen werden',
@@ -86,7 +99,7 @@ export function QRCodeDisplay({
         description: 'Druck-Dialog geöffnet',
       });
     } catch (error) {
-      console.error('Error printing QR code:', error);
+      logger.error('Error printing QR code:', error);
       toast({
         title: 'Fehler',
         description: 'Druck-Dialog konnte nicht geöffnet werden',
@@ -149,7 +162,7 @@ export function QRCodeDisplay({
                     size="sm"
                     className="h-6 w-6 p-0"
                     onClick={handleCopyItemId}
-                    title="ID kopieren"
+                    aria-label="Item-ID kopieren"
                   >
                     <Copy className="h-3 w-3" />
                   </Button>

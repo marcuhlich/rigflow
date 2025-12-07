@@ -10,6 +10,16 @@ import { ItemForm } from "@/components/ItemForm";
 import { InventoryItem } from "@/types/inventory";
 import { useToast } from "@/hooks/use-toast";
 import { useInventory } from "@/hooks/useInventory";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 
@@ -22,6 +32,7 @@ export default function ItemDetail() {
   const [item, setItem] = useState<InventoryItem | null>(null);
   const [isQROpen, setIsQROpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -56,10 +67,6 @@ export default function ItemDetail() {
 
   const handleDelete = async () => {
     if (!item) return;
-    
-    if (!window.confirm(`Möchtest du ${item.name} wirklich löschen?`)) {
-      return;
-    }
 
     try {
       await deleteItem(item.id);
@@ -67,6 +74,7 @@ export default function ItemDetail() {
         title: "Item gelöscht",
         description: "Das Item wurde erfolgreich entfernt.",
       });
+      setIsDeleteOpen(false);
       navigate("/inventory");
     } catch (error) {
       toast({
@@ -74,6 +82,7 @@ export default function ItemDetail() {
         description: "Item konnte nicht gelöscht werden.",
         variant: "destructive",
       });
+      setIsDeleteOpen(false);
     }
   };
 
@@ -318,6 +327,27 @@ export default function ItemDetail() {
         }}
         size="lg"
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Item löschen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{item.name}" wird permanent gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Edit Dialog */}
       <ItemForm

@@ -2,6 +2,8 @@
  * Generiert einen QR-Code mit einer externen API (Quick Response API)
  * Der QR-Code enthält die eindeutige Item-ID
  */
+import { logger } from './logger';
+
 export async function generateQRCodeDataUrl(
   itemId: string,
   options?: {
@@ -23,7 +25,7 @@ export async function generateQRCodeDataUrl(
 
     return url;
   } catch (error) {
-    console.error('Error generating QR code:', error);
+    logger.error('Error generating QR code:', error);
     throw new Error('QR-Code konnte nicht generiert werden');
   }
 }
@@ -59,7 +61,7 @@ export async function generateQRCodeCanvas(
 
     img.src = dataUrl;
   } catch (error) {
-    console.error('Error generating QR code on canvas:', error);
+    logger.error('Error generating QR code on canvas:', error);
     throw error;
   }
 }
@@ -80,7 +82,7 @@ export async function downloadQRCode(
     link.click();
     document.body.removeChild(link);
   } catch (error) {
-    console.error('Error downloading QR code:', error);
+    logger.error('Error downloading QR code:', error);
     throw error;
   }
 }
@@ -188,7 +190,7 @@ export async function printQRCode(
     printWindow.document.write(html);
     printWindow.document.close();
   } catch (error) {
-    console.error('Error printing QR code:', error);
+    logger.error('Error printing QR code:', error);
     throw error;
   }
 }
@@ -228,7 +230,7 @@ export async function generateBatchQRCodes(
         dataUrl,
       });
     } catch (error) {
-      console.error(`Error generating QR code for ${item.name}:`, error);
+      logger.error(`Error generating QR code for ${item.name}:`, error);
     }
   }
 

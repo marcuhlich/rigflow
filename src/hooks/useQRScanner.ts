@@ -93,7 +93,7 @@ export function useQRScanner() {
    */
   const scanFrame = useCallback(
     async (onScan: (result: QRScannerResult) => void): Promise<void> => {
-      if (!videoRef.current || !canvasRef.current) return;
+      if (!videoRef.current || !canvasRef.current || !isScanning) return;
 
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
@@ -118,7 +118,6 @@ export function useQRScanner() {
             result
           );
 
-          stopScanning();
           onScan({ itemId: result, isValid: isValidId });
 
           if (isValidId) {
@@ -138,13 +137,23 @@ export function useQRScanner() {
         // Stille Fehlerbehandlung - Scanner versucht weiterhin zu scannen
       }
 
-      // Nächster Frame
+      // ✅ NUR wenn noch scanning: AnimationFrame starten
       if (isScanning) {
         animationIdRef.current = requestAnimationFrame(() => scanFrame(onScan));
       }
     },
-    [isScanning, stopScanning, toast]
+    [isScanning, toast] // ✅ stopScanning entfernt - zirkuläre Abhängigkeit
   );
+
+  // ✅ WICHTIG: Separates useEffect für Cleanup
+  useEffect(() => {
+    return () => {
+      if (animationIdRef.current) {
+        cancelAnimationFrame(animationIdRef.current);
+        animationIdRef.current = null;
+      }
+    };
+  }, []);
 
   /**
    * Dekodiert QR-Code aus ImageData

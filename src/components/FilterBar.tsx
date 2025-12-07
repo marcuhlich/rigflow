@@ -97,6 +97,7 @@ export function FilterBar({
               size="icon" 
               onClick={onClearFilters}
               className="text-muted-foreground hover:text-foreground"
+              aria-label="Filter zurücksetzen"
             >
               <X className="h-4 w-4" />
             </Button>
