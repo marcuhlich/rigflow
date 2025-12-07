@@ -162,7 +162,7 @@ export function DMXTimeline({
                             </span>
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-xs">
+                        <TooltipContent side="right" avoidCollisions align="start" className="max-w-xs">
                           <div className="space-y-1">
                             <p className="font-semibold">{device.itemName}</p>
                             {device.totalInstances > 1 && (

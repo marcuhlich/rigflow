@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import ItemDetail from "./pages/ItemDetail";
 import DMXPatchplan from "./pages/DMXPatchplan";
+import { ChecklistsPage } from "./pages/Checklists";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -75,6 +76,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <DMXPatchplan />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/checklists"
+        element={
+          <ProtectedRoute>
+            <ChecklistsPage />
           </ProtectedRoute>
         }
       />

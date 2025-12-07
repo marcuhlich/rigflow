@@ -113,18 +113,21 @@ export default function Inventory() {
             {items.length} {items.length === 1 ? "Artikel" : "Artikel"} gefunden
           </p>
         </div>
-        <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex gap-1.5 sm:gap-2 w-full sm:w-auto">
           <Button 
             variant="outline" 
             onClick={() => setIsScannerOpen(true)}
-            className="gap-2 flex-1 sm:flex-none text-xs sm:text-sm"
+            className="gap-1 flex-1 sm:flex-none px-2 sm:px-4 h-9 text-xs sm:text-sm"
           >
-            <QrCode className="h-4 w-4" />
+            <QrCode className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
             <span className="hidden sm:inline">QR scannen</span>
             <span className="sm:hidden">Scan</span>
           </Button>
-          <Button onClick={handleAddClick} className="gap-2 flex-1 sm:flex-none text-xs sm:text-sm">
-            <Plus className="h-4 w-4" />
+          <Button 
+            onClick={handleAddClick} 
+            className="gap-1 flex-1 sm:flex-none px-2 sm:px-4 h-9 text-xs sm:text-sm"
+          >
+            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
             <span className="hidden sm:inline">Neues Item</span>
             <span className="sm:hidden">Item</span>
           </Button>

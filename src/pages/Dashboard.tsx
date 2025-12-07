@@ -1,13 +1,16 @@
 import { useMemo } from "react";
-import { Package, CheckCircle, ArrowRightLeft, AlertTriangle, Zap, Clock, Activity } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Package, CheckCircle, ArrowRightLeft, AlertTriangle, Zap, Clock, Activity, CheckSquare, ArrowRight } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { StatCard } from "@/components/StatCard";
 import { useInventory } from "@/hooks/useInventory";
+import { useEventChecklists } from "@/hooks/useEventChecklists";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 
 export default function Dashboard() {
   const { allItems, stats, loading } = useInventory();
+  const { checklists } = useEventChecklists();
 
   const pieData = useMemo(() => [
     { name: "Verfügbar", value: stats.available, color: "hsl(152, 60%, 45%)" },
@@ -75,6 +78,25 @@ export default function Dashboard() {
         <StatCard title="Im Einsatz" value={stats.inUse} icon={Zap} variant="primary" />
         <StatCard title="Defekt" value={stats.defect} icon={AlertTriangle} variant="destructive" />
       </section>
+
+      {/* Quick Link to Checklists */}
+      {checklists.length > 0 && (
+        <Link
+          to="/checklists"
+          className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 hover:from-blue-100 hover:to-indigo-100 transition-colors group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-lg bg-blue-100 text-blue-600">
+              <CheckSquare className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm text-foreground">Event Checklisten</p>
+              <p className="text-xs text-muted-foreground">{checklists.length} aktive Checkliste{checklists.length !== 1 ? 'n' : ''}</p>
+            </div>
+          </div>
+          <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+        </Link>
+      )}
 
       {/* Charts and Activities */}
       <div className="grid lg:grid-cols-2 gap-6">
