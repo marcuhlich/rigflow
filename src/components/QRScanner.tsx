@@ -79,7 +79,7 @@ function QRScannerModal({ isOpen, onClose, onItemFound }: QRScannerModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="glass-card border-border/50 sm:max-w-[500px]">
+      <DialogContent className="glass-card border-border/50 w-[95vw] sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Camera className="h-5 w-5" />

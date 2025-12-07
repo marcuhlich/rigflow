@@ -163,15 +163,15 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="glass-card border-border/50 sm:max-w-[550px] max-h-[90vh] p-0 animate-scale-in">
-        <DialogHeader className="px-6 pt-6">
-          <DialogTitle className="text-xl font-semibold">
+      <DialogContent className="glass-card border-border/50 w-[95vw] sm:max-w-[550px] max-h-[90vh] p-0 animate-scale-in">
+        <DialogHeader className="px-3 sm:px-6 pt-4 sm:pt-6">
+          <DialogTitle className="text-lg sm:text-xl font-semibold">
             {editItem ? 'Item bearbeiten' : 'Neues Item hinzufügen'}
           </DialogTitle>
         </DialogHeader>
         
         <ScrollArea className="max-h-[calc(90vh-120px)]">
-          <form onSubmit={handleSubmit} className="space-y-5 px-6 pb-6 pt-4">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 px-3 sm:px-6 pb-4 sm:pb-6 pt-3 sm:pt-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name *</Label>
               <Input

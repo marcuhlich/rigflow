@@ -83,7 +83,7 @@ export function DMXConfigDialog({
 
   return (
     <Dialog open={isOpen && isDMXCategory} onOpenChange={onClose}>
-      <DialogContent className="glass-card border-border/50 sm:max-w-[400px] animate-scale-in">
+      <DialogContent className="glass-card border-border/50 w-[95vw] sm:max-w-[400px] animate-scale-in">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sliders className="h-5 w-5 text-primary" />

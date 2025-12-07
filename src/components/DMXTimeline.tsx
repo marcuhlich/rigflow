@@ -255,7 +255,7 @@ export function DMXTimeline({
 
         {/* Edit Dialog */}
         <Dialog open={!!editingRow} onOpenChange={(open) => !open && setEditingRow(null)}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="w-[95vw] sm:max-w-md">
             <DialogHeader>
               <DialogTitle>DMX-Adresse bearbeiten</DialogTitle>
             </DialogHeader>

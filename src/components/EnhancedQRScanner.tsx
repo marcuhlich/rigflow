@@ -137,7 +137,7 @@ export function EnhancedQRScanner({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="glass-card border-border/50 sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="glass-card border-border/50 w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto px-3 sm:px-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Camera className="h-5 w-5" />
@@ -147,7 +147,7 @@ export function EnhancedQRScanner({
 
         {!scannedItem ? (
           // Scanner Interface
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
             {/* Methoden-Auswahl */}
             <div className="flex gap-2">
               <Button
@@ -270,13 +270,13 @@ export function EnhancedQRScanner({
           </div>
         ) : (
           // Item Preview with Actions
-          <div className="space-y-4 py-4">
-            <Card className="p-4 space-y-3">
+          <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
+            <Card className="p-3 sm:p-4 space-y-2 sm:space-y-3">
               {/* Header */}
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg">{scannedItem.name}</h3>
-                  <p className="text-xs text-muted-foreground font-mono">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-base sm:text-lg truncate">{scannedItem.name}</h3>
+                  <p className="text-xs text-muted-foreground font-mono truncate">
                     {scannedItem.id.slice(0, 8)}...{scannedItem.id.slice(-8)}
                   </p>
                 </div>
@@ -284,7 +284,7 @@ export function EnhancedQRScanner({
               </div>
 
               {/* Info Grid */}
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                 <div className="flex items-center gap-2">
                   <Package className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Kategorie:</span>
@@ -324,7 +324,7 @@ export function EnhancedQRScanner({
             </Card>
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <Button
                 variant="outline"
                 onClick={() => {
