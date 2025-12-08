@@ -9,10 +9,10 @@ interface AppLayoutProps {
 }
 
 const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/inventory", icon: Package, label: "Inventar" },
-  { to: "/checklists", icon: CheckSquare, label: "Checklisten" },
-  { to: "/dmx", icon: Sliders, label: "DMX Patchplan" },
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", mobileLabel: "Home" },
+  { to: "/inventory", icon: Package, label: "Inventar", mobileLabel: "Inventar" },
+  { to: "/checklists", icon: CheckSquare, label: "Checklisten", mobileLabel: "Checks" },
+  { to: "/dmx", icon: Sliders, label: "DMX Patchplan", mobileLabel: "DMX" },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {
@@ -33,7 +33,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
           </div>
 
-          {/* Navigation */}
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => (
               <NavLink
@@ -75,7 +75,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               }
             >
               <item.icon className="h-3.5 w-3.5" />
-              {item.label}
+              {item.mobileLabel}
             </NavLink>
           ))}
         </nav>

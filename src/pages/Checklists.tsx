@@ -82,8 +82,11 @@ export function ChecklistsPage() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
-              <Plus className="h-4 w-4" />
+              {/* Desktop Icon */}
+              <Plus className="h-4 w-4 hidden sm:inline" />
               <span className="hidden sm:inline">Neue Checklist</span>
+
+              {/* Mobile */}
               <span className="sm:hidden">+</span>
             </Button>
           </DialogTrigger>
@@ -107,9 +110,7 @@ export function ChecklistsPage() {
                   placeholder="z.B. 'Summer Festival 2024'"
                   className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
                   onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      handleCreateChecklist();
-                    }
+                    if (e.key === 'Enter') handleCreateChecklist();
                   }}
                 />
               </div>
@@ -117,6 +118,7 @@ export function ChecklistsPage() {
               {/* Template Type */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Vorlagen-Typ</label>
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {(['pre-event', 'post-event', 'general'] as const).map((type) => (
                     <button
@@ -164,16 +166,10 @@ export function ChecklistsPage() {
             </div>
 
             <div className="flex gap-2 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => setIsDialogOpen(false)}
-              >
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Abbrechen
               </Button>
-              <Button
-                onClick={handleCreateChecklist}
-                disabled={!eventName.trim()}
-              >
+              <Button onClick={handleCreateChecklist} disabled={!eventName.trim()}>
                 Erstellen
               </Button>
             </div>
@@ -192,24 +188,22 @@ export function ChecklistsPage() {
             <p className="text-sm text-muted-foreground mb-4">
               Erstelle deine erste Checklist, um mit der Planung zu beginnen
             </p>
+
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Erste Checklist erstellen
+                  <Plus className="h-4 w-4 hidden sm:inline" />
+                  <span className="hidden sm:inline">Erste Checklist erstellen</span>
+                  <span className="sm:hidden">+</span>
                 </Button>
               </DialogTrigger>
-              {/* Dialog content is above */}
             </Dialog>
           </Card>
         </div>
       ) : (
         <div className="px-3 sm:px-6 space-y-4">
           {/* Info Banner */}
-          {checklists.some((c) => {
-            const stats = calculateChecklistStats(c.items);
-            return stats.pending > 0;
-          }) && (
+          {checklists.some((c) => calculateChecklistStats(c.items).pending > 0) && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
@@ -224,7 +218,9 @@ export function ChecklistsPage() {
               <div key={checklist.id} className={`rounded-lg border ${getTypeColor(checklist.type)}`}>
                 <ChecklistCard
                   checklist={checklist}
-                  onItemStatusChange={(itemId, status) => updateItemStatus(checklist.id, itemId, status)}
+                  onItemStatusChange={(itemId, status) =>
+                    updateItemStatus(checklist.id, itemId, status)
+                  }
                   onItemDelete={(itemId) => deleteItem(checklist.id, itemId)}
                   onAddItem={(text) => addItem(checklist.id, text, '')}
                   onDeleteChecklist={() => deleteChecklist(checklist.id)}

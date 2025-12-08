@@ -33,7 +33,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
   const [formData, setFormData] = useState({
     name: '',
     category: 'Kabel' as ItemCategory,
-    quantity: 1,
+    quantity: '1',
     condition: 'verfügbar' as ItemCondition,
     location: '',
     notes: '',
@@ -56,7 +56,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
       setFormData({
         name: editItem.name,
         category: editItem.category,
-        quantity: editItem.quantity,
+        quantity: editItem.quantity.toString(),
         condition: editItem.condition,
         location: editItem.location,
         notes: editItem.notes || '',
@@ -72,7 +72,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
       setFormData({
         name: '',
         category: 'Kabel',
-        quantity: 1,
+        quantity: '1',
         condition: 'verfügbar',
         location: '',
         notes: '',
@@ -95,6 +95,11 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
     // Validate basic fields
     if (!formData.name.trim()) {
       newErrors.name = 'Name ist erforderlich';
+    }
+
+    // Validate quantity
+    if (formData.quantity === "" || parseInt(formData.quantity) <= 0) {
+      newErrors.quantity = "Menge darf nicht 0 sein";
     }
     
     if (showDMXFields) {
@@ -141,7 +146,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
       await onSubmit({
         name: formData.name,
         category: formData.category,
-        quantity: formData.quantity,
+        quantity: parseInt(formData.quantity),
         condition: formData.condition,
         location: formData.location,
         notes: formData.notes || null,
@@ -210,8 +215,17 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
                   type="number"
                   min="1"
                   value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
-                  required
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    // leer erlauben
+                    if (val === '') {
+                      setFormData({ ...formData, quantity: '' });
+                    } else {
+                      // nur Zahlen erlauben
+                      setFormData({ ...formData, quantity: val });
+                    }
+                  }}
+                  placeholder="1"
                   className={`glass-input ${errors.quantity ? 'border-destructive' : ''}`}
                 />
                 {errors.quantity && <p className="text-xs text-destructive">{errors.quantity}</p>}
