@@ -1,46 +1,128 @@
 /**
- * Hook für Event Checklist Verwaltung
+ * Hook für Event Checklist Verwaltung mit Supabase Backend
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { EventChecklist, ChecklistItem, DEFAULT_TEMPLATES, calculateChecklistStats } from '@/types/checklist';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
-const STORAGE_KEY = 'event-checklists';
+interface DbChecklist {
+  id: string;
+  user_id: string;
+  event_name: string;
+  type: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DbChecklistItem {
+  id: string;
+  checklist_id: string;
+  text: string;
+  status: string;
+  notes: string | null;
+  item_order: number;
+  created_at: string;
+  updated_at: string;
+}
 
 export function useEventChecklists() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [checklists, setChecklists] = useState<EventChecklist[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [checklists, setChecklists] = useState<EventChecklist[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-      logger.error('useEventChecklists', 'Error loading checklists from localStorage', error, {});
-      return [];
+  // Lade Checklists von Supabase
+  const fetchChecklists = useCallback(async () => {
+    if (!user) {
+      setChecklists([]);
+      setLoading(false);
+      return;
     }
-  });
 
-  // Speichere Checklists in localStorage
-  const saveToLocalStorage = useCallback((updatedChecklists: EventChecklist[]) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedChecklists));
+      setLoading(true);
+      
+      // Fetch checklists
+      const { data: checklistsData, error: checklistsError } = await supabase
+        .from('checklists')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (checklistsError) throw checklistsError;
+
+      if (!checklistsData || checklistsData.length === 0) {
+        setChecklists([]);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch all items for these checklists
+      const checklistIds = checklistsData.map(c => c.id);
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('checklist_items')
+        .select('*')
+        .in('checklist_id', checklistIds)
+        .order('item_order', { ascending: true });
+
+      if (itemsError) throw itemsError;
+
+      // Map to EventChecklist format
+      const mappedChecklists: EventChecklist[] = checklistsData.map((checklist: DbChecklist) => ({
+        id: checklist.id,
+        eventName: checklist.event_name,
+        type: checklist.type as 'pre-event' | 'post-event' | 'general',
+        description: checklist.description || undefined,
+        createdAt: checklist.created_at,
+        updatedAt: checklist.updated_at,
+        user_id: checklist.user_id,
+        items: (itemsData || [])
+          .filter((item: DbChecklistItem) => item.checklist_id === checklist.id)
+          .map((item: DbChecklistItem) => ({
+            id: item.id,
+            text: item.text,
+            status: item.status as 'pending' | 'completed' | 'skipped',
+            order: item.item_order,
+            notes: item.notes || undefined,
+          })),
+      }));
+
+      setChecklists(mappedChecklists);
     } catch (error) {
-      logger.error('useEventChecklists', 'Error saving checklists to localStorage', error, {});
+      logger.error('useEventChecklists', 'Error loading checklists', error, {});
       toast({
         title: 'Fehler',
-        description: 'Checklists konnten nicht gespeichert werden',
+        description: 'Checklists konnten nicht geladen werden',
         variant: 'destructive',
       });
+    } finally {
+      setLoading(false);
     }
-  }, [toast]);
+  }, [user, toast]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchChecklists();
+  }, [fetchChecklists]);
 
   // Erstelle neue Checklist
-  const createChecklist = useCallback((
+  const createChecklist = useCallback(async (
     eventName: string,
     type: 'pre-event' | 'post-event' | 'general',
     templateId?: string
   ) => {
+    if (!user) {
+      toast({
+        title: 'Fehler',
+        description: 'Bitte melden Sie sich an',
+        variant: 'destructive',
+      });
+      return null;
+    }
+
     try {
       const template = templateId 
         ? Object.values(DEFAULT_TEMPLATES).find(t => t.id === templateId)
@@ -50,30 +132,43 @@ export function useEventChecklists() {
         throw new Error('Template nicht gefunden');
       }
 
-      const newChecklist: EventChecklist = {
-        id: `checklist-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        eventName,
-        type,
-        items: template.items.map((item, idx) => ({
-          id: `item-${idx}`,
-          text: item.text,
-          status: 'pending' as const,
-          order: item.order,
-        })),
-        description: template.description,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        user_id: 'current-user', // TODO: Nutzer-ID von Auth
-      };
+      // Create checklist
+      const { data: newChecklist, error: checklistError } = await supabase
+        .from('checklists')
+        .insert({
+          user_id: user.id,
+          event_name: eventName,
+          type,
+          description: template.description || null,
+        })
+        .select()
+        .single();
 
-      const updated = [newChecklist, ...checklists];
-      setChecklists(updated);
-      saveToLocalStorage(updated);
+      if (checklistError) throw checklistError;
+
+      // Create items if template has items
+      if (template.items && template.items.length > 0) {
+        const itemsToInsert = template.items.map((item, idx) => ({
+          checklist_id: newChecklist.id,
+          text: item.text,
+          status: 'pending',
+          item_order: item.order || idx + 1,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('checklist_items')
+          .insert(itemsToInsert);
+
+        if (itemsError) throw itemsError;
+      }
 
       toast({
         title: 'Checklist erstellt',
         description: `"${eventName}" wurde hinzugefügt`,
       });
+
+      // Refresh data
+      await fetchChecklists();
 
       return newChecklist;
     } catch (error) {
@@ -85,16 +180,24 @@ export function useEventChecklists() {
       });
       return null;
     }
-  }, [checklists, saveToLocalStorage, toast]);
+  }, [user, fetchChecklists, toast]);
 
   // Aktualisiere Checklist Item Status
-  const updateItemStatus = useCallback((
+  const updateItemStatus = useCallback(async (
     checklistId: string,
     itemId: string,
     status: 'pending' | 'completed' | 'skipped'
   ) => {
     try {
-      const updated = checklists.map(checklist => {
+      const { error } = await supabase
+        .from('checklist_items')
+        .update({ status })
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      // Update local state immediately for responsiveness
+      setChecklists(prev => prev.map(checklist => {
         if (checklist.id === checklistId) {
           return {
             ...checklist,
@@ -105,10 +208,8 @@ export function useEventChecklists() {
           };
         }
         return checklist;
-      });
+      }));
 
-      setChecklists(updated);
-      saveToLocalStorage(updated);
       return true;
     } catch (error) {
       logger.error('useEventChecklists', 'Error updating item status', error, {});
@@ -119,42 +220,59 @@ export function useEventChecklists() {
       });
       return false;
     }
-  }, [checklists, saveToLocalStorage, toast]);
+  }, [toast]);
 
   // Füge Item zu Checklist hinzu
-  const addItem = useCallback((
+  const addItem = useCallback(async (
     checklistId: string,
     text: string,
     notes?: string
   ) => {
     try {
-      const updated = checklists.map(checklist => {
-        if (checklist.id === checklistId) {
-          const maxOrder = Math.max(...checklist.items.map(i => i.order), 0);
+      // Get max order
+      const checklist = checklists.find(c => c.id === checklistId);
+      const maxOrder = checklist 
+        ? Math.max(...checklist.items.map(i => i.order), 0) 
+        : 0;
+
+      const { data: newItem, error } = await supabase
+        .from('checklist_items')
+        .insert({
+          checklist_id: checklistId,
+          text,
+          status: 'pending',
+          item_order: maxOrder + 1,
+          notes: notes || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update local state
+      setChecklists(prev => prev.map(cl => {
+        if (cl.id === checklistId) {
           return {
-            ...checklist,
+            ...cl,
             items: [
-              ...checklist.items,
+              ...cl.items,
               {
-                id: `item-${Date.now()}`,
-                text,
-                status: 'pending' as const,
-                order: maxOrder + 1,
-                notes,
+                id: newItem.id,
+                text: newItem.text,
+                status: newItem.status as 'pending' | 'completed' | 'skipped',
+                order: newItem.item_order,
+                notes: newItem.notes || undefined,
               },
             ],
             updatedAt: new Date().toISOString(),
           };
         }
-        return checklist;
-      });
-
-      setChecklists(updated);
-      saveToLocalStorage(updated);
+        return cl;
+      }));
 
       toast({
         title: 'Item hinzugefügt',
-        description: `"${text.substring(0, 30)}..." wurde zur Checklist hinzugefügt`,
+        description: `"${text.substring(0, 30)}${text.length > 30 ? '...' : ''}" wurde hinzugefügt`,
       });
 
       return true;
@@ -167,15 +285,23 @@ export function useEventChecklists() {
       });
       return false;
     }
-  }, [checklists, saveToLocalStorage, toast]);
+  }, [checklists, toast]);
 
   // Lösche Item
-  const deleteItem = useCallback((
+  const deleteItem = useCallback(async (
     checklistId: string,
     itemId: string
   ) => {
     try {
-      const updated = checklists.map(checklist => {
+      const { error } = await supabase
+        .from('checklist_items')
+        .delete()
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      // Update local state
+      setChecklists(prev => prev.map(checklist => {
         if (checklist.id === checklistId) {
           return {
             ...checklist,
@@ -184,23 +310,27 @@ export function useEventChecklists() {
           };
         }
         return checklist;
-      });
+      }));
 
-      setChecklists(updated);
-      saveToLocalStorage(updated);
       return true;
     } catch (error) {
       logger.error('useEventChecklists', 'Error deleting item', error, {});
       return false;
     }
-  }, [checklists, saveToLocalStorage, toast]);
+  }, []);
 
   // Lösche ganze Checklist
-  const deleteChecklist = useCallback((checklistId: string) => {
+  const deleteChecklist = useCallback(async (checklistId: string) => {
     try {
-      const updated = checklists.filter(c => c.id !== checklistId);
-      setChecklists(updated);
-      saveToLocalStorage(updated);
+      const { error } = await supabase
+        .from('checklists')
+        .delete()
+        .eq('id', checklistId);
+
+      if (error) throw error;
+
+      // Update local state
+      setChecklists(prev => prev.filter(c => c.id !== checklistId));
 
       toast({
         title: 'Checklist gelöscht',
@@ -212,7 +342,7 @@ export function useEventChecklists() {
       logger.error('useEventChecklists', 'Error deleting checklist', error, {});
       return false;
     }
-  }, [checklists, saveToLocalStorage, toast]);
+  }, [toast]);
 
   // Erhalte Checklist Stats
   const getChecklistStats = useCallback((checklistId: string) => {
@@ -223,11 +353,13 @@ export function useEventChecklists() {
 
   return {
     checklists,
+    loading,
     createChecklist,
     updateItemStatus,
     addItem,
     deleteItem,
     deleteChecklist,
     getChecklistStats,
+    refetch: fetchChecklists,
   };
 }
