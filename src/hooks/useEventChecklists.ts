@@ -1,12 +1,13 @@
 /**
- * Hook für Event Checklist Verwaltung mit Supabase Backend
+ * Hook für Event Checklist Verwaltung mit Supabase Backend und Realtime-Sync
  */
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { EventChecklist, ChecklistItem, DEFAULT_TEMPLATES, calculateChecklistStats } from '@/types/checklist';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface DbChecklist {
   id: string;
@@ -34,6 +35,7 @@ export function useEventChecklists() {
   const { user } = useAuth();
   const [checklists, setChecklists] = useState<EventChecklist[]>([]);
   const [loading, setLoading] = useState(true);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Lade Checklists von Supabase
   const fetchChecklists = useCallback(async () => {
@@ -102,6 +104,51 @@ export function useEventChecklists() {
       setLoading(false);
     }
   }, [user, toast]);
+
+  // Realtime subscription setup
+  useEffect(() => {
+    if (!user) return;
+
+    // Create realtime channel for both tables
+    const channel = supabase
+      .channel('checklists-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'checklists',
+        },
+        (payload) => {
+          logger.info('useEventChecklists', 'Realtime checklist change', { event: payload.eventType });
+          // Refetch on any checklist change
+          fetchChecklists();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'checklist_items',
+        },
+        (payload) => {
+          logger.info('useEventChecklists', 'Realtime item change', { event: payload.eventType });
+          // Refetch on any item change
+          fetchChecklists();
+        }
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [user, fetchChecklists]);
 
   // Initial fetch
   useEffect(() => {
