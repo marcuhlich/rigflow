@@ -116,43 +116,43 @@ export default function ItemDetail() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <Button
           variant="ghost"
           onClick={() => navigate("/inventory")}
-          className="gap-2"
+          className="gap-2 self-start"
         >
           <ChevronLeft className="h-4 w-4" />
           Zurück
         </Button>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setIsQROpen(true)}
-            className="gap-2"
+            className="gap-2 flex-1 sm:flex-none min-w-0"
           >
-            <QrCode className="h-4 w-4" />
-            QR-Code
+            <QrCode className="h-4 w-4 shrink-0" />
+            <span className="truncate">QR-Code</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setIsEditOpen(true)}
-            className="gap-2"
+            className="gap-2 flex-1 sm:flex-none min-w-0"
           >
-            <Edit2 className="h-4 w-4" />
-            Bearbeiten
+            <Edit2 className="h-4 w-4 shrink-0" />
+            <span className="truncate">Bearbeiten</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={handleDelete}
-            className="gap-2 text-destructive hover:text-destructive"
+            onClick={() => setIsDeleteOpen(true)}
+            className="gap-2 flex-1 sm:flex-none min-w-0 text-destructive hover:text-destructive"
           >
-            <Trash2 className="h-4 w-4" />
-            Löschen
+            <Trash2 className="h-4 w-4 shrink-0" />
+            <span className="truncate">Löschen</span>
           </Button>
         </div>
       </div>
