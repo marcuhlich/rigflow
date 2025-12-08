@@ -71,6 +71,14 @@ export const DEFAULT_TEMPLATES: Record<string, ChecklistTemplate> = {
       { text: 'Besitztümer überprüfen', status: 'pending', order: 7 },
     ],
   },
+  'general': {
+    id: 'template-general',
+    name: 'Allgemeine Checklist',
+    type: 'general',
+    description: 'Allgemeine Aufgaben ohne Vorlage',
+    category: 'default',
+    items: [],
+  },
 };
 
 export type ChecklistCompletionStatus = 'pending' | 'in-progress' | 'completed';

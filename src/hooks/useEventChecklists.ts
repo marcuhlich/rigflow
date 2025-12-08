@@ -9,24 +9,24 @@ import { logger } from '@/lib/logger';
 const STORAGE_KEY = 'event-checklists';
 
 export function useEventChecklists() {
+  const { toast } = useToast();
+
   const [checklists, setChecklists] = useState<EventChecklist[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       return stored ? JSON.parse(stored) : [];
     } catch (error) {
-      logger.error('Error loading checklists from localStorage:', error);
+      logger.error('useEventChecklists', 'Error loading checklists from localStorage', error, {});
       return [];
     }
   });
-
-  const { toast } = useToast();
 
   // Speichere Checklists in localStorage
   const saveToLocalStorage = useCallback((updatedChecklists: EventChecklist[]) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedChecklists));
     } catch (error) {
-      logger.error('Error saving checklists to localStorage:', error);
+      logger.error('useEventChecklists', 'Error saving checklists to localStorage', error, {});
       toast({
         title: 'Fehler',
         description: 'Checklists konnten nicht gespeichert werden',
@@ -77,7 +77,7 @@ export function useEventChecklists() {
 
       return newChecklist;
     } catch (error) {
-      logger.error('Error creating checklist:', error);
+      logger.error('useEventChecklists', 'Error creating checklist', error, {});
       toast({
         title: 'Fehler',
         description: 'Checklist konnte nicht erstellt werden',
@@ -111,7 +111,7 @@ export function useEventChecklists() {
       saveToLocalStorage(updated);
       return true;
     } catch (error) {
-      logger.error('Error updating item status:', error);
+      logger.error('useEventChecklists', 'Error updating item status', error, {});
       toast({
         title: 'Fehler',
         description: 'Item konnte nicht aktualisiert werden',
@@ -159,7 +159,7 @@ export function useEventChecklists() {
 
       return true;
     } catch (error) {
-      logger.error('Error adding item:', error);
+      logger.error('useEventChecklists', 'Error adding item', error, {});
       toast({
         title: 'Fehler',
         description: 'Item konnte nicht hinzugefügt werden',
@@ -190,7 +190,7 @@ export function useEventChecklists() {
       saveToLocalStorage(updated);
       return true;
     } catch (error) {
-      logger.error('Error deleting item:', error);
+      logger.error('useEventChecklists', 'Error deleting item', error, {});
       return false;
     }
   }, [checklists, saveToLocalStorage, toast]);
@@ -209,7 +209,7 @@ export function useEventChecklists() {
 
       return true;
     } catch (error) {
-      logger.error('Error deleting checklist:', error);
+      logger.error('useEventChecklists', 'Error deleting checklist', error, {});
       return false;
     }
   }, [checklists, saveToLocalStorage, toast]);

@@ -1,7 +1,7 @@
 /**
  * Event Checklists - Verwaltungsseite für alle Checklisten
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useEventChecklists } from '@/hooks/useEventChecklists';
 import { ChecklistCard } from '@/components/ChecklistCard';
 import { Button } from '@/components/ui/button';
