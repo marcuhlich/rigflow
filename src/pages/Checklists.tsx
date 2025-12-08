@@ -22,6 +22,7 @@ import { DEFAULT_TEMPLATES, calculateChecklistStats } from '@/types/checklist';
 export function ChecklistsPage() {
   const {
     checklists,
+    loading,
     createChecklist,
     deleteChecklist,
     updateItemStatus,
@@ -35,9 +36,9 @@ export function ChecklistsPage() {
     'pre-event'
   );
 
-  const handleCreateChecklist = () => {
+  const handleCreateChecklist = async () => {
     if (eventName.trim()) {
-      createChecklist(eventName, templateType);
+      await createChecklist(eventName, templateType);
       setEventName('');
       setTemplateType('pre-event');
       setIsDialogOpen(false);
@@ -47,6 +48,14 @@ export function ChecklistsPage() {
   const sortedChecklists = [...checklists].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   const getTypeColor = (type: string) => {
     switch (type) {
