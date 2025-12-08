@@ -128,22 +128,28 @@ export function ChecklistsPage() {
 
                 {/* Template Preview */}
                 <div className="mt-3 p-3 bg-muted rounded-lg border border-border">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">
-                    Enthält {DEFAULT_TEMPLATES[templateType].items.length} Standard-Items
-                  </p>
-                  <ul className="space-y-1">
-                    {DEFAULT_TEMPLATES[templateType].items.slice(0, 3).map((item, i) => (
-                      <li key={i} className="text-xs text-muted-foreground flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-                        {item.text}
-                      </li>
-                    ))}
-                    {DEFAULT_TEMPLATES[templateType].items.length > 3 && (
-                      <li className="text-xs text-muted-foreground italic">
-                        +{DEFAULT_TEMPLATES[templateType].items.length - 3} weitere...
-                      </li>
-                    )}
-                  </ul>
+                  {DEFAULT_TEMPLATES[templateType] ? (
+                    <>
+                      <p className="text-xs font-medium text-muted-foreground mb-2">
+                        Enthält {DEFAULT_TEMPLATES[templateType].items?.length ?? 0} Standard-Items
+                      </p>
+                      <ul className="space-y-1">
+                        {DEFAULT_TEMPLATES[templateType].items?.slice(0, 3).map((item, i) => (
+                          <li key={i} className="text-xs text-muted-foreground flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+                            {item.text}
+                          </li>
+                        ))}
+                        {(DEFAULT_TEMPLATES[templateType].items?.length ?? 0) > 3 && (
+                          <li className="text-xs text-muted-foreground italic">
+                            +{(DEFAULT_TEMPLATES[templateType].items?.length ?? 0) - 3} weitere...
+                          </li>
+                        )}
+                      </ul>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Template nicht gefunden</p>
+                  )}
                 </div>
               </div>
             </div>
