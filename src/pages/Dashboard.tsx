@@ -83,20 +83,21 @@ export default function Dashboard() {
       {checklists.length > 0 && (
         <Link
           to="/checklists"
-          className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 hover:from-blue-100 hover:to-indigo-100 transition-colors group"
-        >
+          className="flex items-center justify-between p-4 rounded-lg bg-muted/20 border border-primary/20 hover:bg-muted/30 transition-colors group">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-blue-100 text-blue-600">
+            <div className="p-2.5 rounded-lg bg-primary/10 text-foregroundry">
               <CheckSquare className="h-5 w-5" />
             </div>
             <div>
-              <p className="font-semibold text-sm text-foreground">Event Checklisten</p>
+              <p className="font-semibold text-sm text-white">Event Checklisten</p>
               <p className="text-xs text-muted-foreground">{checklists.length} aktive Checkliste{checklists.length !== 1 ? 'n' : ''}</p>
             </div>
           </div>
-          <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+          <ArrowRight className="h-5 w-5 text-gray-200 group-hover:text-white transition-colors" />
         </Link>
       )}
+
+
 
       {/* Charts and Activities */}
       <div className="grid lg:grid-cols-2 gap-6">
@@ -116,7 +117,7 @@ export default function Dashboard() {
                     cy="50%"
                     innerRadius={60}
                     outerRadius={100}
-                    paddingAngle={4}
+                    paddingAngle={0}
                     dataKey="value"
                   >
                     {pieData.map((entry, index) => (
@@ -129,10 +130,13 @@ export default function Dashboard() {
                       border: "1px solid hsl(220, 15%, 22%)",
                       borderRadius: "8px",
                     }}
+                    itemStyle={{ color: "white" }}
+                    labelStyle={{ color: "white" }}
                   />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
+
             </div>
           ) : (
             <div className="h-[280px] flex items-center justify-center text-muted-foreground">
