@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, QrCode, CheckSquare, Square } from "lucide-react";
+import { Plus, QrCode, CheckSquare, Square, Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { FilterBar } from "@/components/FilterBar";
 import { InventoryGrid } from "@/components/InventoryGrid";
 import { ItemForm } from "@/components/ItemForm";
@@ -11,6 +17,8 @@ import { AuditLogPanel } from "@/components/AuditLogPanel";
 import { useInventory } from "@/hooks/useInventory";
 import { InventoryItem } from "@/types/inventory";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { exportInventoryAsCSV, exportInventoryAsPDF, downloadCSV } from "@/lib/exportUtils";
 
 export default function Inventory() {
   const navigate = useNavigate();
@@ -19,6 +27,18 @@ export default function Inventory() {
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
+
+  const handleExportCSV = () => {
+    const csv = exportInventoryAsCSV(items);
+    downloadCSV(csv, `inventar-${new Date().toISOString().split('T')[0]}.csv`);
+    toast({ title: "Export erfolgreich", description: "CSV-Datei wurde heruntergeladen." });
+  };
+
+  const handleExportPDF = () => {
+    exportInventoryAsPDF(items);
+    toast({ title: "Export erfolgreich", description: "PDF-Datei wurde heruntergeladen." });
+  };
 
   const {
     items,
@@ -161,6 +181,27 @@ export default function Inventory() {
             <span className="hidden sm:inline">Neues Item</span>
             <span className="sm:hidden">Item</span>
           </Button>
+          
+          {!isMobile && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1 h-9 text-xs sm:text-sm">
+                  <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportCSV}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Als CSV exportieren
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportPDF}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Als PDF exportieren
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 
