@@ -1,15 +1,22 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, Sliders, Table as TableIcon, LayoutGrid, Download, RotateCcw } from "lucide-react";
+import { AlertTriangle, Sliders, Table as TableIcon, LayoutGrid, Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { StatusBadge } from "@/components/StatusBadge";
 import { useInventory } from "@/hooks/useInventory";
 import { useDMXPatchplan } from "@/hooks/useDMXPatchplan";
 import { cn } from "@/lib/utils";
 import { DMXTimeline } from "@/components/DMXTimeline";
 import { DMXPatchplanTable } from "@/components/DMXPatchplanTable";
 import { exportPatchplanAsCSV } from "@/lib/dmxPatchplan";
-import { PatchplanRow } from "@/lib/dmxPatchplan";
+import { exportPatchplanAsPDF, downloadCSV, exportPatchplanCSV } from "@/lib/exportUtils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useToast } from "@/hooks/use-toast";
 
 export default function DMXPatchplan() {
   const { allItems, loading } = useInventory();
@@ -23,6 +30,8 @@ export default function DMXPatchplan() {
   } = useDMXPatchplan();
   const [viewMode, setViewMode] = useState<'table' | 'timeline'>('timeline');
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   if (loading) {
     return (
@@ -33,16 +42,14 @@ export default function DMXPatchplan() {
   }
 
   const handleExportCSV = () => {
-    const csv = exportPatchplanAsCSV(patchplan);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `dmx-patchplan-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const csv = exportPatchplanCSV(patchplan);
+    downloadCSV(csv, `dmx-patchplan-${new Date().toISOString().split('T')[0]}.csv`);
+    toast({ title: "Export erfolgreich", description: "CSV-Datei wurde heruntergeladen." });
+  };
+
+  const handleExportPDF = () => {
+    exportPatchplanAsPDF(patchplan);
+    toast({ title: "Export erfolgreich", description: "PDF-Datei wurde heruntergeladen." });
   };
 
   return (
@@ -76,16 +83,31 @@ export default function DMXPatchplan() {
             <TableIcon className="h-4 w-4" />
             Tabelle
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportCSV}
-            className="gap-2"
-            disabled={patchplan.length === 0}
-          >
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
+          {!isMobile && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  disabled={patchplan.length === 0}
+                >
+                  <Download className="h-4 w-4" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportCSV}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Als CSV exportieren
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportPDF}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Als PDF exportieren
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 
