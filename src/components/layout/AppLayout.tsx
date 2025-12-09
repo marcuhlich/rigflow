@@ -23,11 +23,11 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground font-semibold text-sm tracking-wide">
-              EGK
+              GI
             </div>
             <div>
               <h1 className="text-base font-semibold tracking-tight leading-tight">
-                Event Gear Keeper
+                Technik Inventar
               </h1>
               <p className="text-xs text-muted-foreground">Inventarverwaltung</p>
             </div>

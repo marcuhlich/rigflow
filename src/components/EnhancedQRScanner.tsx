@@ -197,7 +197,7 @@ export function EnhancedQRScanner({
                   </div>
                 )}
 
-                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm text-blue-900 dark:text-blue-100">
+                <div className="p-4 rounded-lg bg-muted/20 border border-primary/20 group">
                   <strong>💡 Tipps:</strong>
                   <ul className="list-disc list-inside mt-2 space-y-1 text-xs">
                     <li>Gute Beleuchtung erforderlich</li>
@@ -219,7 +219,7 @@ export function EnhancedQRScanner({
                     value={itemId}
                     onChange={e => handleInputChange(e.target.value)}
                     onPaste={handlePaste}
-                    className="w-full px-3 py-2 rounded-lg border border-border font-mono text-sm"
+                    className="w-full px-3 py-2 rounded-lg border bg-muted/20 border-primary/20 group font-mono text-sm"
                   />
                   {itemId && (
                     <div className="text-xs">
