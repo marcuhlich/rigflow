@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          changes: Json | null
+          created_at: string
+          id: string
+          item_id: string | null
+          item_name: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          changes?: Json | null
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          item_name?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          changes?: Json | null
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          item_name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       checklist_items: {
         Row: {
           checklist_id: string
