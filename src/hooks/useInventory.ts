@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { InventoryItem, ItemCategory, ItemCondition } from '@/types/inventory';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
+import { Json } from '@/integrations/supabase/types';
 
 export function useInventory() {
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -12,9 +13,32 @@ export function useInventory() {
   const [categoryFilter, setCategoryFilter] = useState<ItemCategory | 'all'>('all');
   const [conditionFilter, setConditionFilter] = useState<ItemCondition | 'all'>('all');
   const [locationFilter, setLocationFilter] = useState<string>('all');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Audit log helper
+  const logAudit = async (
+    action: string,
+    itemId: string | null,
+    itemName: string | null,
+    changes?: Record<string, { old: unknown; new: unknown }>
+  ) => {
+    if (!user) return;
+    try {
+      await supabase.from('audit_log').insert([{
+        user_id: user.id,
+        item_id: itemId,
+        action,
+        item_name: itemName,
+        changes: (changes || null) as Json,
+      }]);
+    } catch (error) {
+      logger.error('useInventory', 'Audit log error', error);
+    }
+  };
 
   // Fetch items from database
   useEffect(() => {
@@ -37,7 +61,6 @@ export function useInventory() {
 
         if (error) throw error;
 
-        // ✅ Prüfe ob Component noch gemountet ist
         if (isMounted) {
           setItems(data as InventoryItem[]);
         }
@@ -65,9 +88,9 @@ export function useInventory() {
     fetchItemsSafely();
 
     return () => {
-      isMounted = false; // ✅ Cleanup: Verhindere State Updates nach Unmount
+      isMounted = false;
     };
-  }, [user, toast]); // ✅ Alle Dependencies hinzugefügt
+  }, [user, toast]);
 
   // Extract unique locations
   const locations = useMemo(() => {
@@ -115,6 +138,7 @@ export function useInventory() {
       if (error) throw error;
 
       setItems([data as InventoryItem, ...items]);
+      await logAudit('create', data.id, item.name);
     } catch (error) {
       logger.error('Error adding item:', error);
       toast({
@@ -128,6 +152,7 @@ export function useInventory() {
 
   const updateItem = async (id: string, updates: Omit<InventoryItem, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     try {
+      const oldItem = items.find(i => i.id === id);
       const { data, error } = await supabase
         .from('inventory_items')
         .update(updates)
@@ -138,6 +163,20 @@ export function useInventory() {
       if (error) throw error;
 
       setItems(items.map(item => item.id === id ? data as InventoryItem : item));
+      
+      // Log changes
+      if (oldItem) {
+        const changes: Record<string, { old: unknown; new: unknown }> = {};
+        Object.keys(updates).forEach(key => {
+          const k = key as keyof typeof updates;
+          if (oldItem[k] !== updates[k]) {
+            changes[key] = { old: oldItem[k], new: updates[k] };
+          }
+        });
+        if (Object.keys(changes).length > 0) {
+          await logAudit('update', id, oldItem.name, changes);
+        }
+      }
     } catch (error) {
       logger.error('Error updating item:', error);
       toast({
@@ -151,6 +190,7 @@ export function useInventory() {
 
   const deleteItem = async (id: string) => {
     try {
+      const item = items.find(i => i.id === id);
       const { error } = await supabase
         .from('inventory_items')
         .delete()
@@ -159,6 +199,9 @@ export function useInventory() {
       if (error) throw error;
 
       setItems(items.filter(item => item.id !== id));
+      if (item) {
+        await logAudit('delete', id, item.name);
+      }
     } catch (error) {
       logger.error('Error deleting item:', error);
       toast({
@@ -170,6 +213,146 @@ export function useInventory() {
     }
   };
 
+  // Selection management
+  const toggleSelection = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    setSelectedIds(new Set(filteredItems.map(i => i.id)));
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  // Batch operations
+  const batchUpdateCondition = async (condition: ItemCondition) => {
+    if (selectedIds.size === 0) return;
+    setIsProcessing(true);
+
+    try {
+      const ids = Array.from(selectedIds);
+      const { error } = await supabase
+        .from('inventory_items')
+        .update({ condition })
+        .in('id', ids);
+
+      if (error) throw error;
+
+      setItems(items.map(item => 
+        selectedIds.has(item.id) ? { ...item, condition } : item
+      ));
+
+      const names = items.filter(i => selectedIds.has(i.id)).map(i => i.name).join(', ');
+      await logAudit('batch_update', null, `${selectedIds.size} Items`, {
+        condition: { old: 'diverse', new: condition },
+        items: { old: null, new: names }
+      });
+
+      toast({
+        title: "Batch-Update erfolgreich",
+        description: `${selectedIds.size} Item(s) aktualisiert.`,
+      });
+      clearSelection();
+    } catch (error) {
+      logger.error('Batch update error:', error);
+      toast({
+        title: "Fehler",
+        description: "Batch-Update fehlgeschlagen.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const batchUpdateLocation = async (location: string) => {
+    if (selectedIds.size === 0) return;
+    setIsProcessing(true);
+
+    try {
+      const ids = Array.from(selectedIds);
+      const { error } = await supabase
+        .from('inventory_items')
+        .update({ location })
+        .in('id', ids);
+
+      if (error) throw error;
+
+      setItems(items.map(item => 
+        selectedIds.has(item.id) ? { ...item, location } : item
+      ));
+
+      const names = items.filter(i => selectedIds.has(i.id)).map(i => i.name).join(', ');
+      await logAudit('batch_update', null, `${selectedIds.size} Items`, {
+        location: { old: 'diverse', new: location },
+        items: { old: null, new: names }
+      });
+
+      toast({
+        title: "Batch-Update erfolgreich",
+        description: `${selectedIds.size} Item(s) verschoben.`,
+      });
+      clearSelection();
+    } catch (error) {
+      logger.error('Batch update error:', error);
+      toast({
+        title: "Fehler",
+        description: "Batch-Update fehlgeschlagen.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const batchDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setIsProcessing(true);
+
+    try {
+      const ids = Array.from(selectedIds);
+      const names = items.filter(i => selectedIds.has(i.id)).map(i => i.name).join(', ');
+      
+      const { error } = await supabase
+        .from('inventory_items')
+        .delete()
+        .in('id', ids);
+
+      if (error) throw error;
+
+      setItems(items.filter(item => !selectedIds.has(item.id)));
+      
+      await logAudit('batch_delete', null, `${selectedIds.size} Items`, {
+        items: { old: names, new: null }
+      });
+
+      toast({
+        title: "Items gelöscht",
+        description: `${selectedIds.size} Item(s) entfernt.`,
+      });
+      clearSelection();
+    } catch (error) {
+      logger.error('Batch delete error:', error);
+      toast({
+        title: "Fehler",
+        description: "Batch-Löschen fehlgeschlagen.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const clearFilters = () => {
     setSearchQuery('');
     setCategoryFilter('all');
@@ -177,7 +360,6 @@ export function useInventory() {
     setLocationFilter('all');
   };
 
-  // ✅ Refetch-Funktion - triggert manuelles Neuladen
   const refetch = async () => {
     setLoading(true);
     try {
@@ -219,5 +401,15 @@ export function useInventory() {
     updateItem,
     deleteItem,
     refetch,
+    // Selection
+    selectedIds,
+    toggleSelection,
+    selectAll,
+    clearSelection,
+    // Batch operations
+    isProcessing,
+    batchUpdateCondition,
+    batchUpdateLocation,
+    batchDelete,
   };
 }
