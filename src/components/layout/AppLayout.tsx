@@ -27,7 +27,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
             <div>
               <h1 className="text-base font-semibold tracking-tight leading-tight">
-                Technik Inventar
+                Rigflow
               </h1>
               <p className="text-xs text-muted-foreground">Inventarverwaltung</p>
             </div>

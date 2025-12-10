@@ -171,7 +171,7 @@ export function printInventory(items: InventoryItem[]): void {
       </table>
       
       <div class="print-footer">
-        Technik Inventar · Gedruckt am ${dateStr}
+        Rigflow · Gedruckt am ${dateStr}
       </div>
     </body>
     </html>
@@ -281,7 +281,7 @@ export function printPatchplan(rows: PatchplanRow[], conflicts: { row1: Patchpla
       ${tablesHtml}
       
       <div class="print-footer">
-        Technik Inventar · DMX Patchplan · Gedruckt am ${dateStr}
+        Rigflow · DMX Patchplan · Gedruckt am ${dateStr}
       </div>
     </body>
     </html>
