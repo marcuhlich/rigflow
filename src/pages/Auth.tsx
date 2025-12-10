@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Zap, Mail, Lock, User, Loader2 } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Zap, Mail, Lock, User, Loader2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -227,6 +227,16 @@ const Auth = () => {
                 </>
               )}
             </button>
+          </div>
+
+          <div className="mt-4 text-center">
+            <Link
+              to="/install"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Download className="h-3.5 w-3.5" />
+              App installieren
+            </Link>
           </div>
         </div>
       </div>

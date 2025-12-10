@@ -13,6 +13,7 @@ import ItemDetail from "./pages/ItemDetail";
 import DMXPatchplan from "./pages/DMXPatchplan";
 import { ChecklistsPage } from "./pages/Checklists";
 import Auth from "./pages/Auth";
+import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -47,6 +48,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
+      <Route path="/install" element={<Install />} />
       <Route
         path="/"
         element={
