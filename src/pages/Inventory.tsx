@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, QrCode, CheckSquare, Square, Download, FileText } from "lucide-react";
+import { Plus, QrCode, CheckSquare, Square, Download, FileText, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { FilterBar } from "@/components/FilterBar";
@@ -19,6 +20,7 @@ import { InventoryItem } from "@/types/inventory";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { exportInventoryAsCSV, exportInventoryAsPDF, downloadCSV } from "@/lib/exportUtils";
+import { printInventory } from "@/lib/printUtils";
 
 export default function Inventory() {
   const navigate = useNavigate();
@@ -38,6 +40,10 @@ export default function Inventory() {
   const handleExportPDF = () => {
     exportInventoryAsPDF(items);
     toast({ title: "Export erfolgreich", description: "PDF-Datei wurde heruntergeladen." });
+  };
+
+  const handlePrint = () => {
+    printInventory(items);
   };
 
   const {
@@ -198,6 +204,11 @@ export default function Inventory() {
                 <DropdownMenuItem onClick={handleExportPDF}>
                   <FileText className="h-4 w-4 mr-2" />
                   Als PDF exportieren
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handlePrint}>
+                  <Printer className="h-4 w-4 mr-2" />
+                  Drucken
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
