@@ -1,4 +1,4 @@
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,10 +10,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 export function UserMenu() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     await signOut();
@@ -44,6 +46,11 @@ export function UserMenu() {
             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
           </div>
         </DropdownMenuLabel>
+        <DropdownMenuSeparator className="bg-border/50" />
+        <DropdownMenuItem onClick={() => navigate("/install")} className="cursor-pointer">
+          <Download className="h-4 w-4 mr-2" />
+          App installieren
+        </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-border/50" />
         <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive">
           <LogOut className="h-4 w-4 mr-2" />
