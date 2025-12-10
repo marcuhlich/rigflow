@@ -130,7 +130,7 @@ export default function Install() {
                 <p className="text-xs text-muted-foreground">
                   <strong>iOS:</strong> Teilen → Zum Homebildschirm
                   <br />
-                  <strong>Android:</strong> Menü → App installieren
+                  <strong>Android:</strong> Menü (Drei Punkte) → Zum Startbildschirm hinzufügen
                 </p>
               </div>
               <Button variant="outline" className="w-full" onClick={() => navigate("/")}>
