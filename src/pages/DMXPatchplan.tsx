@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, Sliders, Table as TableIcon, LayoutGrid, Download, FileText } from "lucide-react";
+import { AlertTriangle, Sliders, Table as TableIcon, LayoutGrid, Download, FileText, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,8 +14,8 @@ import { useDMXPatchplan } from "@/hooks/useDMXPatchplan";
 import { cn } from "@/lib/utils";
 import { DMXTimeline } from "@/components/DMXTimeline";
 import { DMXPatchplanTable } from "@/components/DMXPatchplanTable";
-import { exportPatchplanAsCSV } from "@/lib/dmxPatchplan";
 import { exportPatchplanAsPDF, downloadCSV, exportPatchplanCSV } from "@/lib/exportUtils";
+import { printPatchplan } from "@/lib/printUtils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 
@@ -50,6 +51,10 @@ export default function DMXPatchplan() {
   const handleExportPDF = () => {
     exportPatchplanAsPDF(patchplan);
     toast({ title: "Export erfolgreich", description: "PDF-Datei wurde heruntergeladen." });
+  };
+
+  const handlePrint = () => {
+    printPatchplan(patchplan, conflicts);
   };
 
   return (
@@ -104,6 +109,11 @@ export default function DMXPatchplan() {
                 <DropdownMenuItem onClick={handleExportPDF}>
                   <FileText className="h-4 w-4 mr-2" />
                   Als PDF exportieren
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handlePrint}>
+                  <Printer className="h-4 w-4 mr-2" />
+                  Drucken
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
