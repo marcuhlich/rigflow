@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { LayoutDashboard, Package, Sliders, CheckSquare } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { cn } from "@/lib/utils";
 
 interface AppLayoutProps {
@@ -85,6 +86,9 @@ export function AppLayout({ children }: AppLayoutProps) {
       <main className="flex-1 p-4 md:p-8 overflow-x-hidden">
         <div className="max-w-7xl mx-auto w-full">{children}</div>
       </main>
+
+      {/* Offline Indicator */}
+      <OfflineIndicator />
     </div>
   );
 }
