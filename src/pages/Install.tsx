@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Smartphone, Check, Wifi, WifiOff } from "lucide-react";
+import { Download, Smartphone, Check, Wifi, WifiOff, Bell, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { PushService } from "@/lib/pushService";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -13,6 +15,8 @@ export default function Install() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
+  const [isRequestingNotification, setIsRequestingNotification] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,6 +36,11 @@ export default function Install() {
     // Check if already installed
     if (window.matchMedia("(display-mode: standalone)").matches) {
       setIsInstalled(true);
+    }
+
+    // Check notification permission
+    if ("Notification" in window) {
+      setNotificationPermission(Notification.permission);
     }
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -59,6 +68,28 @@ export default function Install() {
     setDeferredPrompt(null);
   };
 
+  const handleRequestNotificationPermission = async () => {
+    setIsRequestingNotification(true);
+    try {
+      const permission = await PushService.requestNotificationPermission();
+      setNotificationPermission(permission);
+
+      if (permission === "granted") {
+        // Show test notification
+        await PushService.showNotification("RigFlow", {
+          body: "Benachrichtigungen sind aktiviert! 🎉",
+          tag: "welcome",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to request notification permission:", error);
+    } finally {
+      setIsRequestingNotification(false);
+    }
+  };
+
+  const hasNotificationPermission = notificationPermission === "granted";
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-card/50 backdrop-blur-sm border-border/50">
@@ -66,9 +97,9 @@ export default function Install() {
           <div className="mx-auto mb-4 w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center">
             <Smartphone className="w-10 h-10 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Rigflow App installieren</CardTitle>
+          <CardTitle className="text-2xl">RigFlow einrichten</CardTitle>
           <CardDescription>
-            Installiere die App auf deinem Gerät für schnellen Zugriff und Offline-Funktionalität
+            Optimiere deine App für offline Nutzung und Benachrichtigungen
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -87,9 +118,9 @@ export default function Install() {
             )}
           </div>
 
-          {/* Features */}
+          {/* Installation Section */}
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-foreground">Vorteile der Installation:</h3>
+            <h3 className="text-sm font-medium text-foreground">App-Installation:</h3>
             <ul className="space-y-2">
               {[
                 "Schneller Zugriff vom Homescreen",
@@ -105,12 +136,51 @@ export default function Install() {
             </ul>
           </div>
 
+          {/* Notifications Section */}
+          <div className="space-y-3 p-3 rounded-lg bg-accent/5 border border-accent/20">
+            <div className="flex items-center gap-2">
+              <Bell className="w-4 h-4 text-accent" />
+              <h3 className="text-sm font-medium text-foreground">Benachrichtigungen</h3>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Erhalte Updates, wenn deine Items synchronisiert werden oder Konflikte aufgelöst werden müssen.
+            </p>
+
+            {notificationPermission === "default" && (
+              <Button
+                size="sm"
+                onClick={handleRequestNotificationPermission}
+                disabled={isRequestingNotification}
+                className="w-full"
+              >
+                <Bell className="w-4 h-4 mr-2" />
+                {isRequestingNotification ? "Wird aktiviert..." : "Benachrichtigungen aktivieren"}
+              </Button>
+            )}
+
+            {hasNotificationPermission && (
+              <div className="flex items-center gap-2 p-2 rounded bg-green-500/10 text-green-600">
+                <Check className="w-4 h-4" />
+                <span className="text-xs font-medium">Benachrichtigungen aktiviert</span>
+              </div>
+            )}
+
+            {notificationPermission === "denied" && (
+              <Alert variant="destructive" className="bg-destructive/10">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  Benachrichtigungen sind deaktiviert. Aktiviere sie in den Browser-Einstellungen.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+
           {/* Install Button */}
           {isInstalled ? (
             <div className="space-y-3">
               <div className="flex items-center justify-center gap-2 p-4 rounded-lg bg-green-500/10 text-green-500">
                 <Check className="w-5 h-5" />
-                <span className="font-medium">App ist bereits installiert</span>
+                <span className="font-medium text-sm">App ist bereits installiert</span>
               </div>
               <Button className="w-full" onClick={() => navigate("/")}>
                 Zur App

@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PushService } from "@/lib/pushService";
+import { logger } from "@/lib/logger";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import ItemDetail from "./pages/ItemDetail";
@@ -94,6 +96,46 @@ function AppRoutes() {
   );
 }
 
+function AppInitializer() {
+  useEffect(() => {
+    // Initialize push notifications and service worker
+    const initializePush = async () => {
+      try {
+        const initialized = await PushService.initialize({
+          enableNotifications: true,
+          enableBackground: true,
+        });
+
+        if (initialized) {
+          logger.info("App", "Push service initialized");
+
+          // Listen for messages from service worker
+          PushService.onMessage((message) => {
+            logger.info("App", "Message from SW:", message.type);
+
+            switch (message.type) {
+              case "SW_UPDATE_AVAILABLE":
+                logger.info("App", "Service worker update available");
+                break;
+              case "SYNC_START":
+                logger.info("App", "Background sync started");
+                break;
+              default:
+                break;
+            }
+          });
+        }
+      } catch (error) {
+        logger.error("App", "Failed to initialize push service", error);
+      }
+    };
+
+    initializePush();
+  }, []);
+
+  return null;
+}
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -102,6 +144,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <AppInitializer />
             <AppRoutes />
           </BrowserRouter>
         </TooltipProvider>

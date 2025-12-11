@@ -7,6 +7,7 @@ import { logger } from '@/lib/logger';
 import { Json } from '@/integrations/supabase/types';
 import { offlineQueue } from '@/lib/offlineQueue';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 const ITEMS_CACHE_KEY = 'inventory_items';
 
@@ -23,6 +24,7 @@ export function useInventory() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isOnline } = useOnlineStatus();
+  const { notifySync, notifyError, notifyOffline, notifyOnline } = usePushNotifications();
 
   // Audit log helper
   const logAudit = async (
@@ -97,14 +99,12 @@ export function useInventory() {
         if (isMounted) {
           const typedData = data as InventoryItem[];
           setItems(typedData);
-          // Cache items for offline use
           offlineQueue.setCache(ITEMS_CACHE_KEY, typedData);
         }
       } catch (error) {
         if (isMounted) {
           logger.error('Error fetching items:', error);
           
-          // If we have cached data, don't show error
           if (!cachedItems) {
             const errorMessage = error instanceof Error 
               ? error.message 
@@ -131,10 +131,30 @@ export function useInventory() {
     };
   }, [user, toast]);
 
+  // Listen to online/offline events
+  useEffect(() => {
+    const handleOnline = async () => {
+      await notifyOnline();
+      refetch();
+    };
+
+    const handleOffline = async () => {
+      await notifyOffline();
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   // Re-fetch when coming back online
   useEffect(() => {
     if (isOnline && user) {
-      refetch();
+      // Don't auto-refetch, let user trigger manually
     }
   }, [isOnline]);
 
@@ -186,7 +206,6 @@ export function useInventory() {
     offlineQueue.setCache(ITEMS_CACHE_KEY, updatedItems);
 
     if (!isOnline) {
-      // Queue for later sync
       offlineQueue.addToQueue({
         type: 'insert',
         table: 'inventory_items',
@@ -212,16 +231,18 @@ export function useInventory() {
 
       if (error) throw error;
 
-      // Replace temp item with real one
       const finalItems = updatedItems.map(i => i.id === tempId ? (data as InventoryItem) : i);
       setItems(finalItems);
       offlineQueue.setCache(ITEMS_CACHE_KEY, finalItems);
       await logAudit('create', data.id, item.name);
+      
+      // Notify sync
+      await notifySync(1, 0);
     } catch (error) {
-      // Rollback optimistic update
       setItems(items);
       offlineQueue.setCache(ITEMS_CACHE_KEY, items);
       logger.error('Error adding item:', error);
+      await notifyError('Item konnte nicht hinzugefügt werden', error instanceof Error ? error.message : 'Unbekannter Fehler');
       toast({
         title: "Fehler",
         description: "Item konnte nicht hinzugefügt werden.",
@@ -235,13 +256,11 @@ export function useInventory() {
     const oldItem = items.find(i => i.id === id);
     if (!oldItem) return;
 
-    // Optimistic update
     const updatedItem = { ...oldItem, ...updates, updated_at: new Date().toISOString() };
     const updatedItems = items.map(item => item.id === id ? updatedItem : item);
     setItems(updatedItems);
     offlineQueue.setCache(ITEMS_CACHE_KEY, updatedItems);
 
-    // Log changes
     const changes: Record<string, { old: unknown; new: unknown }> = {};
     Object.keys(updates).forEach(key => {
       const k = key as keyof typeof updates;
@@ -284,11 +303,14 @@ export function useInventory() {
       if (Object.keys(changes).length > 0) {
         await logAudit('update', id, oldItem.name, changes);
       }
+      
+      // Notify sync
+      await notifySync(1, 0);
     } catch (error) {
-      // Rollback optimistic update
       setItems(items);
       offlineQueue.setCache(ITEMS_CACHE_KEY, items);
       logger.error('Error updating item:', error);
+      await notifyError('Item konnte nicht aktualisiert werden', error instanceof Error ? error.message : 'Unbekannter Fehler');
       toast({
         title: "Fehler",
         description: "Item konnte nicht aktualisiert werden.",
@@ -302,7 +324,6 @@ export function useInventory() {
     const item = items.find(i => i.id === id);
     if (!item) return;
 
-    // Optimistic update
     const updatedItems = items.filter(i => i.id !== id);
     setItems(updatedItems);
     offlineQueue.setCache(ITEMS_CACHE_KEY, updatedItems);
@@ -330,11 +351,14 @@ export function useInventory() {
       if (error) throw error;
 
       await logAudit('delete', id, item.name);
+      
+      // Notify sync
+      await notifySync(1, 0);
     } catch (error) {
-      // Rollback optimistic update
       setItems(items);
       offlineQueue.setCache(ITEMS_CACHE_KEY, items);
       logger.error('Error deleting item:', error);
+      await notifyError('Item konnte nicht gelöscht werden', error instanceof Error ? error.message : 'Unbekannter Fehler');
       toast({
         title: "Fehler",
         description: "Item konnte nicht gelöscht werden.",
@@ -389,6 +413,7 @@ export function useInventory() {
         items: { old: null, new: names }
       });
 
+      await notifySync(selectedIds.size, 0);
       toast({
         title: "Batch-Update erfolgreich",
         description: `${selectedIds.size} Item(s) aktualisiert.`,
@@ -396,6 +421,7 @@ export function useInventory() {
       clearSelection();
     } catch (error) {
       logger.error('Batch update error:', error);
+      await notifyError('Batch-Update fehlgeschlagen', error instanceof Error ? error.message : 'Unbekannter Fehler');
       toast({
         title: "Fehler",
         description: "Batch-Update fehlgeschlagen.",
@@ -429,6 +455,7 @@ export function useInventory() {
         items: { old: null, new: names }
       });
 
+      await notifySync(selectedIds.size, 0);
       toast({
         title: "Batch-Update erfolgreich",
         description: `${selectedIds.size} Item(s) verschoben.`,
@@ -436,6 +463,7 @@ export function useInventory() {
       clearSelection();
     } catch (error) {
       logger.error('Batch update error:', error);
+      await notifyError('Batch-Update fehlgeschlagen', error instanceof Error ? error.message : 'Unbekannter Fehler');
       toast({
         title: "Fehler",
         description: "Batch-Update fehlgeschlagen.",
@@ -467,6 +495,7 @@ export function useInventory() {
         items: { old: names, new: null }
       });
 
+      await notifySync(selectedIds.size, 0);
       toast({
         title: "Items gelöscht",
         description: `${selectedIds.size} Item(s) entfernt.`,
@@ -474,6 +503,7 @@ export function useInventory() {
       clearSelection();
     } catch (error) {
       logger.error('Batch delete error:', error);
+      await notifyError('Batch-Löschen fehlgeschlagen', error instanceof Error ? error.message : 'Unbekannter Fehler');
       toast({
         title: "Fehler",
         description: "Batch-Löschen fehlgeschlagen.",
@@ -508,11 +538,19 @@ export function useInventory() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
       const typedData = data as InventoryItem[];
       setItems(typedData);
       offlineQueue.setCache(ITEMS_CACHE_KEY, typedData);
+      
+      await notifySync(typedData.length, 0);
+      toast({
+        title: "Synchronisierung erfolgreich",
+        description: "Alle Daten sind aktuell.",
+      });
     } catch (error) {
       logger.error('Error refetching items:', error);
+      await notifyError('Synchronisierungsfehler', error instanceof Error ? error.message : 'Unbekannter Fehler');
       toast({
         title: "Fehler beim Neuladen",
         description: "Items konnten nicht neu geladen werden.",
@@ -542,12 +580,10 @@ export function useInventory() {
     updateItem,
     deleteItem,
     refetch,
-    // Selection
     selectedIds,
     toggleSelection,
     selectAll,
     clearSelection,
-    // Batch operations
     isProcessing,
     batchUpdateCondition,
     batchUpdateLocation,
