@@ -17,8 +17,8 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
       manifest: {
-        name: "EventTech Inventory Tracker",
-        short_name: "EventTech",
+        name: "Rigflow Inventory Tracker",
+        short_name: "Rigflow",
         description: "Verwalte deine Veranstaltungstechnik einfach und übersichtlich",
         theme_color: "#1a1a2e",
         background_color: "#0f0f1a",

@@ -66,7 +66,7 @@ export default function Install() {
           <div className="mx-auto mb-4 w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center">
             <Smartphone className="w-10 h-10 text-primary" />
           </div>
-          <CardTitle className="text-2xl">EventTech App installieren</CardTitle>
+          <CardTitle className="text-2xl">Rigflow App installieren</CardTitle>
           <CardDescription>
             Installiere die App auf deinem Gerät für schnellen Zugriff und Offline-Funktionalität
           </CardDescription>

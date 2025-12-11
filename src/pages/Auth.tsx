@@ -127,7 +127,7 @@ const Auth = () => {
             </div>
             <div className="text-center">
               <h1 className="text-2xl font-bold tracking-tight">
-                EventTech <span className="gradient-text">Inventory</span>
+                Rigflow <span className="gradient-text">Inventory</span>
               </h1>
             </div>
           </div>
