@@ -110,6 +110,10 @@ export function usePushNotifications() {
    * Send offline notification
    */
   const notifyOffline = async (): Promise<void> => {
+    // Only notify if permissions granted
+    if (permission !== 'granted') {
+      return;
+    }
     await sendNotification({
       title: '🔌 Offline',
       body: 'Du bist jetzt offline. Änderungen werden synchronisiert, wenn du wieder online bist.',
@@ -122,6 +126,10 @@ export function usePushNotifications() {
    * Send online notification
    */
   const notifyOnline = async (): Promise<void> => {
+    // Only notify if permissions granted
+    if (permission !== 'granted') {
+      return;
+    }
     await sendNotification({
       title: '🟢 Online',
       body: 'Du bist wieder online. Synchronisierung läuft...',

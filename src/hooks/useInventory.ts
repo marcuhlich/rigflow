@@ -134,11 +134,14 @@ export function useInventory() {
   // Listen to online/offline events
   useEffect(() => {
     const handleOnline = async () => {
+      console.log('[useInventory] Online event');
       await notifyOnline();
-      refetch();
+      // Warte kurz bevor Refetch
+      setTimeout(() => refetch(), 500);
     };
 
     const handleOffline = async () => {
+      console.log('[useInventory] Offline event');
       await notifyOffline();
     };
 
@@ -149,7 +152,7 @@ export function useInventory() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [notifyOffline, notifyOnline]);
 
   // Re-fetch when coming back online
   useEffect(() => {
