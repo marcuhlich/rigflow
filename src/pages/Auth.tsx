@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { Zap, Mail, Lock, User, Loader2, Download } from "lucide-react";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import { Zap, Mail, Lock, User, Loader2, Download, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,8 @@ const authSchema = z.object({
 });
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [searchParams] = useSearchParams();
+  const [isLogin, setIsLogin] = useState(searchParams.get("step") !== "register");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -28,7 +29,8 @@ const Auth = () => {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate("/");
+      // Nach erfolgreichem Login/Register - gehe zu Install Prompt
+      navigate("/install-prompt");
     }
   }, [user, loading, navigate]);
 
@@ -79,6 +81,7 @@ const Auth = () => {
             title: "Willkommen zurück!",
             description: "Du wurdest erfolgreich angemeldet.",
           });
+          // Navigation erfolgt automatisch über useEffect
         }
       } else {
         const { error } = await signUp(email, password, displayName);
@@ -101,6 +104,7 @@ const Auth = () => {
             title: "Konto erstellt!",
             description: "Dein Konto wurde erfolgreich erstellt.",
           });
+          // Navigation erfolgt automatisch über useEffect
         }
       }
     } finally {
@@ -117,7 +121,18 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
+      {/* Back Button */}
+      <div className="absolute top-4 left-4">
+        <Link
+          to="/landing"
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          <span className="text-sm">Zurück</span>
+        </Link>
+      </div>
+
       <div className="w-full max-w-md animate-scale-in">
         <div className="glass-card p-8">
           {/* Header */}
@@ -127,14 +142,20 @@ const Auth = () => {
             </div>
             <div className="text-center">
               <h1 className="text-2xl font-bold tracking-tight">
-                Rigflow <span className="gradient-text">Inventory</span>
+                RigFlow <span className="gradient-text">Inventory</span>
               </h1>
             </div>
           </div>
 
-          <h2 className="text-xl font-semibold text-center mb-6">
+          <h2 className="text-xl font-semibold text-center mb-2">
             {isLogin ? "Anmelden" : "Registrieren"}
           </h2>
+          <p className="text-sm text-muted-foreground text-center mb-6">
+            {isLogin 
+              ? "Melde dich an um dein Equipment zu verwalten"
+              : "Erstelle ein Konto um RigFlow zu nutzen"
+            }
+          </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
@@ -195,13 +216,13 @@ const Auth = () => {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   Bitte warten...
                 </>
               ) : isLogin ? (
                 "Anmelden"
               ) : (
-                "Registrieren"
+                "Registrieren & Installieren"
               )}
             </Button>
           </form>
@@ -212,6 +233,9 @@ const Auth = () => {
               onClick={() => {
                 setIsLogin(!isLogin);
                 setErrors({});
+                setEmail("");
+                setPassword("");
+                setDisplayName("");
               }}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
@@ -229,15 +253,22 @@ const Auth = () => {
             </button>
           </div>
 
-          <div className="mt-4 text-center">
-            <Link
-              to="/install"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Download className="h-3.5 w-3.5" />
-              App installieren
-            </Link>
-          </div>
+          {isLogin && (
+            <div className="mt-4 text-center">
+              <Link
+                to="/install"
+                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Download className="h-3.5 w-3.5" />
+                App installieren
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="mt-6 text-center text-xs text-muted-foreground">
+          <p>💡 Tipp: Registriere dich zuerst, dann zeigen wir dir wie die App installiert wird</p>
         </div>
       </div>
     </div>

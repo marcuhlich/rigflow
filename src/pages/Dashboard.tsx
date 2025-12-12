@@ -1,16 +1,40 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Package, CheckCircle, ArrowRightLeft, AlertTriangle, Zap, Clock, Activity, CheckSquare, ArrowRight } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { StatCard } from "@/components/StatCard";
+import { AppOnboardingTour } from "@/components/AppOnboardingTour";
 import { useInventory } from "@/hooks/useInventory";
 import { useEventChecklists } from "@/hooks/useEventChecklists";
+import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 
 export default function Dashboard() {
   const { allItems, stats, loading } = useInventory();
   const { checklists } = useEventChecklists();
+  const { user } = useAuth();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Check if user completed onboarding
+  useEffect(() => {
+    if (user) {
+      const hasCompletedOnboarding = localStorage.getItem(
+        `onboarding_completed_${user.id}`
+      );
+
+      if (!hasCompletedOnboarding) {
+        setShowOnboarding(true);
+      }
+    }
+  }, [user]);
+
+  const handleOnboardingComplete = () => {
+    if (user) {
+      localStorage.setItem(`onboarding_completed_${user.id}`, 'true');
+    }
+    setShowOnboarding(false);
+  };
 
   const pieData = useMemo(() => [
     { name: "Verfügbar", value: stats.available, color: "hsl(152, 60%, 45%)" },
@@ -65,6 +89,11 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
+      {/* App Onboarding Tour */}
+      {showOnboarding && (
+        <AppOnboardingTour onComplete={handleOnboardingComplete} />
+      )}
+
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
         <p className="text-muted-foreground text-sm mt-1">Übersicht über dein Equipment</p>
@@ -85,19 +114,17 @@ export default function Dashboard() {
           to="/checklists"
           className="flex items-center justify-between p-4 rounded-lg bg-muted/20 border border-primary/20 hover:bg-muted/30 transition-colors group">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-primary/10 text-foregroundry">
+            <div className="p-2.5 rounded-lg bg-primary/10 text-foreground">
               <CheckSquare className="h-5 w-5" />
             </div>
             <div>
-              <p className="font-semibold text-sm text-white">Event Checklisten</p>
+              <p className="font-semibold text-sm">Event Checklisten</p>
               <p className="text-xs text-muted-foreground">{checklists.length} aktive Checkliste{checklists.length !== 1 ? 'n' : ''}</p>
             </div>
           </div>
-          <ArrowRight className="h-5 w-5 text-gray-200 group-hover:text-white transition-colors" />
+          <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
         </Link>
       )}
-
-
 
       {/* Charts and Activities */}
       <div className="grid lg:grid-cols-2 gap-6">
@@ -136,7 +163,6 @@ export default function Dashboard() {
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
-
             </div>
           ) : (
             <div className="h-[280px] flex items-center justify-center text-muted-foreground">

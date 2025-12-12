@@ -1,60 +1,48 @@
-import { LogOut, User, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { User, Settings, LogOut } from "lucide-react";
 
 export function UserMenu() {
-  const { user, signOut } = useAuth();
-  const { toast } = useToast();
+  const { user } = useAuth();
   const navigate = useNavigate();
-
-  const handleSignOut = async () => {
-    await signOut();
-    toast({
-      title: "Abgemeldet",
-      description: "Du wurdest erfolgreich abgemeldet.",
-    });
-  };
-
-  if (!user) return null;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="glass"
-          size="icon"
-          className="rounded-full"
-          aria-label="Benutzermenü öffnen"
-        >
-          <User className="h-4 w-4" />
+        <Button variant="ghost" size="sm" className="gap-2">
+          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+            <User className="h-4 w-4 text-primary" />
+          </div>
+          <span className="hidden sm:inline text-sm">{user?.email?.split("@")[0]}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="glass-card border-border/50 w-56">
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium">Eingeloggt als</p>
-            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-border/50" />
-        <DropdownMenuItem onClick={() => navigate("/install")} className="cursor-pointer">
-          <Download className="h-4 w-4 mr-2" />
-          App installieren
+      <DropdownMenuContent align="end" className="w-56">
+        <div className="px-2 py-1.5 text-sm">
+          <p className="font-medium text-foreground">{user?.email}</p>
+          <p className="text-xs text-muted-foreground">
+            {user?.user_metadata?.display_name || "Nutzer"}
+          </p>
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate("/settings")} className="gap-2 cursor-pointer">
+          <Settings className="h-4 w-4" />
+          <span>Einstellungen</span>
         </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-border/50" />
-        <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive">
-          <LogOut className="h-4 w-4 mr-2" />
-          Abmelden
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => navigate("/settings")}
+          className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Abmelden</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

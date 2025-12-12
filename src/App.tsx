@@ -9,11 +9,14 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PushService } from "@/lib/pushService";
 import { logger } from "@/lib/logger";
+import Landing from "./pages/Landing";
+import InstallPrompt from "./pages/InstallPrompt";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import ItemDetail from "./pages/ItemDetail";
 import DMXPatchplan from "./pages/DMXPatchplan";
 import { ChecklistsPage } from "./pages/Checklists";
+import AccountSettings from "./pages/AccountSettings";
 import Auth from "./pages/Auth";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
@@ -49,8 +52,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   return (
     <Routes>
+      {/* Public Routes */}
+      <Route path="/landing" element={<Landing />} />
       <Route path="/auth" element={<Auth />} />
+      
+      {/* Install Prompt (nach Auth) */}
+      <Route path="/install-prompt" element={<InstallPrompt />} />
+      
+      {/* PWA Install Guide */}
       <Route path="/install" element={<Install />} />
+      
+      {/* Protected Routes */}
       <Route
         path="/"
         element={
@@ -91,6 +103,16 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <AccountSettings />
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Fallback */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
