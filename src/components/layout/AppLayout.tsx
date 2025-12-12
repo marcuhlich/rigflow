@@ -23,9 +23,12 @@ export function AppLayout({ children }: AppLayoutProps) {
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground font-semibold text-sm tracking-wide">
-              GI
-            </div>
+            <img
+              src="/pwa-192x192.png"
+              alt="Rigflow Logo"
+              className="w-10 h-10 rounded-lg object-cover"
+            />
+
             <div>
               <h1 className="text-base font-semibold tracking-tight leading-tight">
                 Rigflow
