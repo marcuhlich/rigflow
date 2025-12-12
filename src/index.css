@@ -238,3 +238,11 @@
 .pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
 }
+/*
+[data-radix-popper-content-wrapper] {
+  pointer-events: auto !important;
+}
+
+div[role="menu"] {
+  pointer-events: auto !important;
+} */
