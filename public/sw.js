@@ -10,7 +10,8 @@ const API_CACHE = 'rigflow-api';
 // Install event
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker');
-  self.skipWaiting();
+  // Entferne self.skipWaiting() hier - wir wollen kontrolliert updaten
+  // self.skipWaiting(); 
 });
 
 // Activate event
@@ -33,10 +34,12 @@ self.addEventListener('activate', (event) => {
             return caches.delete(cacheName);
           })
       );
+    }).then(() => {
+      // Claim all clients sofort nach Aktivierung
+      console.log('[SW] Claiming all clients');
+      return self.clients.claim();
     })
   );
-
-  self.clients.claim();
 });
 
 // Fetch event - simplified
@@ -81,9 +84,17 @@ self.addEventListener('fetch', (event) => {
 
 // Handle messages from app
 self.addEventListener('message', (event) => {
-  const { type, data } = event.data;
-  console.log('[SW] Message:', type);
+  const { type, data } = event.data || {};
+  console.log('[SW] Message received:', type);
 
+  // Handle app update request
+  if (type === 'SKIP_WAITING') {
+    console.log('[SW] Received SKIP_WAITING - activating new version immediately');
+    self.skipWaiting();
+    return;
+  }
+
+  // Handle notification request
   if (type === 'SHOW_NOTIFICATION') {
     self.registration.showNotification(data.title, {
       body: data.body,

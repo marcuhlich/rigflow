@@ -61,6 +61,15 @@ export function useAppUpdate() {
           });
         });
 
+        // Check if there's already a waiting SW
+        if (registration.waiting && navigator.serviceWorker.controller) {
+          logger.info('useAppUpdate', 'SW already waiting, update available');
+          setUpdateAvailable({
+            available: true,
+            newWorker: registration.waiting,
+          });
+        }
+
         return () => clearInterval(checkInterval);
       } catch (error) {
         logger.error('useAppUpdate', 'SW update listener error', error);
@@ -77,18 +86,32 @@ export function useAppUpdate() {
     if (updateAvailable.newWorker) {
       logger.info('useAppUpdate', 'Applying update...');
 
-      // Tell the new service worker to skip waiting
-      updateAvailable.newWorker.postMessage({ type: 'SKIP_WAITING' });
-
-      // Reload the page when the new SW takes over
+      // Setup listener for controllerchange BEFORE sending message
       let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
+      const handleControllerChange = () => {
         if (!refreshing) {
           refreshing = true;
           logger.info('useAppUpdate', 'Reloading app with new version');
           window.location.reload();
         }
-      });
+      };
+
+      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+
+      // Tell the new service worker to skip waiting
+      updateAvailable.newWorker.postMessage({ type: 'SKIP_WAITING' });
+
+      // Fallback: reload after 1 second if controllerchange doesn't fire
+      setTimeout(() => {
+        if (!refreshing) {
+          logger.warn('useAppUpdate', 'controllerchange timeout, forcing reload');
+          window.location.reload();
+        }
+      }, 1000);
+    } else {
+      // No new worker available, just reload
+      logger.info('useAppUpdate', 'No new worker, reloading anyway');
+      window.location.reload();
     }
   };
 
@@ -96,6 +119,7 @@ export function useAppUpdate() {
    * Dismiss update prompt (user can apply later)
    */
   const dismissUpdate = () => {
+    logger.info('useAppUpdate', 'Update dismissed by user');
     setUpdateAvailable({
       available: false,
       newWorker: null,
