@@ -3,7 +3,7 @@
  * Handles background sync, caching, and offline support
  */
 
-const CACHE_NAME = 'rigflow-v1';
+const CACHE_NAME = 'rigflow-v2';
 const RUNTIME_CACHE = 'rigflow-runtime';
 const API_CACHE = 'rigflow-api';
 
