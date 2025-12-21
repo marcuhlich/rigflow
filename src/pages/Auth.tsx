@@ -138,7 +138,7 @@ const Auth = () => {
           {/* Header */}
           <div className="flex items-center justify-center gap-3 mb-8">
             <div className="p-2.5 rounded-xl bg-primary/10 pulse-glow">
-              <Zap className="h-7 w-7 text-primary" />
+              <img src="/logo-transparent.png" className="h-7 w-7 text-primary"/>
             </div>
             <div className="text-center">
               <h1 className="text-2xl font-bold tracking-tight">
@@ -162,7 +162,7 @@ const Auth = () => {
               <div className="space-y-2">
                 <Label htmlFor="displayName">Name (optional)</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
                   <Input
                     id="displayName"
                     type="text"
@@ -178,7 +178,7 @@ const Auth = () => {
             <div className="space-y-2">
               <Label htmlFor="email">E-Mail</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
                 <Input
                   id="email"
                   type="email"
@@ -197,7 +197,7 @@ const Auth = () => {
             <div className="space-y-2">
               <Label htmlFor="password">Passwort</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
                 <Input
                   id="password"
                   type="password"

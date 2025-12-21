@@ -6,7 +6,7 @@ export interface PushNotificationOptions {
   body: string;
   icon?: string;
   badge?: string;
-  tag?: string; // Grouping tag for notifications
+  tag?: string;
   requireInteraction?: boolean;
   actions?: NotificationAction[];
 }
@@ -19,16 +19,19 @@ interface NotificationAction {
 export function usePushNotifications() {
   const [isSupported, setIsSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>('default');
-  const [isSubscribed, setIsSubscribed] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Check if push notifications are supported
+  // Check if push notifications are supported and listen for permission changes
   useEffect(() => {
     const supported = 'serviceWorker' in navigator && 'Notification' in window;
     setIsSupported(supported);
 
     if (supported) {
+      // Set initial permission
       setPermission(Notification.permission);
+      
+      // Log permission status
+      console.log('[usePushNotifications] Permission:', Notification.permission);
     }
   }, []);
 
@@ -37,13 +40,31 @@ export function usePushNotifications() {
    */
   const requestPermission = async (): Promise<boolean> => {
     if (!isSupported) {
-      setError('Push-Benachrichtigungen werden nicht unterstützt');
+      const msg = 'Push-Benachrichtigungen werden nicht unterstützt';
+      setError(msg);
+      logger.warn('usePushNotifications', msg);
       return false;
     }
 
     try {
+      console.log('[usePushNotifications] Requesting permission...');
       const result = await Notification.requestPermission();
+      console.log('[usePushNotifications] Permission result:', result);
+      
       setPermission(result);
+      
+      if (result === 'granted') {
+        logger.info('usePushNotifications', 'Permission granted');
+        // Kurz warten dann Notification testen
+        setTimeout(() => {
+          sendNotification({
+            title: 'RigFlow',
+            body: 'Benachrichtigungen sind aktiviert! 🎉',
+            tag: 'welcome',
+          });
+        }, 500);
+      }
+      
       return result === 'granted';
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Fehler beim Anfordern der Permission';
@@ -54,17 +75,28 @@ export function usePushNotifications() {
   };
 
   /**
-   * Send a local notification (when app is in foreground)
+   * Send a local notification
    */
   const sendNotification = async (options: PushNotificationOptions): Promise<void> => {
-    if (!isSupported || permission !== 'granted') {
-      logger.warn('usePushNotifications', 'Notifications not available');
+    // Immer aktuelles Permission checken
+    const currentPermission = Notification.permission;
+    
+    if (!isSupported) {
+      logger.warn('usePushNotifications', 'Notifications not supported');
+      return;
+    }
+
+    if (currentPermission !== 'granted') {
+      logger.warn('usePushNotifications', 'Notification permission not granted', { currentPermission });
       return;
     }
 
     try {
+      console.log('[usePushNotifications] Sending notification:', options.title);
+
       // Send to service worker if registered
       if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        console.log('[usePushNotifications] Posting message to SW');
         navigator.serviceWorker.controller.postMessage({
           type: 'SHOW_NOTIFICATION',
           data: options,
@@ -73,6 +105,7 @@ export function usePushNotifications() {
 
       // Also show locally if app is in foreground
       if (document.hasFocus()) {
+        console.log('[usePushNotifications] App in foreground, showing notification');
         new Notification(options.title, {
           body: options.body,
           icon: options.icon || '/pwa-192x192.png',
@@ -80,6 +113,8 @@ export function usePushNotifications() {
           tag: options.tag || 'default',
           requireInteraction: options.requireInteraction || false,
         });
+      } else {
+        console.log('[usePushNotifications] App in background');
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Fehler beim Senden der Notification';
@@ -92,6 +127,12 @@ export function usePushNotifications() {
    * Send sync success notification
    */
   const notifySync = async (itemsCount: number, conflictCount: number = 0): Promise<void> => {
+    // Checke Permission vor dem Senden
+    if (Notification.permission !== 'granted') {
+      console.log('[usePushNotifications] Skipping notifySync - no permission');
+      return;
+    }
+
     const hasConflicts = conflictCount > 0;
     
     await sendNotification({
@@ -110,10 +151,12 @@ export function usePushNotifications() {
    * Send offline notification
    */
   const notifyOffline = async (): Promise<void> => {
-    // Only notify if permissions granted
-    if (permission !== 'granted') {
+    // Checke Permission vor dem Senden
+    if (Notification.permission !== 'granted') {
+      console.log('[usePushNotifications] Skipping notifyOffline - no permission');
       return;
     }
+
     await sendNotification({
       title: '🔌 Offline',
       body: 'Du bist jetzt offline. Änderungen werden synchronisiert, wenn du wieder online bist.',
@@ -126,10 +169,12 @@ export function usePushNotifications() {
    * Send online notification
    */
   const notifyOnline = async (): Promise<void> => {
-    // Only notify if permissions granted
-    if (permission !== 'granted') {
+    // Checke Permission vor dem Senden
+    if (Notification.permission !== 'granted') {
+      console.log('[usePushNotifications] Skipping notifyOnline - no permission');
       return;
     }
+
     await sendNotification({
       title: '🟢 Online',
       body: 'Du bist wieder online. Synchronisierung läuft...',
@@ -142,6 +187,12 @@ export function usePushNotifications() {
    * Send error notification
    */
   const notifyError = async (title: string, message: string): Promise<void> => {
+    // Checke Permission vor dem Senden
+    if (Notification.permission !== 'granted') {
+      console.log('[usePushNotifications] Skipping notifyError - no permission');
+      return;
+    }
+
     await sendNotification({
       title: `❌ ${title}`,
       body: message,
@@ -157,8 +208,8 @@ export function usePushNotifications() {
     if (!('serviceWorker' in navigator)) return;
 
     const handleServiceWorkerMessage = (event: MessageEvent) => {
+      console.log('[usePushNotifications] SW Message:', event.data.type);
       if (event.data.type === 'NOTIFICATION_CLICK') {
-        // Handle notification click
         logger.info('usePushNotifications', 'Notification clicked', event.data);
       }
     };
@@ -171,21 +222,17 @@ export function usePushNotifications() {
   }, []);
 
   /**
-   * Check if notifications are currently active (app in background)
+   * Check if app is in background
    */
   const isBackgroundMode = (): boolean => {
     return !document.hasFocus();
   };
 
   return {
-    // State
     isSupported,
     permission,
-    isSubscribed,
     error,
     isBackgroundMode,
-    
-    // Actions
     requestPermission,
     sendNotification,
     notifySync,
