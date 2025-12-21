@@ -74,34 +74,62 @@ export default function AccountSettings() {
     try {
       if ('serviceWorker' in navigator) {
         const registration = await navigator.serviceWorker.getRegistration();
-        if (registration) {
-          // Zuerst: Prüfe ob schon ein Worker wartet
-          const hasWaitingWorker = await recheckForUpdate();
-          
-          if (hasWaitingWorker) {
-            toast({
-              title: '🚀 Update gefunden!',
-              description: 'Ein Update wartet bereits. Klicke auf "Jetzt aktualisieren".',
-            });
-            return;
-          }
-
-          // Wenn kein wartender Worker: Prüfe auf neue Updates
-          await registration.update();
-          
-          // Kurz warten um zu sehen ob Update erkannt wird
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          
-          // Nochmal prüfen ob jetzt ein Worker wartet
-          const foundUpdate = await recheckForUpdate();
-          
+        
+        if (!registration) {
           toast({
-            title: foundUpdate ? '🚀 Update verfügbar!' : '✓ Alles aktuell',
-            description: foundUpdate 
-              ? 'Klicke auf "Jetzt aktualisieren" um die neue Version zu laden' 
-              : 'Du nutzt bereits die neueste Version',
+            title: 'Kein Service Worker',
+            description: 'Service Worker ist nicht registriert',
+            variant: 'destructive',
           });
+          return;
         }
+
+        console.log('[Settings] Manual update check, current state:', {
+          active: !!registration.active,
+          waiting: !!registration.waiting,
+          installing: !!registration.installing,
+        });
+
+        // Zuerst: Prüfe ob schon ein Worker wartet
+        if (registration.waiting && navigator.serviceWorker.controller) {
+          console.log('[Settings] Found waiting worker');
+          if (recheckForUpdate) {
+            await recheckForUpdate();
+          }
+          toast({
+            title: '🚀 Update gefunden!',
+            description: 'Ein Update wartet bereits. Klicke auf "Jetzt aktualisieren".',
+          });
+          return;
+        }
+
+        // Wenn kein wartender Worker: Prüfe auf neue Updates
+        console.log('[Settings] Checking for new updates...');
+        await registration.update();
+        
+        // Kurz warten um zu sehen ob Update erkannt wird
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Nochmal prüfen ob jetzt ein Worker wartet
+        const reg = await navigator.serviceWorker.getRegistration();
+        const foundUpdate = reg?.waiting && navigator.serviceWorker.controller;
+        
+        console.log('[Settings] After update check:', {
+          foundUpdate,
+          waiting: !!reg?.waiting,
+          hasController: !!navigator.serviceWorker.controller,
+        });
+
+        if (foundUpdate && recheckForUpdate) {
+          await recheckForUpdate();
+        }
+        
+        toast({
+          title: foundUpdate ? '🚀 Update verfügbar!' : '✓ Alles aktuell',
+          description: foundUpdate 
+            ? 'Klicke auf "Jetzt aktualisieren" um die neue Version zu laden' 
+            : 'Du nutzt bereits die neueste Version',
+        });
       } else {
         toast({
           title: 'Nicht unterstützt',
@@ -110,9 +138,10 @@ export default function AccountSettings() {
         });
       }
     } catch (error) {
+      console.error('[Settings] Update check error:', error);
       toast({
         title: 'Fehler',
-        description: 'Update-Check fehlgeschlagen',
+        description: error instanceof Error ? error.message : 'Update-Check fehlgeschlagen',
         variant: 'destructive',
       });
     } finally {

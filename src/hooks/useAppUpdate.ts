@@ -181,25 +181,30 @@ export function useAppUpdate() {
   /**
    * Check if there's a waiting worker (for manual checks)
    */
-  const recheckForUpdate = async () => {
-    if ('serviceWorker' in navigator) {
-      const registration = await navigator.serviceWorker.getRegistration();
-      if (registration?.waiting && navigator.serviceWorker.controller) {
-        logger.info('useAppUpdate', 'Found waiting worker on manual check');
-        setUpdateAvailable({
-          available: true,
-          newWorker: registration.waiting,
-        });
-        return true;
+  const recheckForUpdate = async (): Promise<boolean> => {
+    try {
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration?.waiting && navigator.serviceWorker.controller) {
+          logger.info('useAppUpdate', 'Found waiting worker on manual check');
+          setUpdateAvailable({
+            available: true,
+            newWorker: registration.waiting,
+          });
+          return true;
+        }
       }
+      return false;
+    } catch (error) {
+      logger.error('useAppUpdate', 'recheckForUpdate error', error);
+      return false;
     }
-    return false;
   };
 
   return {
     updateAvailable: updateAvailable.available,
     applyUpdate,
     dismissUpdate,
-    recheckForUpdate, // Expose for manual checks
+    recheckForUpdate,
   };
 }
