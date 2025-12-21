@@ -7,6 +7,8 @@ const CACHE_NAME = 'rigflow-v1';
 const RUNTIME_CACHE = 'rigflow-runtime';
 const API_CACHE = 'rigflow-api';
 
+console.log('[SW] Service Worker Version:', SW_VERSION);
+
 // Install event
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker');

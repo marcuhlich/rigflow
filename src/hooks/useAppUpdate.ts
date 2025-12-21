@@ -168,18 +168,38 @@ export function useAppUpdate() {
 
   /**
    * Dismiss update prompt (user can apply later)
+   * Keep the new worker reference so it can be applied later
    */
   const dismissUpdate = () => {
-    logger.info('useAppUpdate', 'Update dismissed by user');
+    logger.info('useAppUpdate', 'Update dismissed by user, keeping worker reference');
     setUpdateAvailable({
-      available: false,
-      newWorker: null,
+      available: false, // Hide prompt, but keep worker
+      newWorker: updateAvailable.newWorker, // Keep reference!
     });
+  };
+
+  /**
+   * Check if there's a waiting worker (for manual checks)
+   */
+  const recheckForUpdate = async () => {
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration?.waiting && navigator.serviceWorker.controller) {
+        logger.info('useAppUpdate', 'Found waiting worker on manual check');
+        setUpdateAvailable({
+          available: true,
+          newWorker: registration.waiting,
+        });
+        return true;
+      }
+    }
+    return false;
   };
 
   return {
     updateAvailable: updateAvailable.available,
     applyUpdate,
     dismissUpdate,
+    recheckForUpdate, // Expose for manual checks
   };
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -29,7 +29,25 @@ export default function AccountSettings() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
 
-  const { updateAvailable, applyUpdate } = useAppUpdate();
+  const { updateAvailable, applyUpdate, recheckForUpdate } = useAppUpdate();
+
+  // Debug: Log SW state on mount (hilfreich beim Debuggen)
+  useEffect(() => {
+    const checkSWState = async () => {
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          console.log('[Settings] SW State:', {
+            active: registration.active?.state,
+            waiting: registration.waiting?.state,
+            installing: registration.installing?.state,
+            hasController: !!navigator.serviceWorker.controller,
+          });
+        }
+      }
+    };
+    checkSWState();
+  }, []);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -57,14 +75,29 @@ export default function AccountSettings() {
       if ('serviceWorker' in navigator) {
         const registration = await navigator.serviceWorker.getRegistration();
         if (registration) {
+          // Zuerst: Prüfe ob schon ein Worker wartet
+          const hasWaitingWorker = await recheckForUpdate();
+          
+          if (hasWaitingWorker) {
+            toast({
+              title: '🚀 Update gefunden!',
+              description: 'Ein Update wartet bereits. Klicke auf "Jetzt aktualisieren".',
+            });
+            return;
+          }
+
+          // Wenn kein wartender Worker: Prüfe auf neue Updates
           await registration.update();
           
           // Kurz warten um zu sehen ob Update erkannt wird
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          // Nochmal prüfen ob jetzt ein Worker wartet
+          const foundUpdate = await recheckForUpdate();
           
           toast({
-            title: updateAvailable ? '🚀 Update verfügbar!' : '✓ Alles aktuell',
-            description: updateAvailable 
+            title: foundUpdate ? '🚀 Update verfügbar!' : '✓ Alles aktuell',
+            description: foundUpdate 
               ? 'Klicke auf "Jetzt aktualisieren" um die neue Version zu laden' 
               : 'Du nutzt bereits die neueste Version',
           });
