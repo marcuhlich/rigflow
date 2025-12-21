@@ -155,6 +155,36 @@ function AppInitializer() {
     };
 
     initializePush();
+
+    // Check for updates when app comes into focus (wichtig für Mobile!)
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        logger.info('App', 'App became visible, checking for SW updates...');
+        
+        if ('serviceWorker' in navigator) {
+          try {
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (registration) {
+              logger.info('App', 'Triggering SW update check');
+              await registration.update();
+            }
+          } catch (error) {
+            logger.error('App', 'Failed to check for SW updates', error);
+          }
+        }
+      }
+    };
+
+    // Event listener hinzufügen
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Auch direkt beim Start einmal prüfen
+    handleVisibilityChange();
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   return null;

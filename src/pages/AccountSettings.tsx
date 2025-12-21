@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useAppUpdate } from '@/hooks/useAppUpdate';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogOut, Trash2, User, Mail, AlertTriangle, Loader2 } from "lucide-react";
+import { LogOut, Trash2, User, Mail, AlertTriangle, Loader2, RefreshCw, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function AccountSettings() {
@@ -26,6 +27,9 @@ export default function AccountSettings() {
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+
+  const { updateAvailable, applyUpdate } = useAppUpdate();
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -44,6 +48,42 @@ export default function AccountSettings() {
       });
     } finally {
       setIsLoggingOut(false);
+    }
+  };
+
+  const handleManualUpdateCheck = async () => {
+    setIsCheckingUpdate(true);
+    try {
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          await registration.update();
+          
+          // Kurz warten um zu sehen ob Update erkannt wird
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          toast({
+            title: updateAvailable ? '🚀 Update verfügbar!' : '✓ Alles aktuell',
+            description: updateAvailable 
+              ? 'Klicke auf "Jetzt aktualisieren" um die neue Version zu laden' 
+              : 'Du nutzt bereits die neueste Version',
+          });
+        }
+      } else {
+        toast({
+          title: 'Nicht unterstützt',
+          description: 'Service Worker wird nicht unterstützt',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Fehler',
+        description: 'Update-Check fehlgeschlagen',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCheckingUpdate(false);
     }
   };
 
@@ -134,6 +174,64 @@ export default function AccountSettings() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* App Updates */}
+      <Card className="glass-card p-6">
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <RefreshCw className="h-5 w-5 text-primary" />
+            App-Updates
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Prüfe auf neue Versionen und installiere Updates.
+          </p>
+          
+          {updateAvailable && (
+            <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Zap className="h-5 w-5 text-primary mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Update verfügbar!</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Eine neue Version ist bereit zur Installation.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              onClick={handleManualUpdateCheck}
+              disabled={isCheckingUpdate}
+              variant="outline"
+              className="flex-1 gap-2"
+            >
+              {isCheckingUpdate ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Prüfe...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4" />
+                  Nach Updates suchen
+                </>
+              )}
+            </Button>
+            
+            {updateAvailable && (
+              <Button
+                onClick={applyUpdate}
+                className="flex-1 gap-2"
+              >
+                <Zap className="h-4 w-4" />
+                Jetzt aktualisieren
+              </Button>
+            )}
           </div>
         </div>
       </Card>
