@@ -29,7 +29,7 @@ export default function HelpPage() {
       </Button>
 
       <Card className="p-6 glass-card bg-background/80">
-        <h1 className="text-2xl font-bold mb-4 text-foreground">Anleitung</h1>
+
 
         <div className="prose prose-sm dark:prose-invert text-foreground max-w-none">
           <ReactMarkdown
