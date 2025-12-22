@@ -50,28 +50,26 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <AppLayout>{children}</AppLayout>;
 }
 
-// Neue Komponente: Leitet unangemeldete User zur Landing Page
-function RootRedirect() {
+function AppRoutes() {
   const { user, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // Wenn angemeldet: zum Dashboard
-  // Wenn nicht angemeldet: zur Landing Page
-  return <Navigate to={user ? "/dashboard" : "/landing"} replace />;
-}
-
-function AppRoutes() {
   return (
     <Routes>
-      {/* Root Route - leitet intelligent um */}
-      <Route path="/" element={<RootRedirect />} />
+      {/* Root Route - zeigt Landing für unangemeldete, Dashboard für angemeldete */}
+      <Route 
+        path="/" 
+        element={
+          loading ? (
+            <div className="min-h-screen flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : user ? (
+            <ProtectedRoute><Dashboard /></ProtectedRoute>
+          ) : (
+            <Landing />
+          )
+        } 
+      />
 
       {/* Public Routes */}
       <Route path="/landing" element={<Landing />} />
