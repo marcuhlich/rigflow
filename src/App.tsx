@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import HelpPage from "@/pages/HelpPage";
-import { BrowserRouter, Routes, Route, useNavigate, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -25,14 +25,13 @@ import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
-// ------------------- Protected Route -------------------
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/auth", { replace: true });
+      navigate("/landing", { replace: true });
     }
   }, [user, loading, navigate]);
 
@@ -51,42 +50,24 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <AppLayout>{children}</AppLayout>;
 }
 
-// ------------------- Landing Route Wrapper -------------------
-function LandingRoute() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-
-  useEffect(() => {
-    const visited = localStorage.getItem("visitedLanding");
-
-    if (visited) {
-      // Bereits besucht → direkt Auth oder Dashboard
-      navigate(user ? "/" : "/auth", { replace: true });
-    } else {
-      // Erster Besuch → Landing zeigen
-      localStorage.setItem("visitedLanding", "true");
-    }
-  }, [navigate, user]);
-
-  return <Landing />;
-}
-
-// ------------------- App Routes -------------------
 function AppRoutes() {
   return (
     <Routes>
-      {/* Landing Page nur beim ersten Besuch */}
-      <Route path="/" element={<LandingRoute />} />
-
       {/* Public Routes */}
+      <Route path="/landing" element={<Landing />} />
       <Route path="/auth" element={<Auth />} />
+      
+      {/* Install Prompt (nach Auth) */}
       <Route path="/install-prompt" element={<InstallPrompt />} />
+      
+      {/* PWA Install Guide */}
       <Route path="/install" element={<Install />} />
+      
       <Route path="/help" element={<HelpPage />} />
 
       {/* Protected Routes */}
       <Route
-        path="/dashboard"
+        path="/"
         element={
           <ProtectedRoute>
             <Dashboard />
@@ -133,16 +114,16 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
+      
       {/* Fallback */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
 
-// ------------------- App Initializer -------------------
 function AppInitializer() {
   useEffect(() => {
+    // Initialize push notifications and service worker
     const initializePush = async () => {
       try {
         const initialized = await PushService.initialize({
@@ -153,8 +134,10 @@ function AppInitializer() {
         if (initialized) {
           logger.info("App", "Push service initialized");
 
+          // Listen for messages from service worker
           PushService.onMessage((message) => {
             logger.info("App", "Message from SW:", message.type);
+
             switch (message.type) {
               case "SW_UPDATE_AVAILABLE":
                 logger.info("App", "Service worker update available");
@@ -174,35 +157,40 @@ function AppInitializer() {
 
     initializePush();
 
+    // Check for updates when app comes into focus (wichtig für Mobile!)
     const handleVisibilityChange = async () => {
-      if (document.visibilityState === "visible") {
-        logger.info("App", "App became visible, checking for SW updates...");
-        if ("serviceWorker" in navigator) {
+      if (document.visibilityState === 'visible') {
+        logger.info('App', 'App became visible, checking for SW updates...');
+        
+        if ('serviceWorker' in navigator) {
           try {
             const registration = await navigator.serviceWorker.getRegistration();
             if (registration) {
-              logger.info("App", "Triggering SW update check");
+              logger.info('App', 'Triggering SW update check');
               await registration.update();
             }
           } catch (error) {
-            logger.error("App", "Failed to check for SW updates", error);
+            logger.error('App', 'Failed to check for SW updates', error);
           }
         }
       }
     };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    // Event listener hinzufügen
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Auch direkt beim Start einmal prüfen
     handleVisibilityChange();
 
+    // Cleanup
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
   return null;
 }
 
-// ------------------- Main App -------------------
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
