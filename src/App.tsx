@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import HelpPage from "@/pages/HelpPage";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -50,9 +50,29 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <AppLayout>{children}</AppLayout>;
 }
 
+// Neue Komponente: Leitet unangemeldete User zur Landing Page
+function RootRedirect() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Wenn angemeldet: zum Dashboard
+  // Wenn nicht angemeldet: zur Landing Page
+  return <Navigate to={user ? "/dashboard" : "/landing"} replace />;
+}
+
 function AppRoutes() {
   return (
     <Routes>
+      {/* Root Route - leitet intelligent um */}
+      <Route path="/" element={<RootRedirect />} />
+
       {/* Public Routes */}
       <Route path="/landing" element={<Landing />} />
       <Route path="/auth" element={<Auth />} />
@@ -67,7 +87,7 @@ function AppRoutes() {
 
       {/* Protected Routes */}
       <Route
-        path="/"
+        path="/dashboard"
         element={
           <ProtectedRoute>
             <Dashboard />
