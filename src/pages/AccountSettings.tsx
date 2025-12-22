@@ -4,6 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Link } from "react-router-dom";
+import { BookOpen } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -155,6 +157,21 @@ export default function AccountSettings() {
             </div>
           </div>
         </div>
+      </Card>
+
+      <Card className="glass-card p-6">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <BookOpen className="h-5 w-5 text-primary" />
+          Hilfe & Anleitung
+        </h3>
+        <p className="text-sm text-muted-foreground mt-2">
+          Hier findest du eine Schritt-für-Schritt-Anleitung zur App.
+        </p>
+        <Link to="/help">
+          <Button variant="outline" className="mt-4 w-full">
+            Anleitung öffnen
+          </Button>
+        </Link>
       </Card>
 
       {/* Logout */}

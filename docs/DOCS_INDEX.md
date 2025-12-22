@@ -1,6 +1,6 @@
 # 📚 DMX-Patchplan Dokumentations-Index
 
-Willkommen zur Event Gear Keeper DMX-Patchplan Implementation! 🎉
+Willkommen zur RigFLow DMX-Patchplan Implementation! 🎉
 
 Diese Seite führt dich durch alle verfügbaren Dokumentationen.
 

@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import HelpPage from "@/pages/HelpPage";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -62,6 +63,8 @@ function AppRoutes() {
       {/* PWA Install Guide */}
       <Route path="/install" element={<Install />} />
       
+      <Route path="/help" element={<HelpPage />} />
+
       {/* Protected Routes */}
       <Route
         path="/"

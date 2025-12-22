@@ -1,4 +1,4 @@
-# Gearflow Inventory App
+# Rigflow Inventory App
 
 Professionelle Verwaltungssoftware für Event-Equipment mit QR-Code-Integration und DMX-Patchplan.
 

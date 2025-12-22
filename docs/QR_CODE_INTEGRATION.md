@@ -2,7 +2,7 @@
 
 ## 🎯 Überblick
 
-Die QR-Code Funktionalität wurde erfolgreich in die Event-Gear-Keeper App integriert. Sie ermöglicht:
+Die QR-Code Funktionalität wurde erfolgreich in die Rigflow App integriert. Sie ermöglicht:
 
 - **QR-Code Anzeige**: Visueller QR-Code für jeden Artikel
 - **QR-Code Druck**: Download und Druck von QR-Codes

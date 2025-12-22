@@ -1,6 +1,6 @@
 # ✅ DMX-Patchplan Implementation - FINAL CHECKLIST
 
-**Projekt:** Event Gear Keeper - DMX Patchplan Feature
+**Projekt:** RigFLow - DMX Patchplan Feature
 **Datum:** Dezember 6, 2024
 **Status:** ✅ VOLLSTÄNDIG
 
@@ -441,4 +441,4 @@ All Deliverables:
 
 **✅ PROJECT COMPLETE**
 
-🎊 Thank you for using Event Gear Keeper DMX Patchplan! 🎊
+🎊 Thank you for using RigFLow DMX Patchplan! 🎊
