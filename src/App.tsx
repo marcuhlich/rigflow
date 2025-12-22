@@ -7,8 +7,6 @@ import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { AppUpdatePrompt } from "@/components/AppUpdatePrompt";
-import { useAppUpdate } from "@/hooks/useAppUpdate";
 import { PushService } from "@/lib/pushService";
 import { logger } from "@/lib/logger";
 import Landing from "./pages/Landing";
@@ -190,21 +188,6 @@ function AppInitializer() {
   return null;
 }
 
-function AppUpdateChecker() {
-  const { updateAvailable, applyUpdate, dismissUpdate } = useAppUpdate();
-
-  if (!updateAvailable) {
-    return null;
-  }
-
-  return (
-    <AppUpdatePrompt
-      onUpdate={applyUpdate}
-      onDismiss={dismissUpdate}
-    />
-  );
-}
-
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -214,7 +197,6 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <AppInitializer />
-            <AppUpdateChecker />
             <AppRoutes />
           </BrowserRouter>
         </TooltipProvider>

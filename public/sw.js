@@ -3,17 +3,14 @@
  * Handles background sync, caching, and offline support
  */
 
-const CACHE_NAME = 'rigflow-v2';
+const CACHE_NAME = 'rigflow-v1';
 const RUNTIME_CACHE = 'rigflow-runtime';
 const API_CACHE = 'rigflow-api';
-
-console.log('[SW] Service Worker Version:', SW_VERSION);
 
 // Install event
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker');
-  // Entferne self.skipWaiting() hier - wir wollen kontrolliert updaten
-  // self.skipWaiting(); 
+  self.skipWaiting();
 });
 
 // Activate event
@@ -36,12 +33,34 @@ self.addEventListener('activate', (event) => {
             return caches.delete(cacheName);
           })
       );
-    }).then(() => {
-      // Claim all clients sofort nach Aktivierung
-      console.log('[SW] Claiming all clients');
-      return self.clients.claim();
     })
   );
+
+  self.clients.claim();
+});
+
+// Handle messages from app
+self.addEventListener('message', (event) => {
+  const { type, data } = event.data || {};
+  console.log('[SW] Message received:', type);
+
+  // Handle app update request
+  if (type === 'SKIP_WAITING') {
+    console.log('[SW] Received SKIP_WAITING - activating new version immediately');
+    self.skipWaiting();
+    return;
+  }
+
+  // Handle notification request
+  if (type === 'SHOW_NOTIFICATION') {
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon || '/pwa-192x192.png',
+      badge: data.badge || '/favicon-32x32.png',
+      tag: data.tag || 'default',
+      requireInteraction: data.requireInteraction || false,
+    });
+  }
 });
 
 // Fetch event - simplified
@@ -82,30 +101,6 @@ self.addEventListener('fetch', (event) => {
       return caches.match(request);
     })
   );
-});
-
-// Handle messages from app
-self.addEventListener('message', (event) => {
-  const { type, data } = event.data || {};
-  console.log('[SW] Message received:', type);
-
-  // Handle app update request
-  if (type === 'SKIP_WAITING') {
-    console.log('[SW] Received SKIP_WAITING - activating new version immediately');
-    self.skipWaiting();
-    return;
-  }
-
-  // Handle notification request
-  if (type === 'SHOW_NOTIFICATION') {
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: data.icon || '/pwa-192x192.png',
-      badge: data.badge || '/favicon-32x32.png',
-      tag: data.tag || 'default',
-      requireInteraction: data.requireInteraction || false,
-    });
-  }
 });
 
 // Notification handlers
