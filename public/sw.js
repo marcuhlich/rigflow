@@ -1,117 +1,87 @@
 /**
- * 🔥 KILL SWITCH SERVICE WORKER
- * Version: 2025-12-23-ULTIMATE
+ * 🔥 AUTOMATIC KILL SWITCH SERVICE WORKER
+ * Version: 2025-12-23-AUTO
+ * Aktiviert sich selbst, ohne manuelle Klicks
  */
 
-const KILL_VERSION = 'rigflow-kill-2025-12-23';
+const KILL_VERSION = 'rigflow-kill-2025-12-23-AUTO';
 
 console.log('🔥🔥🔥 SW KILL VERSION LOADED:', KILL_VERSION);
 
-// 🔥 FORCE KILL OLD SW
+// Install: SOFORT übernehmen, kein Warten
 self.addEventListener('install', (event) => {
   console.log('[SW KILL] Installing', KILL_VERSION);
-  self.skipWaiting(); // ← das hast du schon
-});
-
-// NEU: Message an alten SW schicken
-self.addEventListener('activate', (event) => {
-  console.log('[SW KILL] Activating and nuking everything');
   
-  event.waitUntil(
-    (async () => {
-      // Erst den alten SW töten
-      const allClients = await self.clients.matchAll({ includeUncontrolled: true });
-      allClients.forEach(client => {
-        client.postMessage({ type: 'SKIP_WAITING' });
-      });
-      
-      // Dann rest wie vorher...
-      const keys = await caches.keys();
-      console.log('[SW KILL] Deleting caches:', keys);
-      await Promise.all(keys.map(key => caches.delete(key)));
-
-      await self.clients.claim();
-
-      const clients = await self.clients.matchAll({ 
-        type: 'window',
-        includeUncontrolled: true 
-      });
-      
-      console.log('[SW KILL] Found clients:', clients.length);
-      
-      for (const client of clients) {
-        console.log('[SW KILL] Reloading client:', client.url);
-        client.postMessage({ type: 'FORCE_RELOAD' });
-        
-        try {
-          client.navigate(client.url + '?sw-kill=' + Date.now());
-        } catch (e) {
-          console.log('[SW KILL] Navigate failed, client will use postMessage');
-        }
-      }
-
-      console.log('[SW KILL] ✅ Done. Old SWs are dead.');
-    })()
-  );
+  // Sofort aktivieren, nicht warten
+  event.waitUntil(self.skipWaiting());
 });
 
-// Install: sofort übernehmen
-self.addEventListener('install', (event) => {
-  console.log('[SW KILL] Installing', KILL_VERSION);
-  self.skipWaiting();
-});
-
-// Activate: ALLES löschen
+// Activate: ALLES löschen + ALLE Clients übernehmen
 self.addEventListener('activate', (event) => {
-  console.log('[SW KILL] Activating and nuking everything');
+  console.log('[SW KILL] 🔥 Activating and nuking everything');
 
   event.waitUntil(
     (async () => {
-      // 🔥 DELETE ALL CACHES
+      // 1️⃣ DELETE ALL CACHES
       const keys = await caches.keys();
-      console.log('[SW KILL] Deleting caches:', keys);
+      console.log('[SW KILL] Deleting', keys.length, 'caches:', keys);
       await Promise.all(keys.map(key => caches.delete(key)));
 
-      // 🔥 CLAIM ALL CLIENTS
+      // 2️⃣ CLAIM ALL CLIENTS (übernimmt sofort alle Tabs/PWAs)
       await self.clients.claim();
+      console.log('[SW KILL] Claimed all clients');
 
-      // 🔥 FORCE RELOAD ALL OPEN TABS / PWAs
+      // 3️⃣ FORCE RELOAD ALL CLIENTS
       const clients = await self.clients.matchAll({ 
         type: 'window',
         includeUncontrolled: true 
       });
       
-      console.log('[SW KILL] Found clients:', clients.length);
+      console.log('[SW KILL] Found', clients.length, 'client(s)');
       
       for (const client of clients) {
-        console.log('[SW KILL] Reloading client:', client.url);
-        client.postMessage({ type: 'FORCE_RELOAD' });
+        console.log('[SW KILL] Force-reloading:', client.url);
         
-        // Backup: auch per navigate
-        try {
-          client.navigate(client.url + '?sw-kill=' + Date.now());
-        } catch (e) {
-          console.log('[SW KILL] Navigate failed, client will use postMessage');
-        }
+        // Doppelte Strategie: postMessage + navigate
+        client.postMessage({ 
+          type: 'FORCE_RELOAD',
+          version: KILL_VERSION 
+        });
+        
+        // Backup: direkte Navigation
+        setTimeout(() => {
+          try {
+            client.navigate(client.url + '?kill=' + Date.now());
+          } catch (e) {
+            console.log('[SW KILL] Navigate not possible, postMessage should work');
+          }
+        }, 100);
       }
 
-      console.log('[SW KILL] ✅ Done. Old SWs are dead.');
+      console.log('[SW KILL] ✅ Done. All caches deleted, all clients claimed.');
     })()
   );
 });
 
-// Fetch: PURE NETWORK (kein Cache!)
+// Fetch: PURE NETWORK (kein Cache, alles frisch vom Server)
 self.addEventListener('fetch', (event) => {
-  event.respondWith(fetch(event.request));
+  console.log('[SW KILL] Fetch:', event.request.url);
+  event.respondWith(
+    fetch(event.request).catch(() => {
+      console.log('[SW KILL] Fetch failed (offline?)');
+      return new Response('Offline - Kill-Switch active', { status: 503 });
+    })
+  );
 });
 
 // Message Handler
 self.addEventListener('message', (event) => {
-  console.log('[SW KILL] Message received:', event.data);
+  console.log('[SW KILL] Message:', event.data);
   
   if (event.data?.type === 'SKIP_WAITING') {
+    console.log('[SW KILL] Received SKIP_WAITING command');
     self.skipWaiting();
   }
 });
 
-console.log('[SW KILL] Service Worker script executed');
+console.log('[SW KILL] ✅ Script executed');

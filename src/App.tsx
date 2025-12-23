@@ -161,12 +161,32 @@ function AppInitializer() {
 
     initializePush();
 
-    // Listen for FORCE_RELOAD from Service Worker
+    // FORCE RELOAD Listener (verstärkt)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('message', (event) => {
+        console.log('📨 Message from SW:', event.data);
+        
         if (event.data?.type === 'FORCE_RELOAD') {
-          console.log('🔥 SW says: FORCE RELOAD');
-          window.location.reload();
+          console.log('🔥 SW KILL: Force reloading page NOW');
+          
+          // Kurz warten, damit SW alles clearen kann
+          setTimeout(() => {
+            window.location.href = window.location.href.split('?')[0];
+          }, 200);
+        }
+      });
+
+      // Zusätzlich: Wenn ein neuer SW wartet, sofort aktivieren
+      navigator.serviceWorker.ready.then(registration => {
+        if (registration.waiting) {
+          console.log('🔥 New SW waiting, sending SKIP_WAITING');
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          
+          // Warte auf Controller-Wechsel
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            console.log('🔥 SW Controller changed, reloading');
+            window.location.reload();
+          });
         }
       });
     }
