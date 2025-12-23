@@ -1,136 +1,69 @@
 /**
- * Service Worker for RigFlow
- * Handles background sync, caching, and offline support
+ * 🔥 KILL SWITCH SERVICE WORKER
+ * Version: 2025-12-23-ULTIMATE
  */
 
-const CACHE_NAME = `rigflow-${self.registration.scope}-${Date.now()}`;
-const RUNTIME_CACHE = 'rigflow-runtime';
-const API_CACHE = 'rigflow-api';
+const KILL_VERSION = 'rigflow-kill-2025-12-23';
 
-console.log('🔥🔥🔥 SW KILL VERSION 2025-12-23 🔥🔥🔥');
+console.log('🔥🔥🔥 SW KILL VERSION LOADED:', KILL_VERSION);
 
-// Install event
+// Install: sofort übernehmen
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker');
+  console.log('[SW KILL] Installing', KILL_VERSION);
   self.skipWaiting();
 });
 
-// Activate event
-sself.addEventListener('activate', (event) => {
-  console.log('[SW] 🔥 KILL SWITCH ACTIVATE');
+// Activate: ALLES löschen
+self.addEventListener('activate', (event) => {
+  console.log('[SW KILL] Activating and nuking everything');
 
   event.waitUntil(
     (async () => {
-      // 1️⃣ ALLE CACHES LÖSCHEN
-      const cacheKeys = await caches.keys();
-      await Promise.all(
-        cacheKeys.map((key) => {
-          console.log('[SW] Deleting cache:', key);
-          return caches.delete(key);
-        })
-      );
+      // 🔥 DELETE ALL CACHES
+      const keys = await caches.keys();
+      console.log('[SW KILL] Deleting caches:', keys);
+      await Promise.all(keys.map(key => caches.delete(key)));
 
-      // 2️⃣ ALLE CLIENTS HOLEN
-      const clientsArr = await self.clients.matchAll({
+      // 🔥 CLAIM ALL CLIENTS
+      await self.clients.claim();
+
+      // 🔥 FORCE RELOAD ALL OPEN TABS / PWAs
+      const clients = await self.clients.matchAll({ 
         type: 'window',
-        includeUncontrolled: true,
+        includeUncontrolled: true 
       });
-
-      // 3️⃣ ALLE CLIENTS ZWANGS-RELOADEN
-      for (const client of clientsArr) {
-        console.log('[SW] Forcing reload:', client.url);
-        client.navigate(client.url + '?sw-kill=' + Date.now());
+      
+      console.log('[SW KILL] Found clients:', clients.length);
+      
+      for (const client of clients) {
+        console.log('[SW KILL] Reloading client:', client.url);
+        client.postMessage({ type: 'FORCE_RELOAD' });
+        
+        // Backup: auch per navigate
+        try {
+          client.navigate(client.url + '?sw-kill=' + Date.now());
+        } catch (e) {
+          console.log('[SW KILL] Navigate failed, client will use postMessage');
+        }
       }
+
+      console.log('[SW KILL] ✅ Done. Old SWs are dead.');
     })()
   );
 });
 
-// Handle messages from app
-self.addEventListener('message', (event) => {
-  const { type, data } = event.data || {};
-  console.log('[SW] Message received:', type);
-
-  // Handle app update request
-  if (type === 'SKIP_WAITING') {
-    console.log('[SW] Received SKIP_WAITING - activating new version immediately');
-    self.skipWaiting();
-    return;
-  }
-
-  // Handle notification request
-  if (type === 'SHOW_NOTIFICATION') {
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: data.icon || '/pwa-192x192.png',
-      badge: data.badge || '/favicon-32x32.png',
-      tag: data.tag || 'default',
-      requireInteraction: data.requireInteraction || false,
-    });
-  }
-});
-
-// Fetch event - simplified
+// Fetch: PURE NETWORK (kein Cache!)
 self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
-
-  // Skip non-GET requests
-  if (request.method !== 'GET') {
-    return;
-  }
-
-  // Skip chrome extensions and non-http(s)
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    return;
-  }
-
-  // API calls - network first
-  if (url.pathname.includes('/rest/v1/')) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => response)
-        .catch(() => {
-          return caches.match(request).then((cached) => {
-            return (
-              cached ||
-              new Response('Offline', { status: 503 })
-            );
-          });
-        })
-    );
-    return;
-  }
-
-  /* // Static assets - network only (let browser handle caching)
-  event.respondWith(
-    fetch(request).catch(() => {
-      return caches.match(request);
-    })
-  ); */
-
-  // Static assets – FORCE NETWORK
-  event.respondWith(fetch(request));
+  event.respondWith(fetch(event.request));
 });
 
-// Notification handlers
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  event.waitUntil(
-    clients.matchAll({ type: 'window' }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url === '/' && 'focus' in client) {
-          return client.focus();
-        }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow('/');
-      }
-    })
-  );
+// Message Handler
+self.addEventListener('message', (event) => {
+  console.log('[SW KILL] Message received:', event.data);
+  
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
-self.addEventListener('notificationclose', (event) => {
-  console.log('[SW] Notification closed:', event.notification.tag);
-});
-
-console.log('[SW] Service Worker loaded');
+console.log('[SW KILL] Service Worker script executed');

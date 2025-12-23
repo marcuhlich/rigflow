@@ -161,35 +161,15 @@ function AppInitializer() {
 
     initializePush();
 
-    // Check for updates when app comes into focus (wichtig für Mobile!)
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        logger.info('App', 'App became visible, checking for SW updates...');
-        
-        if ('serviceWorker' in navigator) {
-          try {
-            const registration = await navigator.serviceWorker.getRegistration();
-            if (registration) {
-              logger.info('App', 'Triggering SW update check');
-              await registration.update();
-            }
-          } catch (error) {
-            logger.error('App', 'Failed to check for SW updates', error);
-          }
+    // Listen for FORCE_RELOAD from Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data?.type === 'FORCE_RELOAD') {
+          console.log('🔥 SW says: FORCE RELOAD');
+          window.location.reload();
         }
-      }
-    };
-
-    // Event listener hinzufügen
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Auch direkt beim Start einmal prüfen
-    handleVisibilityChange();
-
-    // Cleanup
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
+      });
+    }
   }, []);
 
   return null;
