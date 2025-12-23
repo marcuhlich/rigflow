@@ -7,6 +7,8 @@ const CACHE_NAME = `rigflow-${self.registration.scope}-${Date.now()}`;
 const RUNTIME_CACHE = 'rigflow-runtime';
 const API_CACHE = 'rigflow-api';
 
+console.log('🔥🔥🔥 SW KILL VERSION 2025-12-23 🔥🔥🔥');
+
 // Install event
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker');
@@ -14,13 +16,31 @@ self.addEventListener('install', (event) => {
 });
 
 // Activate event
-self.addEventListener('activate', (event) => {
+sself.addEventListener('activate', (event) => {
+  console.log('[SW] 🔥 KILL SWITCH ACTIVATE');
+
   event.waitUntil(
     (async () => {
-      const clientsArr = await self.clients.matchAll({ type: 'window' });
-      clientsArr.forEach(client => {
-        client.navigate(client.url);
+      // 1️⃣ ALLE CACHES LÖSCHEN
+      const cacheKeys = await caches.keys();
+      await Promise.all(
+        cacheKeys.map((key) => {
+          console.log('[SW] Deleting cache:', key);
+          return caches.delete(key);
+        })
+      );
+
+      // 2️⃣ ALLE CLIENTS HOLEN
+      const clientsArr = await self.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
       });
+
+      // 3️⃣ ALLE CLIENTS ZWANGS-RELOADEN
+      for (const client of clientsArr) {
+        console.log('[SW] Forcing reload:', client.url);
+        client.navigate(client.url + '?sw-kill=' + Date.now());
+      }
     })()
   );
 });
@@ -81,12 +101,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets - network only (let browser handle caching)
+  /* // Static assets - network only (let browser handle caching)
   event.respondWith(
     fetch(request).catch(() => {
       return caches.match(request);
     })
-  );
+  ); */
+
+  // Static assets – FORCE NETWORK
+  event.respondWith(fetch(request));
 });
 
 // Notification handlers
