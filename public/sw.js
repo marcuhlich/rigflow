@@ -7,6 +7,54 @@ const KILL_VERSION = 'rigflow-kill-2025-12-23';
 
 console.log('🔥🔥🔥 SW KILL VERSION LOADED:', KILL_VERSION);
 
+// 🔥 FORCE KILL OLD SW
+self.addEventListener('install', (event) => {
+  console.log('[SW KILL] Installing', KILL_VERSION);
+  self.skipWaiting(); // ← das hast du schon
+});
+
+// NEU: Message an alten SW schicken
+self.addEventListener('activate', (event) => {
+  console.log('[SW KILL] Activating and nuking everything');
+  
+  event.waitUntil(
+    (async () => {
+      // Erst den alten SW töten
+      const allClients = await self.clients.matchAll({ includeUncontrolled: true });
+      allClients.forEach(client => {
+        client.postMessage({ type: 'SKIP_WAITING' });
+      });
+      
+      // Dann rest wie vorher...
+      const keys = await caches.keys();
+      console.log('[SW KILL] Deleting caches:', keys);
+      await Promise.all(keys.map(key => caches.delete(key)));
+
+      await self.clients.claim();
+
+      const clients = await self.clients.matchAll({ 
+        type: 'window',
+        includeUncontrolled: true 
+      });
+      
+      console.log('[SW KILL] Found clients:', clients.length);
+      
+      for (const client of clients) {
+        console.log('[SW KILL] Reloading client:', client.url);
+        client.postMessage({ type: 'FORCE_RELOAD' });
+        
+        try {
+          client.navigate(client.url + '?sw-kill=' + Date.now());
+        } catch (e) {
+          console.log('[SW KILL] Navigate failed, client will use postMessage');
+        }
+      }
+
+      console.log('[SW KILL] ✅ Done. Old SWs are dead.');
+    })()
+  );
+});
+
 // Install: sofort übernehmen
 self.addEventListener('install', (event) => {
   console.log('[SW KILL] Installing', KILL_VERSION);
