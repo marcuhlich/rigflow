@@ -1,9 +1,5 @@
-/**
- * Event Checklists - Verwaltungsseite für alle Checklisten
- */
 import { useState } from 'react';
 import { useEventChecklists } from '@/hooks/useEventChecklists';
-import { ChecklistCard } from '@/components/ChecklistCard';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,10 +10,11 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Plus, AlertCircle } from 'lucide-react';
+import { Plus, AlertCircle, Trash } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { SoftConfirm } from '@/components/SoftConfirm';
 import { DEFAULT_TEMPLATES, calculateChecklistStats } from '@/types/checklist';
+import { ChecklistCard } from '@/components/ChecklistCard';
 
 export function ChecklistsPage() {
   const {
@@ -35,27 +32,27 @@ export function ChecklistsPage() {
   const [templateType, setTemplateType] = useState<'pre-event' | 'post-event' | 'general'>(
     'pre-event'
   );
+  const [error, setError] = useState('');
 
   const handleCreateChecklist = async () => {
-    if (eventName.trim()) {
-      await createChecklist(eventName, templateType);
-      setEventName('');
-      setTemplateType('pre-event');
-      setIsDialogOpen(false);
+    const trimmedName = eventName.trim();
+    if (!trimmedName) return;
+
+    if (checklists.some((c) => c.eventName.toLowerCase() === trimmedName.toLowerCase())) {
+      setError('Eine Checklist mit diesem Namen existiert bereits.');
+      return;
     }
+
+    await createChecklist(trimmedName, templateType);
+    setEventName('');
+    setTemplateType('pre-event');
+    setIsDialogOpen(false);
+    setError('');
   };
 
   const sortedChecklists = [...checklists].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -68,6 +65,14 @@ export function ChecklistsPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -79,18 +84,15 @@ export function ChecklistsPage() {
           </p>
         </div>
 
+        {/* Neue Checklist Button */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
-              {/* Desktop Icon */}
               <Plus className="h-4 w-4 hidden sm:inline" />
               <span className="hidden sm:inline">Neue Checklist</span>
-
-              {/* Mobile */}
               <span className="sm:hidden">+</span>
             </Button>
           </DialogTrigger>
-
           <DialogContent className="w-[95vw] sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Neue Checklist erstellen</DialogTitle>
@@ -100,7 +102,6 @@ export function ChecklistsPage() {
             </DialogHeader>
 
             <div className="space-y-4 py-4">
-              {/* Event Name */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Event Name *</label>
                 <input
@@ -113,12 +114,11 @@ export function ChecklistsPage() {
                     if (e.key === 'Enter') handleCreateChecklist();
                   }}
                 />
+                {error && <p className="text-xs text-red-500">{error}</p>}
               </div>
 
-              {/* Template Type */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Vorlagen-Typ</label>
-
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {(['pre-event', 'post-event', 'general'] as const).map((type) => (
                     <button
@@ -137,7 +137,7 @@ export function ChecklistsPage() {
                   ))}
                 </div>
 
-                {/* Template Preview */}
+                {/* Template Vorschau */}
                 <div className="mt-3 p-3 bg-muted rounded-lg border border-border">
                   {DEFAULT_TEMPLATES[templateType] ? (
                     <>
@@ -145,12 +145,17 @@ export function ChecklistsPage() {
                         Enthält {DEFAULT_TEMPLATES[templateType].items?.length ?? 0} Standard-Items
                       </p>
                       <ul className="space-y-1">
-                        {DEFAULT_TEMPLATES[templateType].items?.slice(0, 3).map((item, i) => (
-                          <li key={i} className="text-xs text-muted-foreground flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-                            {item.text}
-                          </li>
-                        ))}
+                        {DEFAULT_TEMPLATES[templateType].items
+                          ?.slice(0, 3)
+                          .map((item, i) => (
+                            <li
+                              key={i}
+                              className="text-xs text-muted-foreground flex items-center gap-2"
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+                              {item.text}
+                            </li>
+                          ))}
                         {(DEFAULT_TEMPLATES[templateType].items?.length ?? 0) > 3 && (
                           <li className="text-xs text-muted-foreground italic">
                             +{(DEFAULT_TEMPLATES[templateType].items?.length ?? 0) - 3} weitere...
@@ -215,7 +220,8 @@ export function ChecklistsPage() {
           {/* Checklists Grid */}
           <div className="grid gap-4">
             {sortedChecklists.map((checklist) => (
-              <div key={checklist.id} className={`rounded-lg border ${getTypeColor(checklist.type)}`}>
+              <div key={checklist.id} className={`relative rounded-lg border ${getTypeColor(checklist.type)}`}>
+                {/* ChecklistCard - OHNE SoftConfirm hier */}
                 <ChecklistCard
                   checklist={checklist}
                   onItemStatusChange={(itemId, status) =>
@@ -225,6 +231,24 @@ export function ChecklistsPage() {
                   onAddItem={(text) => addItem(checklist.id, text, '')}
                   onDeleteChecklist={() => deleteChecklist(checklist.id)}
                 />
+
+                {/* SoftConfirm für gesamte Checkliste - nur EINMAL hier */}
+                <div className="absolute top-4 right-4 z-10">
+                  <SoftConfirm
+                    trigger={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </Button>
+                    }
+                    title="Checklist wirklich löschen?"
+                    description={`Die Checklist "${checklist.eventName}" und alle zugehörigen Todos werden unwiderruflich gelöscht.`}
+                    onConfirm={() => deleteChecklist(checklist.id)}
+                  />
+                </div>
               </div>
             ))}
           </div>

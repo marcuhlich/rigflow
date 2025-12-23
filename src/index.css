@@ -239,6 +239,11 @@
 .pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
 }
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
 /*
 [data-radix-popper-content-wrapper] {
   pointer-events: auto !important;

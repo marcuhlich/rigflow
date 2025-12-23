@@ -4,7 +4,7 @@
 import { ChecklistItem as ChecklistItemType } from '@/types/checklist';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Trash2, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 
 interface ChecklistItemProps {
@@ -95,15 +95,7 @@ export function ChecklistItemComponent({
           {item.status === 'skipped' ? '↺' : '∅'}
         </Button>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onDelete(item.id)}
-          className="text-destructive hover:text-destructive px-2"
-          title="Löschen"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+        {/* Delete Button wurde entfernt - wird jetzt mit SoftConfirm in ChecklistCard gehandhabt */}
       </div>
     </div>
   );

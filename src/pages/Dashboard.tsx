@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { Package, CheckCircle, ArrowRightLeft, AlertTriangle, Zap, Clock, Activity, CheckSquare, ArrowRight } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const { checklists } = useEventChecklists();
   const { user } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [fakeLoading, setFakeLoading] = useState(true);
 
   // Check if user completed onboarding
   useEffect(() => {
@@ -27,6 +29,10 @@ export default function Dashboard() {
         setShowOnboarding(true);
       }
     }
+
+    // Simulate loading for better UX
+    const timer = setTimeout(() => setFakeLoading(false), 500);
+    return () => clearTimeout(timer);
   }, [user]);
 
   const handleOnboardingComplete = () => {
@@ -81,11 +87,41 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+      <div className="space-y-8">
+        {/* Stats Grid Skeleton */}
+        <section className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full" />
+          ))}
+        </section>
+
+        {/* Checklists Skeleton */}
+        <Skeleton className="h-16 w-full rounded-lg" />
+
+        {/* Charts & Activities */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Pie Chart Skeleton */}
+          <Skeleton className="h-[280px] w-full rounded-lg" />
+
+          {/* Recent Activities Skeleton */}
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full rounded-lg" />
+            ))}
+          </div>
+        </div>
+
+        {/* Category Overview Skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full rounded-lg" />
+          ))}
+        </div>
       </div>
     );
   }
+
+
 
   return (
     <div className="space-y-8">

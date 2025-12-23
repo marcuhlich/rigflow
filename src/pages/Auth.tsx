@@ -121,9 +121,9 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="min-h-screen relative flex justify-center p-4 pt-[calc(env(safe-area-inset-top)+4rem)] sm:items-center sm:pt-4 bg-gradient-to-br from-background via-background to-primary/5">
       {/* Back Button */}
-      <div className="absolute top-4 left-4">
+      <div className="absolute left-4 top-[calc(env(safe-area-inset-top)+1rem)] z-50">
         <Link
           to="/landing"
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"

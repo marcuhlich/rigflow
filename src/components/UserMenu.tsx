@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
@@ -11,8 +12,26 @@ import { Button } from "@/components/ui/button";
 import { User, Settings, LogOut } from "lucide-react";
 
 export function UserMenu() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Abgemeldet",
+        description: "Du wurdest erfolgreich abgemeldet.",
+      });
+      navigate("/auth");
+    } catch {
+      toast({
+        title: "Fehler",
+        description: "Abmeldung fehlgeschlagen",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -21,9 +40,12 @@ export function UserMenu() {
           <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
             <User className="h-4 w-4 text-primary" />
           </div>
-          <span className="hidden sm:inline text-sm">{user?.email?.split("@")[0]}</span>
+          <span className="hidden sm:inline text-sm">
+            {user?.email?.split("@")[0]}
+          </span>
         </Button>
       </DropdownMenuTrigger>
+
       <DropdownMenuContent align="end" className="w-56">
         <div className="px-2 py-1.5 text-sm">
           <p className="font-medium text-foreground">{user?.email}</p>
@@ -31,14 +53,21 @@ export function UserMenu() {
             {user?.user_metadata?.display_name || "Nutzer"}
           </p>
         </div>
+
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate("/settings")} className="gap-2 cursor-pointer">
+
+        <DropdownMenuItem
+          onClick={() => navigate("/settings")}
+          className="gap-2 cursor-pointer"
+        >
           <Settings className="h-4 w-4" />
           <span>Einstellungen</span>
         </DropdownMenuItem>
+
         <DropdownMenuSeparator />
+
         <DropdownMenuItem
-          onClick={() => navigate("/settings")}
+          onClick={handleLogout}
           className="gap-2 cursor-pointer text-destructive focus:text-destructive"
         >
           <LogOut className="h-4 w-4" />

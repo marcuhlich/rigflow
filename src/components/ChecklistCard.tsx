@@ -10,6 +10,7 @@ import { ChecklistItemComponent } from './ChecklistItem';
 import { Trash2, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import { calculateChecklistStats } from '@/types/checklist';
+import { SoftConfirm } from '@/components/SoftConfirm';
 
 interface ChecklistCardProps {
   checklist: EventChecklist;
@@ -66,16 +67,6 @@ export function ChecklistCard({
             <p className="text-xs text-muted-foreground mt-1">{checklist.description}</p>
           )}
         </div>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onDeleteChecklist()}
-          className="text-destructive hover:text-destructive"
-          title="Checklist löschen"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
       </div>
 
       {/* Progress */}
@@ -95,12 +86,32 @@ export function ChecklistCard({
           {sortedItems.length > 0 ? (
             <>
               {sortedItems.map((item) => (
-                <ChecklistItemComponent
-                  key={item.id}
-                  item={item}
-                  onStatusChange={(itemId, status) => onItemStatusChange(itemId, status)}
-                  onDelete={onItemDelete}
-                />
+                <div key={item.id} className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <ChecklistItemComponent
+                      item={item}
+                      onStatusChange={(itemId, status) => onItemStatusChange(itemId, status)}
+                      onDelete={() => {}} // Leere Funktion - wird von SoftConfirm gehandhabt
+                    />
+                  </div>
+                  
+                  {/* SoftConfirm für einzelnes Item */}
+                  <SoftConfirm
+                    trigger={
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive px-2 flex-shrink-0"
+                        title="Todo löschen"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    }
+                    title="Todo wirklich löschen?"
+                    description={`"${item.text}" wird unwiderruflich gelöscht.`}
+                    onConfirm={() => onItemDelete(item.id)}
+                  />
+                </div>
               ))}
             </>
           ) : (

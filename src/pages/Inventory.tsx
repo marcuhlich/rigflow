@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, QrCode, CheckSquare, Square, Download, FileText, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -139,13 +141,32 @@ export default function Inventory() {
     setSelectionMode(!selectionMode);
   };
 
+  const [fakeLoading, setFakeLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setFakeLoading(false), 100); // 500ms Test
+    return () => clearTimeout(timer);
+  }, []);
+
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+  return (
+    <div className="space-y-4">
+      {/* Buttons / Filter Bar Skeleton */}
+      <div className="flex gap-2">
+        <Skeleton className="h-9 w-20 rounded-md" />
+        <Skeleton className="h-9 w-20 rounded-md" />
+        <Skeleton className="h-9 w-20 rounded-md" />
       </div>
-    );
-  }
+
+      {/* Grid Skeleton */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} className="h-32 w-full rounded-lg" />
+        ))}
+      </div>
+    </div>
+  );
+}
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-24">

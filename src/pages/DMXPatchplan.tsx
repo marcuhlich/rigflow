@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, Sliders, Table as TableIcon, LayoutGrid, Download, FileText, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,13 +36,35 @@ export default function DMXPatchplan() {
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
-  if (loading) {
+  const [fakeLoading, setFakeLoading] = useState(true);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setFakeLoading(false), 500);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  if (loading || fakeLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+      <div className="space-y-6">
+        {/* Universe Usage Skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-lg" />
+          ))}
+        </div>
+
+        {/* Konflikt-Warnung Skeleton */}
+        <Skeleton className="h-20 w-full rounded-lg" />
+
+        {/* Timeline/Table Skeleton */}
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-64 w-full rounded-lg" />
+        ))}
       </div>
     );
   }
+
+
 
   const handleExportCSV = () => {
     const csv = exportPatchplanCSV(patchplan);
