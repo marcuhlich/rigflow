@@ -161,35 +161,78 @@ function AppInitializer() {
 
     initializePush();
 
-    // FORCE RELOAD Listener (verstärkt)
+    // FORCE NEW SW ACTIVATION (direkt hier, nicht in neuem useEffect!)
     if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then(registration => {
+        if (registration && registration.waiting) {
+          console.log('🔥 New SW waiting, forcing activation NOW');
+          
+          // Sende SKIP_WAITING an neuen SW
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          
+          // Wenn Controller wechselt → Seite neu laden
+          let refreshing = false;
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!refreshing) {
+              refreshing = true;
+              console.log('🔥 Controller changed, reloading');
+              window.location.reload();
+            }
+          });
+        }
+      });
+
+      // FORCE RELOAD Listener
       navigator.serviceWorker.addEventListener('message', (event) => {
         console.log('📨 Message from SW:', event.data);
         
         if (event.data?.type === 'FORCE_RELOAD') {
           console.log('🔥 SW KILL: Force reloading page NOW');
           
-          // Kurz warten, damit SW alles clearen kann
           setTimeout(() => {
             window.location.href = window.location.href.split('?')[0];
           }, 200);
         }
       });
 
-      // Zusätzlich: Wenn ein neuer SW wartet, sofort aktivieren
+      // Zusätzlich: ready check
       navigator.serviceWorker.ready.then(registration => {
         if (registration.waiting) {
-          console.log('🔥 New SW waiting, sending SKIP_WAITING');
+          console.log('🔥 New SW waiting (ready check), sending SKIP_WAITING');
           registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-          
-          // Warte auf Controller-Wechsel
-          navigator.serviceWorker.addEventListener('controllerchange', () => {
-            console.log('🔥 SW Controller changed, reloading');
-            window.location.reload();
-          });
         }
       });
     }
+
+    // Check for updates when app comes into focus (wichtig für Mobile!)
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        logger.info('App', 'App became visible, checking for SW updates...');
+        
+        if ('serviceWorker' in navigator) {
+          try {
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (registration) {
+              logger.info('App', 'Triggering SW update check');
+              await registration.update();
+            }
+          } catch (error) {
+            logger.error('App', 'Failed to check for SW updates', error);
+          }
+        }
+      }
+    };
+
+    // Event listener hinzufügen
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Auch direkt beim Start einmal prüfen
+    handleVisibilityChange();
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   return null;
