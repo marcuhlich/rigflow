@@ -3,7 +3,7 @@
  * Handles background sync, caching, and offline support
  */
 
-const CACHE_NAME = 'rigflow-v1';
+const CACHE_NAME = `rigflow-${self.registration.scope}-${Date.now()}`;
 const RUNTIME_CACHE = 'rigflow-runtime';
 const API_CACHE = 'rigflow-api';
 
@@ -15,28 +15,14 @@ self.addEventListener('install', (event) => {
 
 // Activate event
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker');
-
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((cacheName) => {
-            return (
-              cacheName !== CACHE_NAME &&
-              cacheName !== RUNTIME_CACHE &&
-              cacheName !== API_CACHE
-            );
-          })
-          .map((cacheName) => {
-            console.log('[SW] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          })
-      );
-    })
+    (async () => {
+      const clientsArr = await self.clients.matchAll({ type: 'window' });
+      clientsArr.forEach(client => {
+        client.navigate(client.url);
+      });
+    })()
   );
-
-  self.clients.claim();
 });
 
 // Handle messages from app
