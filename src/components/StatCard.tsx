@@ -26,16 +26,14 @@ export function StatCard({ title, value, icon: Icon, variant = 'default' }: Stat
   };
 
   return (
-    <div 
-      className="glass-card p-5 hover:shadow-md transition-shadow duration-200"
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground font-medium">{title}</p>
-          <p className="text-3xl font-bold mt-1">{value}</p>
+    <div className="glass-card p-3 sm:p-5 hover:shadow-md transition-shadow duration-200">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">{title}</p>
+          <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1">{value}</p>
         </div>
-        <div className={cn("p-3 rounded-lg", bgColors[variant])}>
-          <Icon className={cn("h-6 w-6", iconColors[variant])} />
+        <div className={cn("p-2 sm:p-3 rounded-lg flex-shrink-0", bgColors[variant])}>
+          <Icon className={cn("h-4 w-4 sm:h-6 sm:w-6", iconColors[variant])} />
         </div>
       </div>
     </div>

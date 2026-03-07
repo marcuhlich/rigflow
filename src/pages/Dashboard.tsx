@@ -18,19 +18,15 @@ export default function Dashboard() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [fakeLoading, setFakeLoading] = useState(true);
 
-  // Check if user completed onboarding
   useEffect(() => {
     if (user) {
       const hasCompletedOnboarding = localStorage.getItem(
         `onboarding_completed_${user.id}`
       );
-
       if (!hasCompletedOnboarding) {
         setShowOnboarding(true);
       }
     }
-
-    // Simulate loading for better UX
     const timer = setTimeout(() => setFakeLoading(false), 500);
     return () => clearTimeout(timer);
   }, [user]);
@@ -51,7 +47,6 @@ export default function Dashboard() {
 
   const recentActivities = useMemo(() => {
     const activities: { id: string; message: string; time: string; type: 'lent' | 'defect' | 'recent' }[] = [];
-    
     allItems.forEach(item => {
       if (item.condition === 'verliehen' && item.lent_to) {
         activities.push({
@@ -70,8 +65,6 @@ export default function Dashboard() {
         });
       }
     });
-
-    // Sort by most recent and take top 5
     return activities
       .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
       .slice(0, 5);
@@ -87,56 +80,38 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="space-y-8">
-        {/* Stats Grid Skeleton */}
-        <section className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="space-y-6">
+        <section className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 w-full" />
+            <Skeleton key={i} className="h-16 sm:h-20 w-full" />
           ))}
         </section>
-
-        {/* Checklists Skeleton */}
         <Skeleton className="h-16 w-full rounded-lg" />
-
-        {/* Charts & Activities */}
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Pie Chart Skeleton */}
-          <Skeleton className="h-[280px] w-full rounded-lg" />
-
-          {/* Recent Activities Skeleton */}
+        <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
+          <Skeleton className="h-[240px] sm:h-[280px] w-full rounded-lg" />
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-16 w-full rounded-lg" />
+              <Skeleton key={i} className="h-14 sm:h-16 w-full rounded-lg" />
             ))}
           </div>
-        </div>
-
-        {/* Category Overview Skeleton */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 w-full rounded-lg" />
-          ))}
         </div>
       </div>
     );
   }
 
-
-
   return (
-    <div className="space-y-8">
-      {/* App Onboarding Tour */}
+    <div className="space-y-5 sm:space-y-8">
       {showOnboarding && (
         <AppOnboardingTour onComplete={handleOnboardingComplete} />
       )}
 
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
-        <p className="text-muted-foreground text-sm mt-1">Übersicht über dein Equipment</p>
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Dashboard</h2>
+        <p className="text-muted-foreground text-xs sm:text-sm mt-1">Übersicht über dein Equipment</p>
       </div>
 
       {/* Stats Grid */}
-      <section className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <section className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         <StatCard title="Gesamt" value={stats.total} icon={Package} variant="default" />
         <StatCard title="Verfügbar" value={stats.available} icon={CheckCircle} variant="success" />
         <StatCard title="Verliehen" value={stats.lent} icon={ArrowRightLeft} variant="warning" />
@@ -148,38 +123,39 @@ export default function Dashboard() {
       {checklists.length > 0 && (
         <Link
           to="/checklists"
-          className="flex items-center justify-between p-4 rounded-lg bg-muted/20 border border-primary/20 hover:bg-muted/30 transition-colors group">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-primary/10 text-foreground">
-              <CheckSquare className="h-5 w-5" />
+          className="flex items-center justify-between p-3 sm:p-4 rounded-lg bg-muted/20 border border-primary/20 hover:bg-muted/30 transition-colors group"
+        >
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="p-2 sm:p-2.5 rounded-lg bg-primary/10 text-foreground flex-shrink-0">
+              <CheckSquare className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <p className="font-semibold text-sm">Event Checklisten</p>
-              <p className="text-xs text-muted-foreground">{checklists.length} aktive Checkliste{checklists.length !== 1 ? 'n' : ''}</p>
+            <div className="min-w-0">
+              <p className="font-semibold text-xs sm:text-sm truncate">Event Checklisten</p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground">{checklists.length} aktive Checkliste{checklists.length !== 1 ? 'n' : ''}</p>
             </div>
           </div>
-          <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+          <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
         </Link>
       )}
 
       {/* Charts and Activities */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Pie Chart */}
-        <div className="glass-card p-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary" />
+        <div className="glass-card p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+            <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             Status-Verteilung
           </h3>
           {pieData.length > 0 ? (
-            <div className="h-[280px]">
+            <div className="h-[220px] sm:h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
+                    innerRadius={40}
+                    outerRadius={70}
                     paddingAngle={0}
                     dataKey="value"
                   >
@@ -192,46 +168,47 @@ export default function Dashboard() {
                       backgroundColor: "hsl(220, 20%, 14%)",
                       border: "1px solid hsl(220, 15%, 22%)",
                       borderRadius: "8px",
+                      fontSize: "12px",
                     }}
                     itemStyle={{ color: "white" }}
                     labelStyle={{ color: "white" }}
                   />
-                  <Legend />
+                  <Legend wrapperStyle={{ fontSize: "12px" }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+            <div className="h-[220px] sm:h-[280px] flex items-center justify-center text-muted-foreground text-sm">
               Keine Daten vorhanden
             </div>
           )}
         </div>
 
         {/* Recent Activities */}
-        <div className="glass-card p-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Clock className="h-5 w-5 text-primary" />
+        <div className="glass-card p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+            <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             Aktuelle Aktivitäten
           </h3>
           {recentActivities.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {recentActivities.map((activity) => (
                 <div
                   key={activity.id + activity.time}
-                  className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors"
+                  className="flex items-start gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors"
                 >
-                  <div className={`p-1.5 rounded-full ${
+                  <div className={`p-1 sm:p-1.5 rounded-full flex-shrink-0 ${
                     activity.type === 'lent' ? 'bg-warning/20 text-warning' : 'bg-destructive/20 text-destructive'
                   }`}>
                     {activity.type === 'lent' ? (
-                      <ArrowRightLeft className="h-3.5 w-3.5" />
+                      <ArrowRightLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                     ) : (
-                      <AlertTriangle className="h-3.5 w-3.5" />
+                      <AlertTriangle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{activity.message}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs sm:text-sm font-medium truncate">{activity.message}</p>
+                    <p className="text-[11px] sm:text-xs text-muted-foreground">
                       {format(new Date(activity.time), "dd. MMM yyyy, HH:mm", { locale: de })}
                     </p>
                   </div>
@@ -239,7 +216,7 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+            <div className="h-[160px] sm:h-[200px] flex items-center justify-center text-muted-foreground text-sm">
               Keine aktuellen Aktivitäten
             </div>
           )}
@@ -247,22 +224,22 @@ export default function Dashboard() {
       </div>
 
       {/* Category Overview */}
-      <div className="glass-card p-6">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Package className="h-5 w-5 text-primary" />
+      <div className="glass-card p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+          <Package className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           Artikel nach Kategorie
         </h3>
         {categoryStats.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
             {categoryStats.map(([category, count]) => (
-              <div key={category} className="p-4 rounded-lg bg-muted/20 text-center">
-                <p className="text-2xl font-bold text-primary">{count}</p>
-                <p className="text-sm text-muted-foreground mt-1">{category}</p>
+              <div key={category} className="p-3 sm:p-4 rounded-lg bg-muted/20 text-center">
+                <p className="text-xl sm:text-2xl font-bold text-primary">{count}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 truncate">{category}</p>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center text-muted-foreground py-8">
+          <div className="text-center text-muted-foreground py-6 sm:py-8 text-sm">
             Keine Kategorien vorhanden
           </div>
         )}
