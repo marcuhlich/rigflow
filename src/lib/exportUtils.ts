@@ -177,7 +177,7 @@ export function exportEventSetPDF(set: { name: string; description?: string | nu
     (i.available_quantity ?? 0).toString(),
   ]);
 
-  (doc as any).autoTable({
+  autoTable(doc, {
     startY: y,
     head: headers,
     body: rows,
