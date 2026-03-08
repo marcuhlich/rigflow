@@ -1,140 +1,91 @@
-# Rigflow Inventory App
+# 🎛️ Rigflow
 
-Professionelle Verwaltungssoftware für Event-Equipment mit QR-Code-Integration und DMX-Patchplan.
+**Professionelle Inventarverwaltung für Veranstaltungstechnik**
 
-## Features
+Rigflow ist eine moderne Web-App zur Verwaltung von Event-Equipment – mit QR-Code-Integration, DMX-Patchplanung, Verleihverwaltung und Event-Sets. Optimiert für kleine bis mittelgroße Technik-Sammlungen.
 
-### 📦 Inventarverwaltung
-- **Übersichtsansicht**: Grid- oder Tabellenformat für alle Geräte
-- **Detailseiten**: Vollständige Geräteinformationen mit QR-Codes
-- **Filterung & Suche**: Nach Status, Typ und Eigenschaften
-- **Statistiken**: Bestandsverfolgung in Echtzeit
+[![Live Demo](https://img.shields.io/badge/Live-rigflow.lovable.app-blue?style=flat-square)](https://rigflow.lovable.app)
+[![Built with React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)](https://typescriptlang.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-06B6D4?style=flat-square&logo=tailwindcss)](https://tailwindcss.com)
 
-### 🔲 QR-Code Funktionalität
-- **Automatische Generierung**: QR-Codes für jedes Gerät
-- **Anzeige & Download**: Mit item-spezifischen Details
-- **Drucken**: Vorbereitet für Etikettenausgabe
-- **Scanner**: Kamera-basiertes Scanning oder manuelle UUID-Eingabe
-- **Batch-Export**: Mehrere QR-Codes gleichzeitig generieren
+---
 
-### 🎛️ DMX-Patchplan
-- **Adressenverwaltung**: DMX-Adressen (1-512) pro Universe
-- **Konflikt-Erkennung**: Automatische Warnung bei Adressüberlappungen
-- **Timeline-Visualisierung**: Grafische Darstellung von Adressenbelegung
-- **Mehrreihiges Layout**: Automatische Verteilung überlappender Geräte
+## ✨ Features
 
-### 👤 Authentifizierung
-- **Supabase-Integration**: Sichere Benutzer-Verwaltung
-- **Session-Persistierung**: Automatisches Logout nach Inaktivität
-- **Passwort-Reset**: Email-gestützte Wiederherstellung
+| Feature | Beschreibung |
+|---------|-------------|
+| 📦 **Inventar** | Geräte verwalten mit Kategorien, Zustand, Standort, Stückpreis und Notizen |
+| 🔲 **QR-Codes** | Automatische QR-Generierung, Download, Druck und Kamera-Scanner |
+| 🎛️ **DMX-Patchplan** | Adressenplanung mit Konflikt-Erkennung und Timeline-Visualisierung |
+| 📋 **Checklisten** | Vor- und Nachbereitungs-Checklisten für Events |
+| 📁 **Event-Sets** | Packlisten mit Artikelzuordnung und Verfügbarkeitsprüfung |
+| 🤝 **Verleih** | Ausleihen verwalten mit Fälligkeitsdaten und Rückgabe-Tracking |
+| 📊 **Dashboard** | Übersicht mit Statistiken, aktiven Ausleihen und letzten Aktivitäten |
+| 📄 **Export** | CSV, PDF und Druckansicht für Inventar, Patchplan und Packlisten |
+| 🔔 **Erinnerungen** | Automatische Benachrichtigungen bei überfälligen Rückgaben |
+| 📱 **PWA** | Installierbar als App, offline-fähig mit Service Worker |
+| 🔐 **Auth** | Benutzer-Authentifizierung mit E-Mail-Verifizierung und Passwort-Reset |
+| 📝 **Audit-Log** | Änderungsverlauf für alle Inventar-Aktionen |
 
-## Tech-Stack
+---
 
-- **Frontend**: React 18.3 + TypeScript
-- **Build Tool**: Vite
-- **Styling**: Tailwind CSS
-- **UI-Komponenten**: shadcn/ui
-- **Backend**: Supabase (PostgreSQL)
-- **QR-Generierung**: api.qrserver.com
-- **Deployment**: Vite SPA
+## 🛠️ Tech-Stack
 
-## Installation
+- **Frontend:** React 18 · TypeScript · Vite
+- **Styling:** Tailwind CSS · shadcn/ui
+- **Backend:** Supabase (PostgreSQL, Auth, Storage, Edge Functions)
+- **State:** TanStack React Query
+- **PDF:** jsPDF + AutoTable
+- **QR:** jsQR (Scanner) · api.qrserver.com (Generator)
+- **PWA:** vite-plugin-pwa · Service Worker
+
+---
+
+## 🚀 Lokale Entwicklung
 
 ```bash
+# Repository klonen
+git clone https://github.com/<dein-username>/rigflow.git
+cd rigflow
+
 # Dependencies installieren
-bun install
+npm install
 
 # Development Server starten
-bun run dev
-
-# Production Build
-bun run build
+npm run dev
 ```
 
-## Projekt-Struktur
+Die App läuft dann unter `http://localhost:5173`.
+
+> **Hinweis:** Die App benötigt eine Supabase-Instanz. Die Umgebungsvariablen (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`) werden über Lovable Cloud automatisch konfiguriert.
+
+---
+
+## 📁 Projektstruktur
 
 ```
 src/
 ├── components/          # React-Komponenten
-│   ├── ui/             # shadcn/ui Components
-│   ├── layout/         # Layout-Komponenten
-│   ├── FilterBar.tsx
-│   ├── InventoryGrid.tsx
-│   ├── InventoryTable.tsx
-│   ├── QRCodeDisplay.tsx
-│   └── QRScanner.tsx
-├── pages/              # Seiten/Views
-│   ├── Auth.tsx
-│   ├── Dashboard.tsx
-│   ├── Inventory.tsx
-│   ├── ItemDetail.tsx
-│   └── DMXPatchplan.tsx
-├── hooks/              # Custom React Hooks
-│   ├── useAuth.tsx
-│   ├── useInventory.ts
-│   └── useQRScanner.ts
-├── lib/                # Utility-Funktionen
-│   ├── qrCode.ts       # QR-Generierung
-│   ├── dmxPatchplan.ts # DMX-Logik
-│   └── utils.ts
-├── types/              # TypeScript Typen
-└── integrations/       # Backend-Integration
-    └── supabase/
-
+│   ├── ui/              # shadcn/ui Basiskomponenten
+│   └── layout/          # App-Layout (Sidebar, Navigation)
+├── pages/               # Seiten
+│   ├── Dashboard.tsx    # Übersicht & Statistiken
+│   ├── Inventory.tsx    # Inventarverwaltung
+│   ├── ItemDetail.tsx   # Geräte-Detailseite
+│   ├── DMXPatchplan.tsx # DMX-Adressenplanung
+│   ├── Checklists.tsx   # Event-Checklisten
+│   ├── EventSets.tsx    # Packlisten / Event-Sets
+│   ├── Lending.tsx      # Verleihverwaltung
+│   └── Auth.tsx         # Login / Registrierung
+├── hooks/               # Custom Hooks (Auth, Inventory, DMX, etc.)
+├── lib/                 # Utilities (Export, Print, QR, Validierung)
+├── types/               # TypeScript-Typen
+└── integrations/        # Supabase Client & Types
 ```
 
-## Datenbankschema
+---
 
-### Items
-```sql
-- id (UUID, PK)
-- name (String)
-- type (String)
-- status (online/in-use/repair)
-- quantity (Integer)
-- location (String)
-- created_at (Timestamp)
-```
-
-### DMX Config
-```sql
-- id (UUID, PK)
-- item_id (UUID, FK)
-- universe (Integer)
-- start_address (Integer 1-512)
-- end_address (Integer 1-512)
-- instance (Integer)
-```
-
-## Usage
-
-### Item hinzufügen
-1. **Inventory** → **+ Neues Item**
-2. Form ausfüllen (Name, Typ, Eigenschaften)
-3. Optional: DMX-Adressen konfigurieren
-4. **Speichern** → Automatischer QR-Code wird generiert
-
-### QR-Code verwenden
-1. **Item öffnen** → QR-Button klicken
-2. **Download**: Bild herunterladen
-3. **Drucken**: Direkt drucken auf Etiketten
-4. **Scannen**: Scanner-Icon in Inventory nutzen
-
-### DMX konfigurieren
-1. **DMX Patchplan** → Universe auswählen
-2. **Gerät hinzufügen** → Adressen eingeben
-3. **Konflikte**: Rote Warnung wenn Adressen überlappen
-4. **Visualisierung**: Timeline zeigt alle Belegungen
-
-## Features in Entwicklung
-
-- [ ] Batch-Operationen (mehrere Items gleichzeitig ändern)
-- [ ] Export-Funktionen (CSV, PDF)
-- [ ] Abhängigkeitsverfolgung (Zubehör-Sets)
-- [ ] Audit-Log (Änderungsverlauf)
-- [ ] Multi-Language Support
-
-## Lizenz
+## 📄 Lizenz
 
 MIT
-
