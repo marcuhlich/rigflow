@@ -193,24 +193,36 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          event_date_end: string | null
+          event_date_start: string | null
           id: string
+          is_favorite: boolean
           name: string
+          notes: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
           description?: string | null
+          event_date_end?: string | null
+          event_date_start?: string | null
           id?: string
+          is_favorite?: boolean
           name: string
+          notes?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
           description?: string | null
+          event_date_end?: string | null
+          event_date_start?: string | null
           id?: string
+          is_favorite?: boolean
           name?: string
+          notes?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -226,6 +238,7 @@ export type Database = {
           dmx_start_address: number | null
           dmx_universe: number | null
           id: string
+          image_url: string | null
           lent_to: string | null
           lent_until: string | null
           location: string
@@ -245,6 +258,7 @@ export type Database = {
           dmx_start_address?: number | null
           dmx_universe?: number | null
           id?: string
+          image_url?: string | null
           lent_to?: string | null
           lent_until?: string | null
           location: string
@@ -264,6 +278,7 @@ export type Database = {
           dmx_start_address?: number | null
           dmx_universe?: number | null
           id?: string
+          image_url?: string | null
           lent_to?: string | null
           lent_until?: string | null
           location?: string
