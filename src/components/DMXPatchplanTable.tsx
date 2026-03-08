@@ -65,7 +65,7 @@ export function DMXPatchplanTable({
       type,
       value: type === 'address' ? row.startAddress.toString() : row.universe.toString(),
     });
-    setEditingItem(row.itemId);
+    setEditingRow(row);
   };
 
   const handleSaveEdit = async () => {
