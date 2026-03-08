@@ -97,7 +97,18 @@ export const offlineQueue = {
   },
 
   async executeOperation(op: QueuedOperation): Promise<void> {
-    // Use raw fetch for flexibility with dynamic table names
+    // Validate table name against allowlist
+    const ALLOWED_TABLES = ['inventory_items', 'audit_log', 'checklists', 'checklist_items', 'event_sets', 'event_set_items'] as const;
+    if (!ALLOWED_TABLES.includes(op.table as typeof ALLOWED_TABLES[number])) {
+      throw new Error(`Invalid table: ${op.table}`);
+    }
+
+    // Validate itemId format if present
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (op.itemId && !UUID_REGEX.test(op.itemId)) {
+      throw new Error(`Invalid item ID format`);
+    }
+
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     
@@ -120,7 +131,7 @@ export const offlineQueue = {
       }
       case 'update': {
         if (!op.itemId) throw new Error('No itemId for update');
-        const response = await fetch(`${supabaseUrl}/rest/v1/${op.table}?id=eq.${op.itemId}`, {
+        const response = await fetch(`${supabaseUrl}/rest/v1/${op.table}?id=eq.${encodeURIComponent(op.itemId)}`, {
           method: 'PATCH',
           headers,
           body: JSON.stringify(op.data),
@@ -130,7 +141,7 @@ export const offlineQueue = {
       }
       case 'delete': {
         if (!op.itemId) throw new Error('No itemId for delete');
-        const response = await fetch(`${supabaseUrl}/rest/v1/${op.table}?id=eq.${op.itemId}`, {
+        const response = await fetch(`${supabaseUrl}/rest/v1/${op.table}?id=eq.${encodeURIComponent(op.itemId)}`, {
           method: 'DELETE',
           headers,
         });
