@@ -8,19 +8,19 @@ Rigflow ist eine Inventar-App für Veranstaltungstechniker. Sie hilft dir, dein 
 
 ## Aufbau der App
 
-Die App besteht aus folgenden Hauptbereichen, erreichbar über die Seitenleiste:
+Die App besteht aus folgenden Hauptbereichen, erreichbar über die Navigation:
 
 - **Dashboard** – Übersicht mit Statistiken, aktiven Ausleihen und letzten Aktivitäten
 - **Inventar** – Alle Geräte verwalten, filtern, exportieren
 - **Verleih** – Ausleihen erstellen, verwalten und Rückgaben tracken
-- **Checklisten** – Vor- und Nachbereitungs-Listen für Events
 - **Event-Sets** – Packlisten für bestimmte Veranstaltungen
+- **Checklisten** – Vor- und Nachbereitungs-Listen für Events
 - **DMX-Patchplan** – DMX-Adressen planen und Konflikte erkennen
 - **Einstellungen** – Konto verwalten, Passwort ändern, Account löschen
 
 ---
 
-## 📦 Inventar
+## Inventar
 
 ### Gerät hinzufügen
 1. Öffne die Seite **Inventar**
@@ -54,7 +54,7 @@ Die App besteht aus folgenden Hauptbereichen, erreichbar über die Seitenleiste:
 
 ---
 
-## 🔲 QR-Codes
+## QR-Codes
 
 Jedes Gerät bekommt automatisch einen QR-Code, der direkt zur Detailseite führt.
 
@@ -73,7 +73,7 @@ Jedes Gerät bekommt automatisch einen QR-Code, der direkt zur Detailseite führ
 
 ---
 
-## 🤝 Verleih
+## Verleih
 
 ### Neue Ausleihe erstellen
 1. Öffne die Seite **Verleih**
@@ -95,7 +95,24 @@ Jedes Gerät bekommt automatisch einen QR-Code, der direkt zur Detailseite führ
 
 ---
 
-## 📋 Checklisten
+## Event-Sets (Packlisten)
+
+### Event-Set erstellen
+1. Öffne die Seite **Event-Sets**
+2. Klicke auf **+ Neues Set**
+3. Gib Name, Beschreibung, Zeitraum und Notizen ein
+4. Füge Artikel aus dem Inventar hinzu und lege Mengen fest
+
+### Packliste exportieren
+- Klicke auf **PDF exportieren**, um eine druckbare Packliste zu erstellen
+- Die Liste enthält Artikelname, Kategorie, Standort, Menge und Verfügbarkeit
+
+### Favoriten
+- Markiere häufig genutzte Sets als Favorit für schnellen Zugriff
+
+---
+
+## Checklisten
 
 ### Checkliste erstellen
 1. Öffne die Seite **Checklisten**
@@ -114,24 +131,7 @@ Jedes Gerät bekommt automatisch einen QR-Code, der direkt zur Detailseite führ
 
 ---
 
-## 📁 Event-Sets (Packlisten)
-
-### Event-Set erstellen
-1. Öffne die Seite **Event-Sets**
-2. Klicke auf **+ Neues Set**
-3. Gib Name, Beschreibung, Zeitraum und Notizen ein
-4. Füge Artikel aus dem Inventar hinzu und lege Mengen fest
-
-### Packliste exportieren
-- Klicke auf **PDF exportieren**, um eine druckbare Packliste zu erstellen
-- Die Liste enthält Artikelname, Kategorie, Standort, Menge und Verfügbarkeit
-
-### Favoriten
-- Markiere häufig genutzte Sets als Favorit für schnellen Zugriff
-
----
-
-## 🎛️ DMX-Patchplan
+## DMX-Patchplan
 
 ### Übersicht
 Der DMX-Patchplan zeigt alle Geräte mit DMX-Konfiguration und ihre Adressbelegung.
@@ -154,7 +154,7 @@ Der DMX-Patchplan zeigt alle Geräte mit DMX-Konfiguration und ihre Adressbelegu
 
 ---
 
-## 📊 Dashboard
+## Dashboard
 
 Das Dashboard zeigt dir auf einen Blick:
 - **Gesamt-Artikel** und **Gesamtwert** deines Inventars
@@ -165,7 +165,7 @@ Das Dashboard zeigt dir auf einen Blick:
 
 ---
 
-## ⚙️ Einstellungen
+## Einstellungen
 
 ### Konto
 - **Anzeigename** ändern
@@ -175,7 +175,7 @@ Das Dashboard zeigt dir auf einen Blick:
 
 ---
 
-## 📱 PWA – Als App installieren
+## PWA – Als App installieren
 
 Rigflow kann als App auf deinem Gerät installiert werden:
 1. Öffne die App im Browser
@@ -186,7 +186,7 @@ Rigflow kann als App auf deinem Gerät installiert werden:
 
 ---
 
-## 💡 Tipps
+## Tipps
 
 - **Tastenkombinationen:** Nutze die Suchleiste für schnellen Zugriff auf Geräte
 - **QR-Codes drucken:** Drucke QR-Codes auf Etiketten und klebe sie direkt auf deine Geräte

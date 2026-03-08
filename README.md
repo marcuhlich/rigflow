@@ -1,4 +1,4 @@
-# 🎛️ Rigflow
+# Rigflow
 
 **Professionelle Inventarverwaltung für Veranstaltungstechnik**
 
@@ -11,26 +11,26 @@ Rigflow ist eine moderne Web-App zur Verwaltung von Event-Equipment – mit QR-C
 
 ---
 
-## ✨ Features
+## Features
 
 | Feature | Beschreibung |
 |---------|-------------|
-| 📦 **Inventar** | Geräte verwalten mit Kategorien, Zustand, Standort, Stückpreis und Notizen |
-| 🔲 **QR-Codes** | Automatische QR-Generierung, Download, Druck und Kamera-Scanner |
-| 🎛️ **DMX-Patchplan** | Adressenplanung mit Konflikt-Erkennung und Timeline-Visualisierung |
-| 📋 **Checklisten** | Vor- und Nachbereitungs-Checklisten für Events |
-| 📁 **Event-Sets** | Packlisten mit Artikelzuordnung und Verfügbarkeitsprüfung |
-| 🤝 **Verleih** | Ausleihen verwalten mit Fälligkeitsdaten und Rückgabe-Tracking |
-| 📊 **Dashboard** | Übersicht mit Statistiken, aktiven Ausleihen und letzten Aktivitäten |
-| 📄 **Export** | CSV, PDF und Druckansicht für Inventar, Patchplan und Packlisten |
-| 🔔 **Erinnerungen** | Automatische Benachrichtigungen bei überfälligen Rückgaben |
-| 📱 **PWA** | Installierbar als App, offline-fähig mit Service Worker |
-| 🔐 **Auth** | Benutzer-Authentifizierung mit E-Mail-Verifizierung und Passwort-Reset |
-| 📝 **Audit-Log** | Änderungsverlauf für alle Inventar-Aktionen |
+| **Inventar** | Geräte verwalten mit Kategorien, Zustand, Standort, Stückpreis und Notizen |
+| **QR-Codes** | Automatische QR-Generierung, Download, Druck und Kamera-Scanner |
+| **DMX-Patchplan** | Adressenplanung mit Konflikt-Erkennung und Timeline-Visualisierung |
+| **Checklisten** | Vor- und Nachbereitungs-Checklisten für Events |
+| **Event-Sets** | Packlisten mit Artikelzuordnung und Verfügbarkeitsprüfung |
+| **Verleih** | Ausleihen verwalten mit Fälligkeitsdaten und Rückgabe-Tracking |
+| **Dashboard** | Übersicht mit Statistiken, aktiven Ausleihen und letzten Aktivitäten |
+| **Export** | CSV, PDF und Druckansicht für Inventar, Patchplan und Packlisten |
+| **Erinnerungen** | Automatische Benachrichtigungen bei überfälligen Rückgaben |
+| **PWA** | Installierbar als App, offline-fähig mit Service Worker |
+| **Auth** | Benutzer-Authentifizierung mit E-Mail-Verifizierung und Passwort-Reset |
+| **Audit-Log** | Änderungsverlauf für alle Inventar-Aktionen |
 
 ---
 
-## 🛠️ Tech-Stack
+## Tech-Stack
 
 - **Frontend:** React 18 · TypeScript · Vite
 - **Styling:** Tailwind CSS · shadcn/ui
@@ -42,7 +42,7 @@ Rigflow ist eine moderne Web-App zur Verwaltung von Event-Equipment – mit QR-C
 
 ---
 
-## 🚀 Lokale Entwicklung
+## Lokale Entwicklung
 
 ```bash
 # Repository klonen
@@ -62,7 +62,7 @@ Die App läuft dann unter `http://localhost:5173`.
 
 ---
 
-## 📁 Projektstruktur
+## Projektstruktur
 
 ```
 src/
@@ -86,6 +86,6 @@ src/
 
 ---
 
-## 📄 Lizenz
+## Lizenz
 
 MIT
