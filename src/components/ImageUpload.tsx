@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Camera, Upload, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,11 @@ interface ImageUploadProps {
   className?: string;
 }
 
+// We store pending file in a module-level variable so it survives React re-renders
+// that happen when the mobile camera app returns and the page "reloads"
+let pendingFile: File | null = null;
+let pendingPreview: string | null = null;
+
 export function ImageUpload({ currentImageUrl, onImageChange, className }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(currentImageUrl || null);
@@ -18,11 +23,36 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
 
-  const uploadFile = async (file: File) => {
+  // On mount, check if there's a pending file from before the page "reloaded"
+  useEffect(() => {
+    if (pendingPreview) {
+      setPreview(pendingPreview);
+    }
+    if (pendingFile && user && !uploading) {
+      const file = pendingFile;
+      pendingFile = null;
+      const cachedPreview = pendingPreview;
+      pendingPreview = null;
+      uploadFile(file).then(() => {
+        // preview is set inside uploadFile
+      });
+    }
+  }, [user]);
+
+  // Sync with prop changes
+  useEffect(() => {
+    if (currentImageUrl !== undefined) {
+      setPreview(currentImageUrl || null);
+    }
+  }, [currentImageUrl]);
+
+  const uploadFile = useCallback(async (file: File) => {
     if (!user) return;
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop();
+      // Determine extension, default to jpg for camera captures
+      let ext = file.name.split('.').pop()?.toLowerCase();
+      if (!ext || ext === file.name.toLowerCase()) ext = 'jpg';
       const fileName = `${user.id}/${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
@@ -42,23 +72,36 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
     } finally {
       setUploading(false);
     }
-  };
+  }, [user, onImageChange]);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // Preview immediately
-      const reader = new FileReader();
-      reader.onload = (ev) => setPreview(ev.target?.result as string);
-      reader.readAsDataURL(file);
-      uploadFile(file);
-    }
-  };
+    if (!file) return;
 
-  const handleRemove = () => {
+    // Create preview immediately using object URL (faster than FileReader)
+    const objectUrl = URL.createObjectURL(file);
+    setPreview(objectUrl);
+
+    // Store in module-level vars in case the page reloads (mobile camera)
+    pendingFile = file;
+    pendingPreview = objectUrl;
+
+    // Upload right away
+    uploadFile(file).then(() => {
+      pendingFile = null;
+      pendingPreview = null;
+    });
+
+    // Reset the input so the same file can be re-selected
+    e.target.value = '';
+  }, [uploadFile]);
+
+  const handleRemove = useCallback(() => {
     setPreview(null);
     onImageChange(null);
-  };
+    pendingFile = null;
+    pendingPreview = null;
+  }, [onImageChange]);
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -111,6 +154,7 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
         </div>
       )}
 
+      {/* File picker - placed outside any conditional rendering */}
       <input
         ref={fileInputRef}
         type="file"
@@ -118,6 +162,7 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
         className="hidden"
         onChange={handleFileSelect}
       />
+      {/* Camera capture - using capture="environment" for back camera */}
       <input
         ref={cameraInputRef}
         type="file"
