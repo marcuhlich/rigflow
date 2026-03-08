@@ -102,7 +102,7 @@ export function DMXPatchplanTable({
 
   const handleCancel = () => {
     setEditState(null);
-    setEditingItem(null);
+    setEditingRow(null);
   };
 
   return (
