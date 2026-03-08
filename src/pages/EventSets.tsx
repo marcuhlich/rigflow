@@ -527,7 +527,7 @@ export default function EventSetsPage() {
                         </Badge>
                       ) : (
                         <Badge variant="destructive" className="text-[10px] gap-0.5">
-                          <AlertTriangle className="h-2.5 w-2.5" /> Unvollständig
+                          <AlertTriangle className="h-2.5 w-2.5" /> Teilweise reserviert
                         </Badge>
                       )
                     )}
