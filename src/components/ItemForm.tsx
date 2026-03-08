@@ -72,6 +72,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
         dmx_channels: editItem.dmx_channels?.toString() || '',
         dmx_universe: editItem.dmx_universe?.toString() || '',
         unit_price: editItem.unit_price?.toString() || '',
+        image_url: editItem.image_url || null,
       });
     } else {
       setFormData({
