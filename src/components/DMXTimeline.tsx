@@ -286,7 +286,7 @@ export function DMXTimeline({
                                   Adresskonflikt!
                                 </p>
                               )}
-                              {onAddressChange && (
+                              {onInstanceChange && (
                                 <p className="text-[10px] text-muted-foreground/70 pt-1">Klicken zum Bearbeiten</p>
                               )}
                             </div>
