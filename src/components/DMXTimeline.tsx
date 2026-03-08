@@ -80,8 +80,8 @@ export function DMXTimeline({
   onRowClick,
   onRowHover,
   hoveredRowId,
-  onAddressChange,
-  onUniverseChange,
+  onInstanceChange,
+  onResetInstance,
 }: DMXTimelineProps) {
   const [editingRow, setEditingRow] = useState<PatchplanRow | null>(null);
   const [editAddress, setEditAddress] = useState('');
@@ -110,7 +110,7 @@ export function DMXTimeline({
   };
 
   const handleBlockClick = (row: PatchplanRow) => {
-    if (onAddressChange) {
+    if (onInstanceChange) {
       setEditingRow(row);
       setEditAddress(String(row.startAddress));
       setEditUniverse(String(row.universe));
@@ -120,17 +120,23 @@ export function DMXTimeline({
   };
 
   const handleSave = async () => {
-    if (!editingRow || !onAddressChange) return;
+    if (!editingRow || !onInstanceChange) return;
     setSaving(true);
     try {
       const newAddr = parseInt(editAddress, 10);
       const newUniv = parseInt(editUniverse, 10);
-      if (newUniv !== editingRow.universe && onUniverseChange) {
-        await onUniverseChange(editingRow.itemId, newUniv);
-      }
-      if (newAddr !== editingRow.startAddress) {
-        await onAddressChange(editingRow.itemId, newAddr);
-      }
+      await onInstanceChange(editingRow.itemId, editingRow.instanceNumber, newAddr, newUniv);
+      setEditingRow(null);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!editingRow || !onResetInstance) return;
+    setSaving(true);
+    try {
+      await onResetInstance(editingRow.itemId, editingRow.instanceNumber);
       setEditingRow(null);
     } finally {
       setSaving(false);
