@@ -429,28 +429,33 @@ export default function EventSetsPage() {
 
       {/* Search & Sort */}
       {sets.length > 0 && (
-        <div className="flex gap-2 items-center flex-wrap">
-          <div className="relative flex-1 min-w-[180px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Sets durchsuchen..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 text-sm"
-            />
+        <>
+          <div className="flex gap-2 items-center flex-wrap">
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Sets durchsuchen..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9 text-sm"
+              />
+            </div>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
+              <SelectTrigger className="w-auto h-9 text-xs gap-1">
+                <ArrowUpDown className="h-3.5 w-3.5" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="created">Neueste zuerst</SelectItem>
+                <SelectItem value="name">Name A-Z</SelectItem>
+                <SelectItem value="date">Datum</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
-            <SelectTrigger className="w-auto h-9 text-xs gap-1">
-              <ArrowUpDown className="h-3.5 w-3.5" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="created">Neueste zuerst</SelectItem>
-              <SelectItem value="name">Name A-Z</SelectItem>
-              <SelectItem value="date">Datum</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+          <p className="text-xs text-muted-foreground">
+            „Nicht vollständig verfügbar“ / „Teilweise reserviert“ bedeutet: Artikel sind im gleichen Zeitraum bereits in anderen Sets eingeplant oder verliehen. „Nur X verfügbar“ zeigt den noch freien Restbestand.
+          </p>
+        </>
       )}
 
       {filteredSets.length === 0 && sets.length === 0 ? (
