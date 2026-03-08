@@ -72,11 +72,27 @@ export function useLendingHistory() {
 
   const markReturned = async (id: string) => {
     try {
+      // Find the record to get item_id
+      const record = records.find(r => r.id === id);
+
       const { error } = await supabase
         .from('lending_history')
         .update({ returned_at: new Date().toISOString().split('T')[0] })
         .eq('id', id);
       if (error) throw error;
+
+      // Auto-set inventory item back to 'verfügbar'
+      if (record) {
+        await supabase
+          .from('inventory_items')
+          .update({
+            condition: 'verfügbar' as any,
+            lent_to: null,
+            lent_until: null,
+          })
+          .eq('id', record.item_id);
+      }
+
       await fetchRecords();
       toast({ title: 'Rückgabe erfasst', description: 'Artikel wurde als zurückgegeben markiert.' });
     } catch (err) {
