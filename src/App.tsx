@@ -24,8 +24,14 @@ import Auth from "./pages/Auth";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
+import { useOverdueReminder } from "@/hooks/useOverdueReminder";
 
 const queryClient = new QueryClient();
+
+function OverdueReminderInit() {
+  useOverdueReminder();
+  return null;
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -265,6 +271,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <AppInitializer />
+            <OverdueReminderInit />
             <AppRoutes />
           </BrowserRouter>
         </TooltipProvider>
