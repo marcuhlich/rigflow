@@ -12,8 +12,8 @@ interface AppLayoutProps {
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard", mobileLabel: "Home" },
   { to: "/inventory", icon: Package, label: "Inventar", mobileLabel: "Inventar" },
-  { to: "/sets", icon: Boxes, label: "Sets", mobileLabel: "Sets" },
   { to: "/lending", icon: HandCoins, label: "Verleih", mobileLabel: "Verleih" },
+  { to: "/sets", icon: Boxes, label: "Sets", mobileLabel: "Sets" },
   { to: "/checklists", icon: CheckSquare, label: "Checklisten", mobileLabel: "Checks" },
   { to: "/dmx", icon: Sliders, label: "DMX Patchplan", mobileLabel: "DMX" },
 ];

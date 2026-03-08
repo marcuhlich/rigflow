@@ -31,23 +31,35 @@ export default function HelpPage() {
       <Card className="p-6 glass-card bg-background/80">
 
 
-        <div className="prose prose-sm dark:prose-invert text-foreground max-w-none">
+        <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:text-foreground">
           <ReactMarkdown
             components={{
               h1: ({ node, ...props }) => (
-                <h1 className="text-foreground font-bold text-2xl mb-2" {...props} />
+                <h1 className="!text-foreground font-bold text-2xl mb-2" {...props} />
               ),
               h2: ({ node, ...props }) => (
-                <h2 className="text-foreground font-bold text-xl mt-4 mb-2" {...props} />
+                <h2 className="!text-foreground font-bold text-xl mt-6 mb-2 pb-1 border-b border-border/50" {...props} />
               ),
               h3: ({ node, ...props }) => (
-                <h3 className="text-foreground font-semibold text-lg mt-3 mb-1" {...props} />
+                <h3 className="!text-foreground font-semibold text-lg mt-3 mb-1" {...props} />
+              ),
+              p: ({ node, ...props }) => (
+                <p className="!text-foreground/90" {...props} />
               ),
               strong: ({ node, ...props }) => (
-                <strong className="text-foreground font-semibold" {...props} />
+                <strong className="!text-foreground font-semibold" {...props} />
               ),
               li: ({ node, ...props }) => (
-                <li className="text-foreground" {...props} />
+                <li className="!text-foreground/90" {...props} />
+              ),
+              a: ({ node, ...props }) => (
+                <a className="!text-primary hover:underline" {...props} />
+              ),
+              blockquote: ({ node, ...props }) => (
+                <blockquote className="!text-foreground/70 border-l-2 border-primary/50 pl-4 italic" {...props} />
+              ),
+              hr: ({ node, ...props }) => (
+                <hr className="!border-border/50 my-6" {...props} />
               ),
             }}
           >
