@@ -106,19 +106,23 @@ export default function Dashboard() {
     allItems.filter(i => i.condition === 'defekt').slice(0, 5),
   [allItems]);
 
-  // Recent activities
+  // Recent activities - combine lending history with defect items
   const recentActivities = useMemo(() => {
-    const activities: { id: string; message: string; time: string; type: 'lent' | 'defect' | 'recent' }[] = [];
+    const activities: { id: string; message: string; time: string; type: 'lent' | 'returned' | 'defect' }[] = [];
+    // Use real lending history
+    activeLoans.forEach(record => {
+      activities.push({ id: record.id, message: `${record.item_name} verliehen an ${record.lent_to}`, time: record.created_at, type: 'lent' });
+    });
+    completedLoans.slice(0, 5).forEach(record => {
+      activities.push({ id: record.id, message: `${record.item_name} zurückgegeben (war an ${record.lent_to})`, time: record.returned_at!, type: 'returned' });
+    });
     allItems.forEach(item => {
-      if (item.condition === 'verliehen' && item.lent_to) {
-        activities.push({ id: item.id, message: `${item.name} verliehen an ${item.lent_to}`, time: item.updated_at, type: 'lent' });
-      }
       if (item.condition === 'defekt') {
         activities.push({ id: item.id, message: `${item.name} als defekt markiert`, time: item.updated_at, type: 'defect' });
       }
     });
-    return activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 5);
-  }, [allItems]);
+    return activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 8);
+  }, [allItems, activeLoans, completedLoans]);
 
   if (loading) {
     return (
