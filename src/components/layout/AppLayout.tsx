@@ -41,7 +41,7 @@ function LiquidGlassNav() {
   }, [activeIndex]);
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-[env(safe-area-inset-bottom)]">
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-[env(safe-area-inset-bottom)]">
       <div className="mb-3 mx-3">
         <nav
           ref={navRef}
@@ -127,7 +127,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-1">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -156,7 +156,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <LiquidGlassNav />
 
       {/* Main Content */}
-      <main className="flex-1 p-3 sm:p-4 md:p-8 overflow-x-hidden pb-24 md:pb-8">
+      <main className="flex-1 p-3 sm:p-4 lg:p-8 overflow-x-hidden pb-24 lg:pb-8">
         <div className="max-w-7xl mx-auto w-full">{children}</div>
       </main>
 
