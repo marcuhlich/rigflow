@@ -29,6 +29,8 @@ export default function DMXPatchplan() {
     universeUsage,
     updateItemDMXAddress,
     updateItemDMXUniverse,
+    updateInstanceDMX,
+    resetInstanceDMX,
     autoAssignNextAvailable,
   } = useDMXPatchplan();
   const [viewMode, setViewMode] = useState<'table' | 'timeline'>('timeline');
