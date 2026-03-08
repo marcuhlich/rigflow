@@ -193,23 +193,13 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
 
   // Render file inputs via portal to document.body so they survive Dialog unmount
   const fileInputs = (
-    <>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        style={{ display: 'none', position: 'absolute', pointerEvents: 'none' }}
-        onChange={handleFileSelect}
-      />
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        style={{ display: 'none', position: 'absolute', pointerEvents: 'none' }}
-        onChange={handleFileSelect}
-      />
-    </>
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept="image/*"
+      style={{ display: 'none', position: 'absolute', pointerEvents: 'none' }}
+      onChange={handleFileSelect}
+    />
   );
 
   const cameraOverlay = isCameraOpen ? (
