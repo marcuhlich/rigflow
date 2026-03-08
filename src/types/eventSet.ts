@@ -25,5 +25,6 @@ export interface EventSetWithItems extends EventSet {
     item_category?: string;
     item_location?: string;
     available_quantity?: number;
+    reserved_by_other_quantity?: number;
   })[];
 }

@@ -250,7 +250,7 @@ function SetDetailSheet({ set, open, onClose, onUpdateQty, onRemoveItem, onAddIt
                   </Badge>
                 ) : (
                   <Badge variant="destructive" className="gap-1">
-                    <AlertTriangle className="h-3 w-3" /> Nicht komplett
+                    <AlertTriangle className="h-3 w-3" /> Nicht vollständig verfügbar
                   </Badge>
                 )}
               </div>

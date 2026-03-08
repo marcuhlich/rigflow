@@ -70,6 +70,7 @@ export function useEventSets() {
               item_category: invItem?.category,
               item_location: invItem?.location,
               available_quantity: Math.max(0, totalStock - reservedByOthers - lentReduction),
+              reserved_by_other_quantity: reservedByOthers,
             };
           }),
       }));
