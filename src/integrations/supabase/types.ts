@@ -291,6 +291,53 @@ export type Database = {
         }
         Relationships: []
       }
+      lending_history: {
+        Row: {
+          created_at: string
+          due_date: string | null
+          id: string
+          item_id: string
+          item_name: string
+          lent_at: string
+          lent_to: string
+          notes: string | null
+          returned_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          item_id: string
+          item_name: string
+          lent_at?: string
+          lent_to: string
+          notes?: string | null
+          returned_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          item_id?: string
+          item_name?: string
+          lent_at?: string
+          lent_to?: string
+          notes?: string | null
+          returned_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lending_history_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string

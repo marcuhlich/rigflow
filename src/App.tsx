@@ -18,6 +18,7 @@ import HelpPage from "./pages/HelpPage";
 import DMXPatchplan from "./pages/DMXPatchplan";
 import { ChecklistsPage } from "./pages/Checklists";
 import EventSetsPage from "./pages/EventSets";
+import Lending from "./pages/Lending";
 import AccountSettings from "./pages/AccountSettings";
 import Auth from "./pages/Auth";
 import Install from "./pages/Install";
@@ -110,6 +111,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <EventSetsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lending"
+        element={
+          <ProtectedRoute>
+            <Lending />
           </ProtectedRoute>
         }
       />
