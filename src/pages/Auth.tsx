@@ -8,6 +8,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 
+function getAuthErrorMessage(rawMessage: string): string {
+  const map: Record<string, string> = {
+    "Email rate limit exceeded": "Zu viele Versuche. Bitte warte einen Moment.",
+    "Email not confirmed": "Bitte bestätige zuerst deine E-Mail-Adresse.",
+    "Invalid login credentials": "E-Mail oder Passwort ist falsch.",
+    "User already registered": "Diese E-Mail-Adresse ist bereits registriert.",
+    "Signup requires a valid password": "Bitte gib ein gültiges Passwort ein.",
+    "Password should be at least 6 characters": "Passwort muss mindestens 6 Zeichen lang sein.",
+  };
+  for (const [key, value] of Object.entries(map)) {
+    if (rawMessage.includes(key)) return value;
+  }
+  return "Ein unbekannter Fehler ist aufgetreten. Bitte versuche es erneut.";
+}
+
 const authSchema = z.object({
   email: z.string().email("Ungültige E-Mail-Adresse"),
   password: z.string().min(6, "Passwort muss mindestens 6 Zeichen lang sein"),
