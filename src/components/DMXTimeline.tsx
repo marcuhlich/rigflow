@@ -26,8 +26,9 @@ interface DMXTimelineProps {
   onRowClick?: (row: PatchplanRow) => void;
   onRowHover?: (row: PatchplanRow | null) => void;
   hoveredRowId?: string | null;
-  onAddressChange?: (itemId: string, newAddress: number) => Promise<void>;
-  onUniverseChange?: (itemId: string, newUniverse: number) => Promise<void>;
+  /** Per-instance update: (itemId, instanceNumber, address, universe) */
+  onInstanceChange?: (itemId: string, instanceNumber: number, newAddress: number, newUniverse: number) => Promise<void>;
+  onResetInstance?: (itemId: string, instanceNumber: number) => Promise<void>;
 }
 
 // Assign rows to visual lanes so blocks never visually overlap
