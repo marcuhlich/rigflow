@@ -1,13 +1,7 @@
 import { useState, useMemo } from 'react';
 import { PatchplanRow, DMXConflict } from '@/lib/dmxPatchplan';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, MapPin, Pencil } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { AlertTriangle, Pencil } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
