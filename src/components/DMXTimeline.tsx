@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { PatchplanRow, DMXConflict } from '@/lib/dmxPatchplan';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Pencil } from 'lucide-react';
+import { AlertTriangle, GripHorizontal, Pencil } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface DMXTimelineProps {
   rows: PatchplanRow[];
@@ -20,7 +21,6 @@ interface DMXTimelineProps {
   onRowClick?: (row: PatchplanRow) => void;
   onRowHover?: (row: PatchplanRow | null) => void;
   hoveredRowId?: string | null;
-  /** Per-instance update: (itemId, instanceNumber, address, universe) */
   onInstanceChange?: (itemId: string, instanceNumber: number, newAddress: number, newUniverse: number) => Promise<void>;
   onResetInstance?: (itemId: string, instanceNumber: number) => Promise<void>;
 }
@@ -29,11 +29,10 @@ interface DMXTimelineProps {
 function assignLanes(rows: PatchplanRow[]): Map<string, number> {
   const sorted = [...rows].sort((a, b) => a.startAddress - b.startAddress);
   const lanes = new Map<string, number>();
-  const laneEnds: number[] = []; // tracks the end pixel-percentage of each lane
+  const laneEnds: number[] = [];
 
   for (const row of sorted) {
     const leftPct = ((row.startAddress - 1) / 512) * 100;
-    // Find first lane where this block fits (with small gap)
     let assigned = -1;
     for (let i = 0; i < laneEnds.length; i++) {
       if (laneEnds[i] <= leftPct - 0.3) {
@@ -41,7 +40,7 @@ function assignLanes(rows: PatchplanRow[]): Map<string, number> {
         break;
       }
     }
-    const widthPct = Math.max(((row.endAddress - row.startAddress + 1) / 512) * 100, 4.7); // min visual width ~24px equivalent
+    const widthPct = Math.max(((row.endAddress - row.startAddress + 1) / 512) * 100, 4.7);
     const rightPct = leftPct + widthPct;
 
     if (assigned === -1) {
@@ -55,11 +54,10 @@ function assignLanes(rows: PatchplanRow[]): Map<string, number> {
   return lanes;
 }
 
-const LANE_HEIGHT = 36;
+const LANE_HEIGHT = 38;
 const LANE_GAP = 4;
 const LANE_PAD = 6;
 
-// Color palette for blocks (using HSL for theme compatibility)
 const BLOCK_COLORS = [
   { bg: 'hsl(var(--primary))', text: 'hsl(var(--primary-foreground))' },
   { bg: 'hsl(160 60% 45%)', text: 'hsl(0 0% 100%)' },
@@ -81,6 +79,13 @@ export function DMXTimeline({
   const [editAddress, setEditAddress] = useState('');
   const [editUniverse, setEditUniverse] = useState('');
   const [saving, setSaving] = useState(false);
+  const isMobile = useIsMobile();
+
+  // Drag state
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragPreviewAddr, setDragPreviewAddr] = useState<number | null>(null);
+  const dragStartRef = useRef<{ x: number; startAddr: number; containerLeft: number; containerWidth: number } | null>(null);
+  const dragRowRef = useRef<PatchplanRow | null>(null);
 
   const universeGroups = useMemo(() => {
     const groups = new Map<number, PatchplanRow[]>();
@@ -137,12 +142,101 @@ export function DMXTimeline({
     }
   };
 
-  // Ruler marks
-  const rulerMarks = [1, 64, 128, 192, 256, 320, 384, 448, 512];
+  // --- Drag handlers (desktop only) ---
+  const handleDragStart = useCallback((e: React.MouseEvent, device: PatchplanRow, containerEl: HTMLDivElement) => {
+    if (isMobile || !onInstanceChange) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = containerEl.getBoundingClientRect();
+    dragStartRef.current = {
+      x: e.clientX,
+      startAddr: device.startAddress,
+      containerLeft: rect.left,
+      containerWidth: rect.width,
+    };
+    dragRowRef.current = device;
+    setDraggingId(device.id);
+    setDragPreviewAddr(device.startAddress);
+
+    const handleMouseMove = (me: MouseEvent) => {
+      if (!dragStartRef.current || !dragRowRef.current) return;
+      const { containerLeft, containerWidth, startAddr } = dragStartRef.current;
+      const deltaPx = me.clientX - dragStartRef.current.x;
+      const deltaChannels = Math.round((deltaPx / containerWidth) * 512);
+      const newAddr = Math.max(1, Math.min(512 - dragRowRef.current.channels + 1, startAddr + deltaChannels));
+      setDragPreviewAddr(newAddr);
+    };
+
+    const handleMouseUp = async () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      const row = dragRowRef.current;
+      const newAddr = dragPreviewAddr;
+      setDraggingId(null);
+      setDragPreviewAddr(null);
+      dragStartRef.current = null;
+      dragRowRef.current = null;
+
+      // Use the latest preview address from closure won't work — read from DOM state via ref
+      // We'll use a different approach: store in ref
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  }, [isMobile, onInstanceChange]);
+
+  // Use a ref to track the latest drag preview address for the mouseup handler
+  const dragPreviewAddrRef = useRef<number | null>(null);
+  dragPreviewAddrRef.current = dragPreviewAddr;
+
+  const handleDragStartStable = useCallback((e: React.MouseEvent, device: PatchplanRow, containerEl: HTMLDivElement) => {
+    if (isMobile || !onInstanceChange) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = containerEl.getBoundingClientRect();
+    dragStartRef.current = {
+      x: e.clientX,
+      startAddr: device.startAddress,
+      containerLeft: rect.left,
+      containerWidth: rect.width,
+    };
+    dragRowRef.current = device;
+    setDraggingId(device.id);
+    setDragPreviewAddr(device.startAddress);
+
+    const handleMouseMove = (me: MouseEvent) => {
+      if (!dragStartRef.current || !dragRowRef.current) return;
+      const { containerWidth } = dragStartRef.current;
+      const deltaPx = me.clientX - dragStartRef.current.x;
+      const deltaChannels = Math.round((deltaPx / containerWidth) * 512);
+      const newAddr = Math.max(1, Math.min(512 - dragRowRef.current.channels + 1, dragStartRef.current.startAddr + deltaChannels));
+      setDragPreviewAddr(newAddr);
+    };
+
+    const handleMouseUp = async () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      const row = dragRowRef.current;
+      const finalAddr = dragPreviewAddrRef.current;
+      setDraggingId(null);
+      setDragPreviewAddr(null);
+      dragStartRef.current = null;
+      dragRowRef.current = null;
+
+      if (row && finalAddr !== null && finalAddr !== row.startAddress && onInstanceChange) {
+        await onInstanceChange(row.itemId, row.instanceNumber, finalAddr, row.universe);
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  }, [isMobile, onInstanceChange]);
+
+  const rulerMarks = isMobile ? [1, 128, 256, 384, 512] : [1, 64, 128, 192, 256, 320, 384, 448, 512];
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {Array.from(universeGroups.entries())
           .sort((a, b) => a[0] - b[0])
           .map(([universe, universeRows]) => {
@@ -154,126 +248,54 @@ export function DMXTimeline({
             return (
               <div key={universe} className="rounded-xl border border-border/50 bg-card overflow-hidden">
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-border/30 bg-muted/20">
+                <div className="flex items-center justify-between px-3 sm:px-5 py-2.5 sm:py-3 border-b border-border/30 bg-muted/20">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                    <h3 className="text-sm font-semibold tracking-wide">Universe {universe}</h3>
+                    <h3 className="text-xs sm:text-sm font-semibold tracking-wide">Universe {universe}</h3>
                   </div>
-                  <span className="text-xs text-muted-foreground font-mono">
+                  <span className="text-[10px] sm:text-xs text-muted-foreground font-mono">
                     {universeRows.length} {universeRows.length === 1 ? 'Gerät' : 'Geräte'}
                   </span>
                 </div>
 
                 {/* Timeline area */}
-                <div className="px-2 sm:px-4 pt-3 pb-2">
-                  {/* Ruler */}
-                  <div className="relative h-5 mb-1">
-                    {rulerMarks.map(m => (
-                      <span
-                        key={m}
-                        className="absolute text-[9px] sm:text-[10px] text-muted-foreground/60 font-mono -translate-x-1/2"
-                        style={{ left: `${((m - 1) / 511) * 100}%` }}
-                      >
-                        {m}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Timeline container */}
-                  <div
-                    className="relative w-full rounded-lg overflow-hidden"
-                    style={{
-                      height: timelineHeight,
-                      background: 'repeating-linear-gradient(90deg, hsl(var(--muted) / 0.15) 0px, hsl(var(--muted) / 0.15) 1px, transparent 1px, transparent 12.5%)',
-                    }}
-                  >
-                    {/* Background stripe pattern */}
-                    <div className="absolute inset-0 rounded-lg border border-border/20 bg-muted/5" />
-
-                    {/* Grid lines at 64-channel intervals */}
-                    {[64, 128, 192, 256, 320, 384, 448].map(a => (
-                      <div
-                        key={a}
-                        className="absolute top-0 h-full border-l border-dashed border-border/15"
-                        style={{ left: `${((a - 1) / 511) * 100}%` }}
-                      />
-                    ))}
-
-                    {/* Device blocks */}
-                    {sortedRows.map((device, idx) => {
-                      const lane = lanes.get(device.id) ?? 0;
-                      const left = ((device.startAddress - 1) / 511) * 100;
-                      const widthPct = ((device.endAddress - device.startAddress + 1) / 512) * 100;
-                      const conflict = hasConflict(device);
-                      const hovered = hoveredRowId === device.id;
-                      const related = isRelatedToHovered(device);
-                      const colorIdx = idx % BLOCK_COLORS.length;
-                      const topPos = LANE_PAD + lane * (LANE_HEIGHT + LANE_GAP);
-
-                      return (
-                        <div
-                          key={device.id}
-                          className={cn(
-                            'absolute flex items-center rounded-md cursor-pointer transition-all duration-200 group overflow-hidden',
-                            conflict && 'ring-1 ring-destructive/60',
-                            hovered && 'ring-2 ring-foreground/50 scale-[1.03] z-20 shadow-lg',
-                            related && 'ring-2 ring-yellow-500/60 z-10',
-                            hoveredRowId && !hovered && !related && 'opacity-40'
-                          )}
-                          style={{
-                            left: `${left}%`,
-                            width: `max(${widthPct}%, 28px)`,
-                            top: topPos,
-                            height: LANE_HEIGHT,
-                            background: conflict
-                              ? 'hsl(var(--destructive))'
-                              : BLOCK_COLORS[colorIdx].bg,
-                            color: conflict
-                              ? 'hsl(var(--destructive-foreground))'
-                              : BLOCK_COLORS[colorIdx].text,
-                            boxShadow: hovered
-                              ? '0 4px 16px rgba(0,0,0,0.3)'
-                              : '0 1px 3px rgba(0,0,0,0.15)',
-                          }}
-                          onMouseEnter={() => onRowHover?.(device)}
-                          onMouseLeave={() => onRowHover?.(null)}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleBlockClick(device);
-                          }}
-                          title={`${device.itemName} ${device.totalInstances > 1 ? `#${device.instanceNumber}` : ''} — CH ${device.startAddress}–${device.endAddress}`}
+                <div className="px-1.5 sm:px-4 pt-2 sm:pt-3 pb-1.5 sm:pb-2 overflow-x-auto">
+                  <div className={cn('relative', isMobile && 'min-w-[600px]')}>
+                    {/* Ruler */}
+                    <div className="relative h-4 sm:h-5 mb-1">
+                      {rulerMarks.map(m => (
+                        <span
+                          key={m}
+                          className="absolute text-[8px] sm:text-[10px] text-muted-foreground/60 font-mono -translate-x-1/2"
+                          style={{ left: `${((m - 1) / 511) * 100}%` }}
                         >
-                          {/* Content */}
-                          <div className="flex items-center gap-1 px-2 min-w-0 w-full pointer-events-none">
-                            {conflict && <AlertTriangle className="h-3 w-3 shrink-0" />}
-                            <span className="truncate text-[10px] sm:text-[11px] font-medium leading-tight">
-                              {widthPct > 6 ? device.itemName : ''}
-                            </span>
-                            {device.totalInstances > 1 && widthPct > 8 && (
-                              <span className="text-[9px] font-mono opacity-70">
-                                #{device.instanceNumber}
-                              </span>
-                            )}
-                            <span className="ml-auto shrink-0 text-[9px] font-mono opacity-70">
-                              {widthPct > 3 ? `${device.startAddress}` : ''}
-                            </span>
-                          </div>
+                          {m}
+                        </span>
+                      ))}
+                    </div>
 
-                          {/* Hover edit icon */}
-                          {onInstanceChange && (
-                            <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                              <Pencil className="h-3 w-3" />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                    {/* Timeline container */}
+                    <TimelineContainer
+                      timelineHeight={timelineHeight}
+                      sortedRows={sortedRows}
+                      lanes={lanes}
+                      hoveredRowId={hoveredRowId}
+                      draggingId={draggingId}
+                      dragPreviewAddr={dragPreviewAddr}
+                      hasConflict={hasConflict}
+                      isRelatedToHovered={isRelatedToHovered}
+                      onRowHover={onRowHover}
+                      onBlockClick={handleBlockClick}
+                      onDragStart={handleDragStartStable}
+                      isMobile={isMobile}
+                      canDrag={!!onInstanceChange}
+                    />
                   </div>
                 </div>
 
                 {/* Device legend */}
-                <div className="px-4 sm:px-5 py-3 border-t border-border/20 bg-muted/5">
-                  <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                <div className="px-3 sm:px-5 py-2 sm:py-3 border-t border-border/20 bg-muted/5">
+                  <div className="flex flex-wrap gap-x-3 sm:gap-x-4 gap-y-1">
                     {sortedRows.map((row, idx) => {
                       const colorIdx = idx % BLOCK_COLORS.length;
                       const conflict = hasConflict(row);
@@ -282,7 +304,7 @@ export function DMXTimeline({
                         <div
                           key={row.id}
                           className={cn(
-                            'flex items-center gap-1.5 text-xs cursor-pointer transition-all rounded px-1.5 py-0.5 -mx-1.5',
+                            'flex items-center gap-1.5 text-[10px] sm:text-xs cursor-pointer transition-all rounded px-1 sm:px-1.5 py-0.5 -mx-1',
                             hovered && 'bg-muted/50',
                             hoveredRowId && !hovered && 'opacity-40'
                           )}
@@ -291,15 +313,18 @@ export function DMXTimeline({
                           onClick={() => handleBlockClick(row)}
                         >
                           <div
-                            className="w-2.5 h-2.5 rounded-sm shrink-0"
+                            className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-sm shrink-0"
                             style={{
                               background: conflict ? 'hsl(var(--destructive))' : BLOCK_COLORS[colorIdx].bg,
                             }}
                           />
-                          <span className="text-foreground/80 font-medium truncate max-w-[120px]">
+                          <span className="text-foreground/80 font-medium truncate max-w-[80px] sm:max-w-[120px]">
                             {row.itemName}
                           </span>
-                          <span className="text-muted-foreground font-mono text-[10px]">
+                          {row.totalInstances > 1 && (
+                            <span className="text-muted-foreground font-mono">#{row.instanceNumber}</span>
+                          )}
+                          <span className="text-muted-foreground font-mono text-[9px] sm:text-[10px]">
                             {row.startAddress}–{row.endAddress}
                           </span>
                         </div>
@@ -312,7 +337,7 @@ export function DMXTimeline({
           })}
 
         {rows.length === 0 && (
-          <div className="rounded-xl border border-dashed border-border/50 p-12 text-center text-muted-foreground">
+          <div className="rounded-xl border border-dashed border-border/50 p-8 sm:p-12 text-center text-muted-foreground">
             Keine DMX-Geräte konfiguriert
           </div>
         )}
@@ -383,5 +408,170 @@ export function DMXTimeline({
         </Dialog>
       </div>
     </>
+  );
+}
+
+// Extracted timeline container for ref access
+interface TimelineContainerProps {
+  timelineHeight: number;
+  sortedRows: PatchplanRow[];
+  lanes: Map<string, number>;
+  hoveredRowId?: string | null;
+  draggingId: string | null;
+  dragPreviewAddr: number | null;
+  hasConflict: (row: PatchplanRow) => boolean;
+  isRelatedToHovered: (row: PatchplanRow) => boolean;
+  onRowHover?: (row: PatchplanRow | null) => void;
+  onBlockClick: (row: PatchplanRow) => void;
+  onDragStart: (e: React.MouseEvent, device: PatchplanRow, container: HTMLDivElement) => void;
+  isMobile: boolean;
+  canDrag: boolean;
+}
+
+function TimelineContainer({
+  timelineHeight,
+  sortedRows,
+  lanes,
+  hoveredRowId,
+  draggingId,
+  dragPreviewAddr,
+  hasConflict,
+  isRelatedToHovered,
+  onRowHover,
+  onBlockClick,
+  onDragStart,
+  isMobile,
+  canDrag,
+}: TimelineContainerProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative w-full rounded-lg"
+      style={{
+        height: timelineHeight,
+      }}
+    >
+      {/* Background */}
+      <div className="absolute inset-0 rounded-lg border border-border/20 bg-muted/5" />
+
+      {/* Grid lines at 64-channel intervals */}
+      {[64, 128, 192, 256, 320, 384, 448].map(a => (
+        <div
+          key={a}
+          className="absolute top-0 h-full border-l border-dashed border-border/15"
+          style={{ left: `${((a - 1) / 511) * 100}%` }}
+        />
+      ))}
+
+      {/* Drag preview ghost line */}
+      {draggingId && dragPreviewAddr !== null && (
+        <div
+          className="absolute top-0 h-full border-l-2 border-primary/60 z-30 pointer-events-none"
+          style={{ left: `${((dragPreviewAddr - 1) / 511) * 100}%` }}
+        >
+          <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-mono text-primary bg-card px-1 rounded">
+            {dragPreviewAddr}
+          </span>
+        </div>
+      )}
+
+      {/* Device blocks */}
+      {sortedRows.map((device, idx) => {
+        const lane = lanes.get(device.id) ?? 0;
+        const isDragging = draggingId === device.id;
+        const displayAddr = isDragging && dragPreviewAddr !== null ? dragPreviewAddr : device.startAddress;
+        const displayEnd = displayAddr + device.channels - 1;
+        const left = ((displayAddr - 1) / 511) * 100;
+        const widthPct = ((device.channels) / 512) * 100;
+        const conflict = hasConflict(device);
+        const hovered = hoveredRowId === device.id;
+        const related = isRelatedToHovered(device);
+        const colorIdx = idx % BLOCK_COLORS.length;
+        const topPos = LANE_PAD + lane * (LANE_HEIGHT + LANE_GAP);
+
+        return (
+          <div
+            key={device.id}
+            className={cn(
+              'absolute flex items-center rounded-md transition-all duration-150 group select-none',
+              !isDragging && 'cursor-pointer',
+              isDragging && 'cursor-grabbing z-30 ring-2 ring-primary/80 shadow-xl',
+              conflict && !isDragging && 'ring-1 ring-destructive/60',
+              hovered && !isDragging && 'ring-2 ring-foreground/50 scale-[1.03] z-20 shadow-lg',
+              related && !isDragging && 'ring-2 ring-yellow-500/60 z-10',
+              hoveredRowId && !hovered && !related && !isDragging && 'opacity-40'
+            )}
+            style={{
+              left: `${left}%`,
+              width: `max(${widthPct}%, 28px)`,
+              top: topPos,
+              height: LANE_HEIGHT,
+              background: isDragging
+                ? 'hsl(var(--primary) / 0.85)'
+                : conflict
+                  ? 'hsl(var(--destructive))'
+                  : BLOCK_COLORS[colorIdx].bg,
+              color: conflict && !isDragging
+                ? 'hsl(var(--destructive-foreground))'
+                : BLOCK_COLORS[colorIdx].text,
+              boxShadow: isDragging
+                ? '0 8px 24px rgba(0,0,0,0.4)'
+                : hovered
+                  ? '0 4px 16px rgba(0,0,0,0.3)'
+                  : '0 1px 3px rgba(0,0,0,0.15)',
+              transition: isDragging ? 'box-shadow 0.15s' : undefined,
+            }}
+            onMouseEnter={() => !isDragging && onRowHover?.(device)}
+            onMouseLeave={() => !isDragging && onRowHover?.(null)}
+            onClick={(e) => {
+              if (isDragging) return;
+              e.stopPropagation();
+              onBlockClick(device);
+            }}
+            title={`${device.itemName} ${device.totalInstances > 1 ? `#${device.instanceNumber}` : ''} — CH ${displayAddr}–${displayEnd}`}
+          >
+            {/* Drag handle (desktop only) */}
+            {canDrag && !isMobile && (
+              <div
+                className="flex items-center justify-center w-5 h-full cursor-grab opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity shrink-0"
+                onMouseDown={(e) => {
+                  if (containerRef.current) {
+                    onDragStart(e, device, containerRef.current);
+                  }
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <GripHorizontal className="h-3 w-3 rotate-90" />
+              </div>
+            )}
+
+            {/* Content */}
+            <div className={cn(
+              'flex items-center gap-1 min-w-0 flex-1 pointer-events-none',
+              canDrag && !isMobile ? 'pr-2' : 'px-2'
+            )}>
+              {conflict && <AlertTriangle className="h-3 w-3 shrink-0" />}
+              <span className="truncate text-[10px] sm:text-[11px] font-medium leading-tight">
+                {widthPct > 5 ? device.itemName : ''}
+              </span>
+              {device.totalInstances > 1 && widthPct > 7 && (
+                <span className="text-[9px] font-mono opacity-70">
+                  #{device.instanceNumber}
+                </span>
+              )}
+              {/* Address + edit icon on the right */}
+              <span className="ml-auto shrink-0 flex items-center gap-0.5 text-[9px] font-mono opacity-80">
+                {!isMobile && canDrag && (
+                  <Pencil className="h-2.5 w-2.5 opacity-0 group-hover:opacity-70 transition-opacity" />
+                )}
+                {widthPct > 3 ? displayAddr : ''}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
