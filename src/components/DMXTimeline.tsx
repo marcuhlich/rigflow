@@ -141,7 +141,7 @@ export function DMXTimeline({
   const rulerMarks = [1, 64, 128, 192, 256, 320, 384, 448, 512];
 
   return (
-    <TooltipProvider delayDuration={150}>
+    <>
       <div className="space-y-6">
         {Array.from(universeGroups.entries())
           .sort((a, b) => a[0] - b[0])
