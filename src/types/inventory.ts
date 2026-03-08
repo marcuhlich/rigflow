@@ -18,6 +18,7 @@ export interface InventoryItem {
   dmx_channels?: number | null;
   dmx_universe?: number | null;
   unit_price?: number | null;
+  image_url?: string | null;
   created_at: string;
   updated_at: string;
 }

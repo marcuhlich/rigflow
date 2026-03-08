@@ -3,6 +3,10 @@ export interface EventSet {
   user_id: string;
   name: string;
   description: string | null;
+  event_date_start: string | null;
+  event_date_end: string | null;
+  is_favorite: boolean;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
