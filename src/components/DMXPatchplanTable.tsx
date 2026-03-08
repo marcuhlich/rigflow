@@ -19,8 +19,7 @@ import { logger } from '@/lib/logger';
 interface DMXPatchplanTableProps {
   rows: PatchplanRow[];
   conflicts: DMXConflict[];
-  onAddressChange?: (itemId: string, newAddress: number) => Promise<void>;
-  onUniverseChange?: (itemId: string, newUniverse: number) => Promise<void>;
+  onInstanceChange?: (itemId: string, instanceNumber: number, newAddress: number, newUniverse: number) => Promise<void>;
   onAutoAssign?: (itemId: string, universe: number) => Promise<void>;
   loading?: boolean;
 }
