@@ -17,6 +17,7 @@ import ItemDetail from "./pages/ItemDetail";
 import HelpPage from "./pages/HelpPage";
 import DMXPatchplan from "./pages/DMXPatchplan";
 import { ChecklistsPage } from "./pages/Checklists";
+import EventSetsPage from "./pages/EventSets";
 import AccountSettings from "./pages/AccountSettings";
 import Auth from "./pages/Auth";
 import Install from "./pages/Install";
@@ -101,6 +102,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ChecklistsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/sets"
+        element={
+          <ProtectedRoute>
+            <EventSetsPage />
           </ProtectedRoute>
         }
       />

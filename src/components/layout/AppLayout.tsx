@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Package, Sliders, CheckSquare } from "lucide-react";
+import { LayoutDashboard, Package, Sliders, CheckSquare, Boxes } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ interface AppLayoutProps {
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard", mobileLabel: "Home" },
   { to: "/inventory", icon: Package, label: "Inventar", mobileLabel: "Inventar" },
+  { to: "/sets", icon: Boxes, label: "Sets", mobileLabel: "Sets" },
   { to: "/checklists", icon: CheckSquare, label: "Checklisten", mobileLabel: "Checks" },
   { to: "/dmx", icon: Sliders, label: "DMX Patchplan", mobileLabel: "DMX" },
 ];
