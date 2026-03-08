@@ -40,7 +40,7 @@ export function useEventSets() {
               item_name: invItem?.name,
               item_category: invItem?.category,
               item_location: invItem?.location,
-              available_quantity: invItem ? invItem.condition === 'verfügbar' ? invItem.quantity : 0 : 0,
+              available_quantity: invItem ? invItem.quantity : 0,
             };
           }),
       }));
