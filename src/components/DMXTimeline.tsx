@@ -26,8 +26,9 @@ interface DMXTimelineProps {
   onRowClick?: (row: PatchplanRow) => void;
   onRowHover?: (row: PatchplanRow | null) => void;
   hoveredRowId?: string | null;
-  onAddressChange?: (itemId: string, newAddress: number) => Promise<void>;
-  onUniverseChange?: (itemId: string, newUniverse: number) => Promise<void>;
+  /** Per-instance update: (itemId, instanceNumber, address, universe) */
+  onInstanceChange?: (itemId: string, instanceNumber: number, newAddress: number, newUniverse: number) => Promise<void>;
+  onResetInstance?: (itemId: string, instanceNumber: number) => Promise<void>;
 }
 
 // Assign rows to visual lanes so blocks never visually overlap
@@ -79,8 +80,8 @@ export function DMXTimeline({
   onRowClick,
   onRowHover,
   hoveredRowId,
-  onAddressChange,
-  onUniverseChange,
+  onInstanceChange,
+  onResetInstance,
 }: DMXTimelineProps) {
   const [editingRow, setEditingRow] = useState<PatchplanRow | null>(null);
   const [editAddress, setEditAddress] = useState('');
@@ -109,7 +110,7 @@ export function DMXTimeline({
   };
 
   const handleBlockClick = (row: PatchplanRow) => {
-    if (onAddressChange) {
+    if (onInstanceChange) {
       setEditingRow(row);
       setEditAddress(String(row.startAddress));
       setEditUniverse(String(row.universe));
@@ -119,17 +120,23 @@ export function DMXTimeline({
   };
 
   const handleSave = async () => {
-    if (!editingRow || !onAddressChange) return;
+    if (!editingRow || !onInstanceChange) return;
     setSaving(true);
     try {
       const newAddr = parseInt(editAddress, 10);
       const newUniv = parseInt(editUniverse, 10);
-      if (newUniv !== editingRow.universe && onUniverseChange) {
-        await onUniverseChange(editingRow.itemId, newUniv);
-      }
-      if (newAddr !== editingRow.startAddress) {
-        await onAddressChange(editingRow.itemId, newAddr);
-      }
+      await onInstanceChange(editingRow.itemId, editingRow.instanceNumber, newAddr, newUniv);
+      setEditingRow(null);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!editingRow || !onResetInstance) return;
+    setSaving(true);
+    try {
+      await onResetInstance(editingRow.itemId, editingRow.instanceNumber);
       setEditingRow(null);
     } finally {
       setSaving(false);
@@ -251,7 +258,7 @@ export function DMXTimeline({
                               </div>
 
                               {/* Hover edit icon */}
-                              {onAddressChange && (
+                              {onInstanceChange && (
                                 <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Pencil className="h-3 w-3" />
                                 </div>
@@ -279,7 +286,7 @@ export function DMXTimeline({
                                   Adresskonflikt!
                                 </p>
                               )}
-                              {onAddressChange && (
+                              {onInstanceChange && (
                                 <p className="text-[10px] text-muted-foreground/70 pt-1">Klicken zum Bearbeiten</p>
                               )}
                             </div>
@@ -345,7 +352,12 @@ export function DMXTimeline({
                 {editingRow && (
                   <>
                     <strong>{editingRow.itemName}</strong>
-                    {editingRow.totalInstances > 1 && ` (Instanz ${editingRow.instanceNumber})`}
+                    {editingRow.totalInstances > 1 && (
+                      <span> — Instanz {editingRow.instanceNumber} von {editingRow.totalInstances}</span>
+                    )}
+                    {editingRow.hasCustomConfig && (
+                      <span className="ml-1 text-primary">(individuell konfiguriert)</span>
+                    )}
                   </>
                 )}
               </DialogDescription>
@@ -380,7 +392,12 @@ export function DMXTimeline({
                 </p>
               </div>
             )}
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              {editingRow?.hasCustomConfig && onResetInstance && (
+                <Button variant="ghost" size="sm" onClick={handleReset} disabled={saving} className="text-muted-foreground sm:mr-auto">
+                  Zurücksetzen
+                </Button>
+              )}
               <Button variant="outline" onClick={() => setEditingRow(null)}>
                 Abbrechen
               </Button>

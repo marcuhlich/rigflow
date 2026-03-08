@@ -19,8 +19,7 @@ import { logger } from '@/lib/logger';
 interface DMXPatchplanTableProps {
   rows: PatchplanRow[];
   conflicts: DMXConflict[];
-  onAddressChange?: (itemId: string, newAddress: number) => Promise<void>;
-  onUniverseChange?: (itemId: string, newUniverse: number) => Promise<void>;
+  onInstanceChange?: (itemId: string, instanceNumber: number, newAddress: number, newUniverse: number) => Promise<void>;
   onAutoAssign?: (itemId: string, universe: number) => Promise<void>;
   loading?: boolean;
 }
@@ -34,13 +33,12 @@ interface EditState {
 export function DMXPatchplanTable({
   rows,
   conflicts,
-  onAddressChange,
-  onUniverseChange,
+  onInstanceChange,
   onAutoAssign,
   loading = false,
 }: DMXPatchplanTableProps) {
   const [editState, setEditState] = useState<EditState | null>(null);
-  const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [editingRow, setEditingRow] = useState<PatchplanRow | null>(null);
   const { toast } = useToast();
 
   const hasConflict = (row: PatchplanRow): boolean => {
@@ -67,60 +65,44 @@ export function DMXPatchplanTable({
       type,
       value: type === 'address' ? row.startAddress.toString() : row.universe.toString(),
     });
-    setEditingItem(row.itemId);
+    setEditingRow(row);
   };
 
   const handleSaveEdit = async () => {
-    if (!editState || !editingItem) return;
+    if (!editState || !editingRow || !onInstanceChange) return;
 
     try {
       const value = parseInt(editState.value);
       if (isNaN(value)) {
-        toast({
-          title: 'Fehler',
-          description: 'Ungültige Eingabe',
-          variant: 'destructive',
-        });
+        toast({ title: 'Fehler', description: 'Ungültige Eingabe', variant: 'destructive' });
         return;
       }
 
       if (editState.type === 'address') {
         if (value < 1 || value > 512) {
-          toast({
-            title: 'Fehler',
-            description: 'Adresse muss zwischen 1 und 512 liegen',
-            variant: 'destructive',
-          });
+          toast({ title: 'Fehler', description: 'Adresse muss zwischen 1 und 512 liegen', variant: 'destructive' });
           return;
         }
-        await onAddressChange?.(editingItem, value);
+        await onInstanceChange(editingRow.itemId, editingRow.instanceNumber, value, editingRow.universe);
       } else {
         if (value < 1) {
-          toast({
-            title: 'Fehler',
-            description: 'Universe muss >= 1 sein',
-            variant: 'destructive',
-          });
+          toast({ title: 'Fehler', description: 'Universe muss >= 1 sein', variant: 'destructive' });
           return;
         }
-        await onUniverseChange?.(editingItem, value);
+        await onInstanceChange(editingRow.itemId, editingRow.instanceNumber, editingRow.startAddress, value);
       }
 
       setEditState(null);
-      setEditingItem(null);
+      setEditingRow(null);
     } catch (error) {
       logger.error('Error saving edit:', error);
-      toast({
-        title: 'Fehler',
-        description: 'Änderung konnte nicht gespeichert werden',
-        variant: 'destructive',
-      });
+      toast({ title: 'Fehler', description: 'Änderung konnte nicht gespeichert werden', variant: 'destructive' });
     }
   };
 
   const handleCancel = () => {
     setEditState(null);
-    setEditingItem(null);
+    setEditingRow(null);
   };
 
   return (
@@ -142,7 +124,7 @@ export function DMXPatchplanTable({
         <TableBody>
           {rows.map(row => {
             const conflict = hasConflict(row);
-            const isEditing = editingItem === row.itemId;
+            const isEditing = editingRow?.id === row.id;
 
             return (
               <TableRow
