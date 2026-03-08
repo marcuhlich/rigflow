@@ -22,10 +22,10 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
