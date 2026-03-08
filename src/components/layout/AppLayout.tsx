@@ -127,7 +127,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-1">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
