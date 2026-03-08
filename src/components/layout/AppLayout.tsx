@@ -26,10 +26,24 @@ function LiquidGlassNav() {
   const navRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const [bubbleStyle, setBubbleStyle] = useState({ left: 0, width: 0 });
+  const [moreOpen, setMoreOpen] = useState(false);
 
-  const activeIndex = navItems.findIndex((item) =>
+  const mobileItems = navItems.slice(0, MOBILE_NAV_COUNT);
+  const moreItems = navItems.slice(MOBILE_NAV_COUNT);
+
+  const isMoreActive = moreItems.some((item) =>
     item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to)
   );
+
+  // Index in the rendered mobile nav (0..MOBILE_NAV_COUNT for the "more" button)
+  const activeIndex = (() => {
+    const mainIdx = mobileItems.findIndex((item) =>
+      item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to)
+    );
+    if (mainIdx >= 0) return mainIdx;
+    if (isMoreActive) return MOBILE_NAV_COUNT; // "More" button position
+    return -1;
+  })();
 
   useEffect(() => {
     const el = itemRefs.current[activeIndex];
@@ -44,9 +58,50 @@ function LiquidGlassNav() {
     }
   }, [activeIndex]);
 
+  // Close more menu on route change
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [location.pathname]);
+
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-[env(safe-area-inset-bottom)]">
       <div className="mb-3 mx-3">
+        {/* More popover */}
+        {moreOpen && (
+          <div
+            className="absolute bottom-full mb-2 right-3 rounded-2xl p-2 min-w-[160px] space-y-0.5"
+            style={{
+              background: "rgba(15, 23, 42, 0.85)",
+              backdropFilter: "blur(24px) saturate(180%)",
+              WebkitBackdropFilter: "blur(24px) saturate(180%)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+            }}
+          >
+            {moreItems.map((item) => {
+              const isActive =
+                item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === "/"}
+                  onClick={() => setMoreOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                    isActive
+                      ? "text-primary bg-primary/10"
+                      : "text-muted-foreground/80 active:bg-white/5"
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </NavLink>
+              );
+            })}
+          </div>
+        )}
+
         <nav
           ref={navRef}
           className="relative flex items-center gap-0.5 px-2 py-2 rounded-[22px]"
@@ -72,7 +127,7 @@ function LiquidGlassNav() {
             }}
           />
 
-          {navItems.map((item, i) => {
+          {mobileItems.map((item, i) => {
             const isActive =
               item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
             return (
@@ -104,6 +159,32 @@ function LiquidGlassNav() {
               </NavLink>
             );
           })}
+
+          {/* More button */}
+          <button
+            ref={(el) => { itemRefs.current[MOBILE_NAV_COUNT] = el as any; }}
+            onClick={() => setMoreOpen((v) => !v)}
+            className={cn(
+              "relative z-10 flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-[16px] text-[10px] font-medium transition-all duration-300 min-w-[52px]",
+              isMoreActive || moreOpen
+                ? "text-primary"
+                : "text-muted-foreground/70 active:scale-95"
+            )}
+          >
+            <MoreHorizontal
+              className={cn(
+                "h-[22px] w-[22px] transition-all duration-300",
+                (isMoreActive || moreOpen) && "drop-shadow-[0_0_6px_rgba(52,211,153,0.4)]"
+              )}
+              strokeWidth={isMoreActive || moreOpen ? 2.2 : 1.8}
+            />
+            <span className={cn(
+              "transition-all duration-300",
+              isMoreActive || moreOpen ? "opacity-100" : "opacity-60"
+            )}>
+              Mehr
+            </span>
+          </button>
         </nav>
       </div>
     </div>
