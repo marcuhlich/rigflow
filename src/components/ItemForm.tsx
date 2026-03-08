@@ -164,6 +164,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
         dmx_channels: formData.dmx_channels ? parseInt(formData.dmx_channels) : null,
         dmx_universe: formData.dmx_universe ? parseInt(formData.dmx_universe) : null,
         unit_price: formData.unit_price ? parseFloat(formData.unit_price) : null,
+        image_url: formData.image_url,
       });
       onClose();
     } catch (error) {
