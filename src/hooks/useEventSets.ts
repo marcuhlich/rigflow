@@ -29,6 +29,18 @@ export function useEventSets() {
       setInventoryItems(inv);
 
       const setItems = (itemsRes.data || []) as EventSetItem[];
+      
+      // Helper: check if two date ranges overlap
+      const datesOverlap = (aStart: string | null, aEnd: string | null, bStart: string | null, bEnd: string | null): boolean => {
+        if (!aStart && !bStart) return true; // both have no dates → consider overlapping
+        if (!aStart || !bStart) return true; // one has no dates → conservatively consider overlapping
+        const as = aStart;
+        const ae = aEnd || aStart;
+        const bs = bStart;
+        const be = bEnd || bStart;
+        return as <= be && bs <= ae;
+      };
+
       const enriched: EventSetWithItems[] = ((setsRes.data || []) as EventSet[]).map(s => ({
         ...s,
         is_favorite: (s as any).is_favorite ?? false,
@@ -36,12 +48,28 @@ export function useEventSets() {
           .filter(si => si.set_id === s.id)
           .map(si => {
             const invItem = inv.find(i => i.id === si.item_id);
+            const totalStock = invItem ? invItem.quantity : 0;
+
+            // Calculate how many of this item are reserved by OTHER sets with overlapping dates
+            const reservedByOthers = ((setsRes.data || []) as EventSet[])
+              .filter(otherSet => otherSet.id !== s.id && datesOverlap(
+                s.event_date_start ?? null, s.event_date_end ?? null,
+                otherSet.event_date_start ?? null, otherSet.event_date_end ?? null
+              ))
+              .reduce((sum, otherSet) => {
+                const otherItems = setItems.filter(osi => osi.set_id === otherSet.id && osi.item_id === si.item_id);
+                return sum + otherItems.reduce((s2, osi) => s2 + osi.quantity, 0);
+              }, 0);
+
+            // Also subtract items that are currently lent out
+            const lentReduction = invItem?.condition === 'verliehen' ? totalStock : 0;
+
             return {
               ...si,
               item_name: invItem?.name,
               item_category: invItem?.category,
               item_location: invItem?.location,
-              available_quantity: invItem ? invItem.quantity : 0,
+              available_quantity: Math.max(0, totalStock - reservedByOthers - lentReduction),
             };
           }),
       }));
