@@ -33,13 +33,12 @@ interface EditState {
 export function DMXPatchplanTable({
   rows,
   conflicts,
-  onAddressChange,
-  onUniverseChange,
+  onInstanceChange,
   onAutoAssign,
   loading = false,
 }: DMXPatchplanTableProps) {
   const [editState, setEditState] = useState<EditState | null>(null);
-  const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [editingRow, setEditingRow] = useState<PatchplanRow | null>(null);
   const { toast } = useToast();
 
   const hasConflict = (row: PatchplanRow): boolean => {
