@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { createPortal } from "react-dom";
 
 interface ImageUploadProps {
   currentImageUrl?: string | null;
@@ -11,35 +12,27 @@ interface ImageUploadProps {
   className?: string;
 }
 
-// We store pending file in a module-level variable so it survives React re-renders
-// that happen when the mobile camera app returns and the page "reloads"
-let pendingFile: File | null = null;
-let pendingPreview: string | null = null;
+// Session storage key for surviving page reloads on mobile camera
+const PENDING_UPLOAD_KEY = 'pending-image-upload-url';
 
 export function ImageUpload({ currentImageUrl, onImageChange, className }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(currentImageUrl || null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const { user } = useAuth();
 
-  // On mount, check if there's a pending file from before the page "reloaded"
+  // On mount, check if a previously uploaded URL was saved (survives page reload)
   useEffect(() => {
-    if (pendingPreview) {
-      setPreview(pendingPreview);
+    const savedUrl = sessionStorage.getItem(PENDING_UPLOAD_KEY);
+    if (savedUrl && !preview) {
+      setPreview(savedUrl);
+      onImageChange(savedUrl);
+      sessionStorage.removeItem(PENDING_UPLOAD_KEY);
     }
-    if (pendingFile && user && !uploading) {
-      const file = pendingFile;
-      pendingFile = null;
-      const cachedPreview = pendingPreview;
-      pendingPreview = null;
-      uploadFile(file).then(() => {
-        // preview is set inside uploadFile
-      });
-    }
-  }, [user]);
+  }, []);
 
-  // Sync with prop changes
+  // Sync with prop
   useEffect(() => {
     if (currentImageUrl !== undefined) {
       setPreview(currentImageUrl || null);
@@ -50,14 +43,13 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
     if (!user) return;
     setUploading(true);
     try {
-      // Determine extension, default to jpg for camera captures
       let ext = file.name.split('.').pop()?.toLowerCase();
       if (!ext || ext === file.name.toLowerCase()) ext = 'jpg';
       const fileName = `${user.id}/${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from('item-images')
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, file, { upsert: true, contentType: file.type });
 
       if (uploadError) throw uploadError;
 
@@ -67,6 +59,8 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
 
       setPreview(publicUrl);
       onImageChange(publicUrl);
+      // Save to sessionStorage in case page reloads before form is saved
+      sessionStorage.setItem(PENDING_UPLOAD_KEY, publicUrl);
     } catch (err) {
       console.error('Upload error:', err);
     } finally {
@@ -78,30 +72,43 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Create preview immediately using object URL (faster than FileReader)
+    // Show immediate preview
     const objectUrl = URL.createObjectURL(file);
     setPreview(objectUrl);
 
-    // Store in module-level vars in case the page reloads (mobile camera)
-    pendingFile = file;
-    pendingPreview = objectUrl;
+    // Upload
+    uploadFile(file);
 
-    // Upload right away
-    uploadFile(file).then(() => {
-      pendingFile = null;
-      pendingPreview = null;
-    });
-
-    // Reset the input so the same file can be re-selected
+    // Reset input
     e.target.value = '';
   }, [uploadFile]);
 
   const handleRemove = useCallback(() => {
     setPreview(null);
     onImageChange(null);
-    pendingFile = null;
-    pendingPreview = null;
+    sessionStorage.removeItem(PENDING_UPLOAD_KEY);
   }, [onImageChange]);
+
+  // Render file inputs via portal to document.body so they survive Dialog unmount
+  const fileInputs = (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none', position: 'absolute', pointerEvents: 'none' }}
+        onChange={handleFileSelect}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: 'none', position: 'absolute', pointerEvents: 'none' }}
+        onChange={handleFileSelect}
+      />
+    </>
+  );
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -154,23 +161,8 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
         </div>
       )}
 
-      {/* File picker - placed outside any conditional rendering */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleFileSelect}
-      />
-      {/* Camera capture - using capture="environment" for back camera */}
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleFileSelect}
-      />
+      {/* Portal file inputs to body so they survive Dialog/Sheet unmount cycles */}
+      {typeof document !== 'undefined' && createPortal(fileInputs, document.body)}
     </div>
   );
 }
