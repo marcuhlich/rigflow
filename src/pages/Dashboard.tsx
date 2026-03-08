@@ -153,7 +153,7 @@ export default function Dashboard() {
       <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <StatCard title="Gesamt" value={stats.total} icon={Package} variant="default" />
         <StatCard title="Verfügbar" value={stats.available} icon={CheckCircle} variant="success" />
-        <StatCard title="Verliehen" value={stats.lent} icon={ArrowRightLeft} variant="warning" />
+        <StatCard title="Verliehen" value={activeLoans.length || stats.lent} icon={ArrowRightLeft} variant="warning" />
         <StatCard title="Im Einsatz" value={stats.inUse} icon={Zap} variant="primary" />
         <StatCard title="Defekt" value={stats.defect} icon={AlertTriangle} variant="destructive" />
         <div className="glass-card p-3 sm:p-5 hover:shadow-md transition-shadow duration-200">
