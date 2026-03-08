@@ -52,6 +52,17 @@ export function useLendingHistory() {
         .from('lending_history')
         .insert({ ...record, user_id: user.id });
       if (error) throw error;
+
+      // Auto-set inventory item to 'verliehen'
+      await supabase
+        .from('inventory_items')
+        .update({
+          condition: 'verliehen' as any,
+          lent_to: record.lent_to,
+          lent_until: record.due_date,
+        })
+        .eq('id', record.item_id);
+
       await fetchRecords();
       toast({ title: 'Verleih erfasst', description: `${record.item_name} an ${record.lent_to} verliehen.` });
     } catch (err) {
