@@ -115,6 +115,72 @@ export type Database = {
         }
         Relationships: []
       }
+      event_set_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          quantity: number
+          set_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          quantity?: number
+          set_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          quantity?: number
+          set_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_set_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_set_items_set_id_fkey"
+            columns: ["set_id"]
+            isOneToOne: false
+            referencedRelation: "event_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_sets: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       inventory_items: {
         Row: {
           accessories: string | null
