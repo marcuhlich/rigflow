@@ -29,6 +29,7 @@ export default function ItemDetail() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { items, updateItem, deleteItem } = useInventory();
+  const { getItemHistory } = useLendingHistory();
   
   const [item, setItem] = useState<InventoryItem | null>(null);
   const [isQROpen, setIsQROpen] = useState(false);
