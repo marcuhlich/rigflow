@@ -271,6 +271,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <AppInitializer />
+            <OverdueReminderInit />
             <AppRoutes />
           </BrowserRouter>
         </TooltipProvider>
