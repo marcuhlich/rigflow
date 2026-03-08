@@ -53,9 +53,6 @@ export default function ItemDetail() {
         title: "Item aktualisiert",
         description: "Die Änderungen wurden gespeichert.",
       });
-      // Refresh item data
-      const foundItem = items.find(i => i.id === item.id);
-      if (foundItem) setItem(foundItem);
     } catch (error) {
       toast({
         title: "Fehler",
