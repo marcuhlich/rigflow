@@ -115,6 +115,41 @@ export type Database = {
         }
         Relationships: []
       }
+      dmx_instances: {
+        Row: {
+          created_at: string
+          dmx_start_address: number
+          dmx_universe: number
+          id: string
+          instance_number: number
+          item_id: string
+        }
+        Insert: {
+          created_at?: string
+          dmx_start_address: number
+          dmx_universe?: number
+          id?: string
+          instance_number: number
+          item_id: string
+        }
+        Update: {
+          created_at?: string
+          dmx_start_address?: number
+          dmx_universe?: number
+          id?: string
+          instance_number?: number
+          item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dmx_instances_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_set_items: {
         Row: {
           created_at: string
