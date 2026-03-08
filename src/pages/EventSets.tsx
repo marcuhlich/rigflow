@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Plus, Package, Trash2, Edit2, ChevronRight, Search, AlertTriangle, Check,
   Star, CalendarDays, FileText, StickyNote, ArrowUpDown, Download,
@@ -47,6 +47,14 @@ function SetForm({ open, onClose, onSubmit, initial }: {
   const [dateEnd, setDateEnd] = useState<Date | undefined>(initial?.dateEnd ? new Date(initial.dateEnd) : undefined);
   const [notes, setNotes] = useState(initial?.notes || "");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setName(initial?.name || "");
+    setDesc(initial?.description || "");
+    setDateStart(initial?.dateStart ? new Date(initial.dateStart) : undefined);
+    setDateEnd(initial?.dateEnd ? new Date(initial.dateEnd) : undefined);
+    setNotes(initial?.notes || "");
+  }, [initial]);
 
   const handleSubmit = async () => {
     if (!name.trim()) return;

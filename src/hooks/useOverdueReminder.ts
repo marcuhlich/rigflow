@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -16,7 +16,7 @@ export function useOverdueReminder() {
   const { permission, sendNotification } = usePushNotifications();
   const checkingRef = useRef(false);
 
-  const checkOverdue = async () => {
+  const checkOverdue = useCallback(async () => {
     if (!user || permission !== 'granted' || checkingRef.current) return;
 
     // Throttle: don't check more than once per hour
@@ -70,7 +70,7 @@ export function useOverdueReminder() {
     } finally {
       checkingRef.current = false;
     }
-  };
+  }, [user, permission, sendNotification]);
 
   useEffect(() => {
     if (!user || permission !== 'granted') return;
@@ -93,5 +93,5 @@ export function useOverdueReminder() {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [user, permission]);
+  }, [user, permission, checkOverdue]);
 }

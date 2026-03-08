@@ -17,6 +17,7 @@ import { useInventory } from "@/hooks/useInventory";
 import { useEventChecklists } from "@/hooks/useEventChecklists";
 import { useEventSets } from "@/hooks/useEventSets";
 import { useAuth } from "@/hooks/useAuth";
+import { useLendingHistory } from "@/hooks/useLendingHistory";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 
@@ -25,6 +26,7 @@ export default function Dashboard() {
   const { checklists } = useEventChecklists();
   const { sets, loading: setsLoading } = useEventSets();
   const { user } = useAuth();
+  const { activeLoans, overdueLoans, completedLoans, loading: lendingLoading } = useLendingHistory();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
@@ -104,19 +106,23 @@ export default function Dashboard() {
     allItems.filter(i => i.condition === 'defekt').slice(0, 5),
   [allItems]);
 
-  // Recent activities
+  // Recent activities - combine lending history with defect items
   const recentActivities = useMemo(() => {
-    const activities: { id: string; message: string; time: string; type: 'lent' | 'defect' | 'recent' }[] = [];
+    const activities: { id: string; message: string; time: string; type: 'lent' | 'returned' | 'defect' }[] = [];
+    // Use real lending history
+    activeLoans.forEach(record => {
+      activities.push({ id: record.id, message: `${record.item_name} verliehen an ${record.lent_to}`, time: record.created_at, type: 'lent' });
+    });
+    completedLoans.slice(0, 5).forEach(record => {
+      activities.push({ id: record.id, message: `${record.item_name} zurückgegeben (war an ${record.lent_to})`, time: record.returned_at!, type: 'returned' });
+    });
     allItems.forEach(item => {
-      if (item.condition === 'verliehen' && item.lent_to) {
-        activities.push({ id: item.id, message: `${item.name} verliehen an ${item.lent_to}`, time: item.updated_at, type: 'lent' });
-      }
       if (item.condition === 'defekt') {
         activities.push({ id: item.id, message: `${item.name} als defekt markiert`, time: item.updated_at, type: 'defect' });
       }
     });
-    return activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 5);
-  }, [allItems]);
+    return activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 8);
+  }, [allItems, activeLoans, completedLoans]);
 
   if (loading) {
     return (
@@ -147,7 +153,7 @@ export default function Dashboard() {
       <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <StatCard title="Gesamt" value={stats.total} icon={Package} variant="default" />
         <StatCard title="Verfügbar" value={stats.available} icon={CheckCircle} variant="success" />
-        <StatCard title="Verliehen" value={stats.lent} icon={ArrowRightLeft} variant="warning" />
+        <StatCard title="Verliehen" value={activeLoans.length || stats.lent} icon={ArrowRightLeft} variant="warning" />
         <StatCard title="Im Einsatz" value={stats.inUse} icon={Zap} variant="primary" />
         <StatCard title="Defekt" value={stats.defect} icon={AlertTriangle} variant="destructive" />
         <div className="glass-card p-3 sm:p-5 hover:shadow-md transition-shadow duration-200">
@@ -415,10 +421,12 @@ export default function Dashboard() {
                   className="flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors"
                 >
                   <div className={`p-1.5 rounded-full flex-shrink-0 ${
-                    activity.type === 'lent' ? 'bg-warning/20 text-warning' : 'bg-destructive/20 text-destructive'
+                    activity.type === 'lent' ? 'bg-warning/20 text-warning' : activity.type === 'returned' ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'
                   }`}>
                     {activity.type === 'lent' ? (
                       <ArrowRightLeft className="h-3 w-3" />
+                    ) : activity.type === 'returned' ? (
+                      <CheckCircle className="h-3 w-3" />
                     ) : (
                       <AlertTriangle className="h-3 w-3" />
                     )}
