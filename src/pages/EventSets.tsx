@@ -278,13 +278,18 @@ function SetDetailSheet({ set, open, onClose, onUpdateQty, onRemoveItem, onAddIt
                     <div key={si.id} className="flex items-center gap-2 p-3 rounded-lg border border-border bg-card">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{si.item_name || "Unbekannt"}</p>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
                           <span>{si.item_category}</span>
                           {si.item_location && <span>· {si.item_location}</span>}
                           {insufficient && (
-                            <span className="text-destructive flex items-center gap-0.5">
-                              <AlertTriangle className="h-3 w-3" />
-                              Nur {si.available_quantity} vorhanden
+                            <span className="basis-full text-destructive flex items-start gap-1 leading-tight break-words">
+                              <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                              <span>
+                                Nur {si.available_quantity} verfügbar
+                                {(si.reserved_by_other_quantity ?? 0) > 0
+                                  ? ` – ${si.reserved_by_other_quantity} bereits in anderen Sets im gleichen Zeitraum eingeplant.`
+                                  : " – Rest ist bereits eingeplant oder verliehen."}
+                              </span>
                             </span>
                           )}
                         </div>
