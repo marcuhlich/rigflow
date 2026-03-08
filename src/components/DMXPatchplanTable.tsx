@@ -69,50 +69,34 @@ export function DMXPatchplanTable({
   };
 
   const handleSaveEdit = async () => {
-    if (!editState || !editingItem) return;
+    if (!editState || !editingRow || !onInstanceChange) return;
 
     try {
       const value = parseInt(editState.value);
       if (isNaN(value)) {
-        toast({
-          title: 'Fehler',
-          description: 'Ungültige Eingabe',
-          variant: 'destructive',
-        });
+        toast({ title: 'Fehler', description: 'Ungültige Eingabe', variant: 'destructive' });
         return;
       }
 
       if (editState.type === 'address') {
         if (value < 1 || value > 512) {
-          toast({
-            title: 'Fehler',
-            description: 'Adresse muss zwischen 1 und 512 liegen',
-            variant: 'destructive',
-          });
+          toast({ title: 'Fehler', description: 'Adresse muss zwischen 1 und 512 liegen', variant: 'destructive' });
           return;
         }
-        await onAddressChange?.(editingItem, value);
+        await onInstanceChange(editingRow.itemId, editingRow.instanceNumber, value, editingRow.universe);
       } else {
         if (value < 1) {
-          toast({
-            title: 'Fehler',
-            description: 'Universe muss >= 1 sein',
-            variant: 'destructive',
-          });
+          toast({ title: 'Fehler', description: 'Universe muss >= 1 sein', variant: 'destructive' });
           return;
         }
-        await onUniverseChange?.(editingItem, value);
+        await onInstanceChange(editingRow.itemId, editingRow.instanceNumber, editingRow.startAddress, value);
       }
 
       setEditState(null);
-      setEditingItem(null);
+      setEditingRow(null);
     } catch (error) {
       logger.error('Error saving edit:', error);
-      toast({
-        title: 'Fehler',
-        description: 'Änderung konnte nicht gespeichert werden',
-        variant: 'destructive',
-      });
+      toast({ title: 'Fehler', description: 'Änderung konnte nicht gespeichert werden', variant: 'destructive' });
     }
   };
 
