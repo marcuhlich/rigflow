@@ -115,6 +115,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/lending"
+        element={
+          <ProtectedRoute>
+            <Lending />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/settings"
         element={
           <ProtectedRoute>
