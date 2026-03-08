@@ -48,6 +48,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
     dmx_channels: '',
     dmx_universe: '',
     unit_price: '',
+    image_url: null as string | null,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
