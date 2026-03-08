@@ -142,3 +142,49 @@ export function downloadCSV(content: string, filename: string): void {
   link.click();
   document.body.removeChild(link);
 }
+
+// Event Set Packing List PDF
+export function exportEventSetPDF(set: { name: string; description?: string | null; event_date_start?: string | null; event_date_end?: string | null; notes?: string | null; items: { item_name?: string; item_category?: string; item_location?: string; quantity: number; available_quantity?: number }[] }): void {
+  const doc = new jsPDF();
+  
+  doc.setFontSize(18);
+  doc.text(`Packliste: ${set.name}`, 14, 20);
+  
+  let y = 28;
+  doc.setFontSize(10);
+  if (set.description) {
+    doc.text(set.description, 14, y);
+    y += 6;
+  }
+  if (set.event_date_start) {
+    const dateStr = set.event_date_start + (set.event_date_end ? ` – ${set.event_date_end}` : '');
+    doc.text(`Datum: ${dateStr}`, 14, y);
+    y += 6;
+  }
+  if (set.notes) {
+    doc.text(`Notizen: ${set.notes}`, 14, y);
+    y += 6;
+  }
+  y += 4;
+
+  const headers = [['✓', 'Artikel', 'Kategorie', 'Standort', 'Menge', 'Verfügbar']];
+  const rows = set.items.map(i => [
+    '☐',
+    i.item_name || 'Unbekannt',
+    i.item_category || '',
+    i.item_location || '',
+    i.quantity.toString(),
+    (i.available_quantity ?? 0).toString(),
+  ]);
+
+  (doc as any).autoTable({
+    startY: y,
+    head: headers,
+    body: rows,
+    theme: 'grid',
+    styles: { fontSize: 9 },
+    headStyles: { fillColor: [60, 60, 60] },
+  });
+
+  doc.save(`packliste-${set.name.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.pdf`);
+}

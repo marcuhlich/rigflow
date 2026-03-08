@@ -31,6 +31,7 @@ export function useEventSets() {
       const setItems = (itemsRes.data || []) as EventSetItem[];
       const enriched: EventSetWithItems[] = ((setsRes.data || []) as EventSet[]).map(s => ({
         ...s,
+        is_favorite: (s as any).is_favorite ?? false,
         items: setItems
           .filter(si => si.set_id === s.id)
           .map(si => {
@@ -54,11 +55,18 @@ export function useEventSets() {
 
   useEffect(() => { fetchSets(); }, [fetchSets]);
 
-  const createSet = async (name: string, description: string) => {
+  const createSet = async (name: string, description: string, dateStart?: string | null, dateEnd?: string | null, notes?: string | null) => {
     if (!user) return;
     const { data, error } = await supabase
       .from('event_sets')
-      .insert({ name, description: description || null, user_id: user.id })
+      .insert({
+        name,
+        description: description || null,
+        user_id: user.id,
+        event_date_start: dateStart || null,
+        event_date_end: dateEnd || null,
+        notes: notes || null,
+      } as any)
       .select()
       .single();
     if (error) { toast({ title: 'Fehler', description: 'Set konnte nicht erstellt werden.', variant: 'destructive' }); throw error; }
@@ -66,8 +74,16 @@ export function useEventSets() {
     return data as EventSet;
   };
 
-  const updateSet = async (id: string, name: string, description: string) => {
-    const { error } = await supabase.from('event_sets').update({ name, description: description || null }).eq('id', id);
+  const updateSet = async (id: string, updates: { name?: string; description?: string; event_date_start?: string | null; event_date_end?: string | null; is_favorite?: boolean; notes?: string | null }) => {
+    const cleanUpdates: any = {};
+    if (updates.name !== undefined) cleanUpdates.name = updates.name;
+    if (updates.description !== undefined) cleanUpdates.description = updates.description || null;
+    if (updates.event_date_start !== undefined) cleanUpdates.event_date_start = updates.event_date_start || null;
+    if (updates.event_date_end !== undefined) cleanUpdates.event_date_end = updates.event_date_end || null;
+    if (updates.is_favorite !== undefined) cleanUpdates.is_favorite = updates.is_favorite;
+    if (updates.notes !== undefined) cleanUpdates.notes = updates.notes || null;
+    
+    const { error } = await supabase.from('event_sets').update(cleanUpdates).eq('id', id);
     if (error) { toast({ title: 'Fehler', description: 'Set konnte nicht aktualisiert werden.', variant: 'destructive' }); throw error; }
     await fetchSets();
   };
@@ -76,6 +92,12 @@ export function useEventSets() {
     const { error } = await supabase.from('event_sets').delete().eq('id', id);
     if (error) { toast({ title: 'Fehler', description: 'Set konnte nicht gelöscht werden.', variant: 'destructive' }); throw error; }
     await fetchSets();
+  };
+
+  const toggleFavorite = async (id: string) => {
+    const set = sets.find(s => s.id === id);
+    if (!set) return;
+    await updateSet(id, { is_favorite: !set.is_favorite });
   };
 
   const addItemToSet = async (setId: string, itemId: string, quantity: number) => {
@@ -104,7 +126,7 @@ export function useEventSets() {
   };
 
   return {
-    sets, loading, inventoryItems, createSet, updateSet, deleteSet,
+    sets, loading, inventoryItems, createSet, updateSet, deleteSet, toggleFavorite,
     addItemToSet, updateSetItemQuantity, removeItemFromSet, refetch: fetchSets,
   };
 }

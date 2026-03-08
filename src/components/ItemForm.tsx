@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ImageUpload } from "@/components/ImageUpload";
 import {
   Select,
   SelectContent,
@@ -44,6 +45,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
     dmx_channels: '',
     dmx_universe: '',
     unit_price: '',
+    image_url: null as string | null,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -67,6 +69,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
         dmx_channels: editItem.dmx_channels?.toString() || '',
         dmx_universe: editItem.dmx_universe?.toString() || '',
         unit_price: editItem.unit_price?.toString() || '',
+        image_url: editItem.image_url || null,
       });
     } else {
       setFormData({
@@ -83,6 +86,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
         dmx_channels: '',
         dmx_universe: '',
         unit_price: '',
+        image_url: null,
       });
     }
   }, [editItem, isOpen]);
@@ -157,6 +161,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
         dmx_channels: formData.dmx_channels ? parseInt(formData.dmx_channels) : null,
         dmx_universe: formData.dmx_universe ? parseInt(formData.dmx_universe) : null,
         unit_price: formData.unit_price ? parseFloat(formData.unit_price) : null,
+        image_url: formData.image_url,
       });
       onClose();
     } catch (error) {
@@ -367,6 +372,14 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
                 </div>
               </div>
             )}
+
+            <div className="space-y-2">
+              <Label>Foto</Label>
+              <ImageUpload
+                currentImageUrl={formData.image_url}
+                onImageChange={(url) => setFormData({ ...formData, image_url: url })}
+              />
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="notes">Notizen</Label>
