@@ -124,7 +124,7 @@ export function DMXPatchplanTable({
         <TableBody>
           {rows.map(row => {
             const conflict = hasConflict(row);
-            const isEditing = editingItem === row.itemId;
+            const isEditing = editingRow?.id === row.id;
 
             return (
               <TableRow

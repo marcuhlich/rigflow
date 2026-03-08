@@ -221,8 +221,7 @@ export default function DMXPatchplan() {
         <DMXPatchplanTable
           rows={patchplan}
           conflicts={conflicts}
-          onAddressChange={updateItemDMXAddress}
-          onUniverseChange={updateItemDMXUniverse}
+          onInstanceChange={updateInstanceDMX}
           onAutoAssign={autoAssignNextAvailable}
           loading={loading}
         />
