@@ -1,13 +1,7 @@
 import { useState, useMemo } from 'react';
 import { PatchplanRow, DMXConflict } from '@/lib/dmxPatchplan';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, MapPin, Pencil } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { AlertTriangle, Pencil } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -147,7 +141,7 @@ export function DMXTimeline({
   const rulerMarks = [1, 64, 128, 192, 256, 320, 384, 448, 512];
 
   return (
-    <TooltipProvider delayDuration={150}>
+    <>
       <div className="space-y-6">
         {Array.from(universeGroups.entries())
           .sort((a, b) => a[0] - b[0])
@@ -217,81 +211,61 @@ export function DMXTimeline({
                       const topPos = LANE_PAD + lane * (LANE_HEIGHT + LANE_GAP);
 
                       return (
-                        <Tooltip key={device.id}>
-                          <TooltipTrigger asChild>
-                            <div
-                              className={cn(
-                                'absolute flex items-center rounded-md cursor-pointer transition-all duration-200 group overflow-hidden',
-                                conflict && 'ring-1 ring-destructive/60',
-                                hovered && 'ring-2 ring-foreground/50 scale-[1.03] z-20 shadow-lg',
-                                related && 'ring-2 ring-yellow-500/60 z-10',
-                                hoveredRowId && !hovered && !related && 'opacity-40'
-                              )}
-                              style={{
-                                left: `${left}%`,
-                                width: `max(${widthPct}%, 28px)`,
-                                top: topPos,
-                                height: LANE_HEIGHT,
-                                background: conflict
-                                  ? 'hsl(var(--destructive))'
-                                  : BLOCK_COLORS[colorIdx].bg,
-                                color: conflict
-                                  ? 'hsl(var(--destructive-foreground))'
-                                  : BLOCK_COLORS[colorIdx].text,
-                                boxShadow: hovered
-                                  ? '0 4px 16px rgba(0,0,0,0.3)'
-                                  : '0 1px 3px rgba(0,0,0,0.15)',
-                              }}
-                              onMouseEnter={() => onRowHover?.(device)}
-                              onMouseLeave={() => onRowHover?.(null)}
-                              onClick={() => handleBlockClick(device)}
-                            >
-                              {/* Content */}
-                              <div className="flex items-center gap-1 px-2 min-w-0 w-full">
-                                {conflict && <AlertTriangle className="h-3 w-3 shrink-0" />}
-                                <span className="truncate text-[10px] sm:text-[11px] font-medium leading-tight">
-                                  {widthPct > 6 ? device.itemName : ''}
-                                </span>
-                                <span className="ml-auto shrink-0 text-[9px] font-mono opacity-70">
-                                  {widthPct > 3 ? `${device.startAddress}` : ''}
-                                </span>
-                              </div>
+                        <div
+                          key={device.id}
+                          className={cn(
+                            'absolute flex items-center rounded-md cursor-pointer transition-all duration-200 group overflow-hidden',
+                            conflict && 'ring-1 ring-destructive/60',
+                            hovered && 'ring-2 ring-foreground/50 scale-[1.03] z-20 shadow-lg',
+                            related && 'ring-2 ring-yellow-500/60 z-10',
+                            hoveredRowId && !hovered && !related && 'opacity-40'
+                          )}
+                          style={{
+                            left: `${left}%`,
+                            width: `max(${widthPct}%, 28px)`,
+                            top: topPos,
+                            height: LANE_HEIGHT,
+                            background: conflict
+                              ? 'hsl(var(--destructive))'
+                              : BLOCK_COLORS[colorIdx].bg,
+                            color: conflict
+                              ? 'hsl(var(--destructive-foreground))'
+                              : BLOCK_COLORS[colorIdx].text,
+                            boxShadow: hovered
+                              ? '0 4px 16px rgba(0,0,0,0.3)'
+                              : '0 1px 3px rgba(0,0,0,0.15)',
+                          }}
+                          onMouseEnter={() => onRowHover?.(device)}
+                          onMouseLeave={() => onRowHover?.(null)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleBlockClick(device);
+                          }}
+                          title={`${device.itemName} ${device.totalInstances > 1 ? `#${device.instanceNumber}` : ''} — CH ${device.startAddress}–${device.endAddress}`}
+                        >
+                          {/* Content */}
+                          <div className="flex items-center gap-1 px-2 min-w-0 w-full pointer-events-none">
+                            {conflict && <AlertTriangle className="h-3 w-3 shrink-0" />}
+                            <span className="truncate text-[10px] sm:text-[11px] font-medium leading-tight">
+                              {widthPct > 6 ? device.itemName : ''}
+                            </span>
+                            {device.totalInstances > 1 && widthPct > 8 && (
+                              <span className="text-[9px] font-mono opacity-70">
+                                #{device.instanceNumber}
+                              </span>
+                            )}
+                            <span className="ml-auto shrink-0 text-[9px] font-mono opacity-70">
+                              {widthPct > 3 ? `${device.startAddress}` : ''}
+                            </span>
+                          </div>
 
-                              {/* Hover edit icon */}
-                              {onInstanceChange && (
-                                <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Pencil className="h-3 w-3" />
-                                </div>
-                              )}
+                          {/* Hover edit icon */}
+                          {onInstanceChange && (
+                            <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                              <Pencil className="h-3 w-3" />
                             </div>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-xs">
-                            <div className="space-y-1">
-                              <p className="font-semibold text-sm">{device.itemName}</p>
-                              {device.totalInstances > 1 && (
-                                <p className="text-xs text-muted-foreground">
-                                  Instanz {device.instanceNumber}/{device.totalInstances}
-                                </p>
-                              )}
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <MapPin className="h-3 w-3" />
-                                {device.location}
-                              </div>
-                              <p className="text-xs font-mono">
-                                CH {device.startAddress}–{device.endAddress} ({device.channels} Kanäle)
-                              </p>
-                              {conflict && (
-                                <p className="text-xs text-destructive flex items-center gap-1">
-                                  <AlertTriangle className="h-3 w-3" />
-                                  Adresskonflikt!
-                                </p>
-                              )}
-                              {onInstanceChange && (
-                                <p className="text-[10px] text-muted-foreground/70 pt-1">Klicken zum Bearbeiten</p>
-                              )}
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -408,6 +382,6 @@ export function DMXTimeline({
           </DialogContent>
         </Dialog>
       </div>
-    </TooltipProvider>
+    </>
   );
 }
