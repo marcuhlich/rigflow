@@ -127,7 +127,11 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
     if (uploading) return;
 
     if (!navigator.mediaDevices?.getUserMedia) {
-      cameraInputRef.current?.click();
+      toast({
+        title: "Kamera nicht unterstützt",
+        description: "Direkter Kamerazugriff ist hier nicht möglich. Bitte nutze 'Datei'.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -146,10 +150,13 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
       setIsCameraOpen(true);
     } catch (error) {
       console.error('Camera open error:', error);
-      // Fallback to file input camera capture
-      cameraInputRef.current?.click();
+      toast({
+        title: "Kamera konnte nicht geöffnet werden",
+        description: "Bitte Browser-Kamerarechte prüfen oder stattdessen 'Datei' nutzen.",
+        variant: "destructive",
+      });
     }
-  }, [uploading]);
+  }, [uploading, toast]);
 
   const handleCapturePhoto = useCallback(async () => {
     const video = cameraVideoRef.current;
