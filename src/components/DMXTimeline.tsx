@@ -352,7 +352,12 @@ export function DMXTimeline({
                 {editingRow && (
                   <>
                     <strong>{editingRow.itemName}</strong>
-                    {editingRow.totalInstances > 1 && ` (Instanz ${editingRow.instanceNumber})`}
+                    {editingRow.totalInstances > 1 && (
+                      <span> — Instanz {editingRow.instanceNumber} von {editingRow.totalInstances}</span>
+                    )}
+                    {editingRow.hasCustomConfig && (
+                      <span className="ml-1 text-primary">(individuell konfiguriert)</span>
+                    )}
                   </>
                 )}
               </DialogDescription>
@@ -387,7 +392,12 @@ export function DMXTimeline({
                 </p>
               </div>
             )}
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              {editingRow?.hasCustomConfig && onResetInstance && (
+                <Button variant="ghost" size="sm" onClick={handleReset} disabled={saving} className="text-muted-foreground sm:mr-auto">
+                  Zurücksetzen
+                </Button>
+              )}
               <Button variant="outline" onClick={() => setEditingRow(null)}>
                 Abbrechen
               </Button>
