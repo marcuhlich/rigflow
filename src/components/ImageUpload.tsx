@@ -3,6 +3,7 @@ import { Camera, Upload, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { createPortal } from "react-dom";
 
@@ -21,10 +22,10 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
@@ -126,7 +127,11 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
     if (uploading) return;
 
     if (!navigator.mediaDevices?.getUserMedia) {
-      cameraInputRef.current?.click();
+      toast({
+        title: "Kamera nicht unterstützt",
+        description: "Direkter Kamerazugriff ist hier nicht möglich. Bitte nutze 'Datei'.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -145,10 +150,13 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
       setIsCameraOpen(true);
     } catch (error) {
       console.error('Camera open error:', error);
-      // Fallback to file input camera capture
-      cameraInputRef.current?.click();
+      toast({
+        title: "Kamera konnte nicht geöffnet werden",
+        description: "Bitte Browser-Kamerarechte prüfen oder stattdessen 'Datei' nutzen.",
+        variant: "destructive",
+      });
     }
-  }, [uploading]);
+  }, [uploading, toast]);
 
   const handleCapturePhoto = useCallback(async () => {
     const video = cameraVideoRef.current;
@@ -185,23 +193,13 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
 
   // Render file inputs via portal to document.body so they survive Dialog unmount
   const fileInputs = (
-    <>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        style={{ display: 'none', position: 'absolute', pointerEvents: 'none' }}
-        onChange={handleFileSelect}
-      />
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        style={{ display: 'none', position: 'absolute', pointerEvents: 'none' }}
-        onChange={handleFileSelect}
-      />
-    </>
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept="image/*"
+      style={{ display: 'none', position: 'absolute', pointerEvents: 'none' }}
+      onChange={handleFileSelect}
+    />
   );
 
   const cameraOverlay = isCameraOpen ? (

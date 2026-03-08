@@ -250,7 +250,7 @@ function SetDetailSheet({ set, open, onClose, onUpdateQty, onRemoveItem, onAddIt
                   </Badge>
                 ) : (
                   <Badge variant="destructive" className="gap-1">
-                    <AlertTriangle className="h-3 w-3" /> Nicht komplett
+                    <AlertTriangle className="h-3 w-3" /> Nicht vollständig verfügbar
                   </Badge>
                 )}
               </div>
@@ -258,6 +258,11 @@ function SetDetailSheet({ set, open, onClose, onUpdateQty, onRemoveItem, onAddIt
                 <Download className="h-3 w-3" /> PDF
               </Button>
             </div>
+            {!allAvailable && (
+              <p className="text-xs text-muted-foreground">
+                Mindestens ein Artikel ist im selben Zeitraum bereits in anderen Sets eingeplant oder aktuell verliehen.
+              </p>
+            )}
 
             <Button variant="outline" size="sm" className="w-full gap-1" onClick={() => setPickerOpen(true)}>
               <Plus className="h-4 w-4" /> Artikel hinzufügen
@@ -273,13 +278,18 @@ function SetDetailSheet({ set, open, onClose, onUpdateQty, onRemoveItem, onAddIt
                     <div key={si.id} className="flex items-center gap-2 p-3 rounded-lg border border-border bg-card">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{si.item_name || "Unbekannt"}</p>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
                           <span>{si.item_category}</span>
                           {si.item_location && <span>· {si.item_location}</span>}
                           {insufficient && (
-                            <span className="text-destructive flex items-center gap-0.5">
-                              <AlertTriangle className="h-3 w-3" />
-                              Nur {si.available_quantity} vorhanden
+                            <span className="basis-full text-destructive flex items-start gap-1 leading-tight break-words">
+                              <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                              <span>
+                                Nur {si.available_quantity} verfügbar
+                                {(si.reserved_by_other_quantity ?? 0) > 0
+                                  ? ` – ${si.reserved_by_other_quantity} bereits in anderen Sets im gleichen Zeitraum eingeplant.`
+                                  : " – Rest ist bereits eingeplant oder verliehen."}
+                              </span>
                             </span>
                           )}
                         </div>
@@ -419,28 +429,33 @@ export default function EventSetsPage() {
 
       {/* Search & Sort */}
       {sets.length > 0 && (
-        <div className="flex gap-2 items-center flex-wrap">
-          <div className="relative flex-1 min-w-[180px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Sets durchsuchen..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 text-sm"
-            />
+        <>
+          <div className="flex gap-2 items-center flex-wrap">
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Sets durchsuchen..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9 text-sm"
+              />
+            </div>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
+              <SelectTrigger className="w-auto h-9 text-xs gap-1">
+                <ArrowUpDown className="h-3.5 w-3.5" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="created">Neueste zuerst</SelectItem>
+                <SelectItem value="name">Name A-Z</SelectItem>
+                <SelectItem value="date">Datum</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
-            <SelectTrigger className="w-auto h-9 text-xs gap-1">
-              <ArrowUpDown className="h-3.5 w-3.5" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="created">Neueste zuerst</SelectItem>
-              <SelectItem value="name">Name A-Z</SelectItem>
-              <SelectItem value="date">Datum</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+          <p className="text-xs text-muted-foreground">
+            „Nicht vollständig verfügbar“ / „Teilweise reserviert“ bedeutet: Artikel sind im gleichen Zeitraum bereits in anderen Sets eingeplant oder verliehen. „Nur X verfügbar“ zeigt den noch freien Restbestand.
+          </p>
+        </>
       )}
 
       {filteredSets.length === 0 && sets.length === 0 ? (
@@ -512,7 +527,7 @@ export default function EventSetsPage() {
                         </Badge>
                       ) : (
                         <Badge variant="destructive" className="text-[10px] gap-0.5">
-                          <AlertTriangle className="h-2.5 w-2.5" /> Unvollständig
+                          <AlertTriangle className="h-2.5 w-2.5" /> Teilweise reserviert
                         </Badge>
                       )
                     )}
