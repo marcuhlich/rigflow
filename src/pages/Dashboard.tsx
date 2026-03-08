@@ -26,6 +26,7 @@ export default function Dashboard() {
   const { checklists } = useEventChecklists();
   const { sets, loading: setsLoading } = useEventSets();
   const { user } = useAuth();
+  const { activeLoans, overdueLoans, completedLoans, loading: lendingLoading } = useLendingHistory();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
