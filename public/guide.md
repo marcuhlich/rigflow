@@ -1,43 +1,195 @@
-# Anleitung für die Rigflow App (DE)
+# Rigflow – Anleitung & Quick Start Guide
 
-## Einleitung
+## Willkommen
 
-Die RigFlow-App ist eine Inventar-App für Veranstaltungstechniker und richtet sich an kleine bis mittelgroße Technik-Sammlungen. Die App bietet viele nützliche Features, die hier für einen leichten Einstieg erklärt werden sollen.
+Rigflow ist eine Inventar-App für Veranstaltungstechniker. Sie hilft dir, dein Equipment zu verwalten, Ausleihen zu tracken, DMX-Adressen zu planen und Events vorzubereiten. Diese Anleitung erklärt alle Funktionen Schritt für Schritt.
 
-## Aufbau
+---
 
-Die App ist auf 4 grundlegenden Seiten aufgebaut:
-- Das **Dasboard** gibt einen groben überblick über die verwalteten Geräte und zeigt dringende Aktivitäten (z.B. zu reparierende Geräte) an
-- Die **Inventar**-Seite ist das HErzstück der App. Sie zeigt alle Geräte, ihren Standort, Menge, Kategorie und biete die direkte Möglichkeit, Geräte zu bearbeiten, löschen und die Liste zu sortieren
-- Auf der Seite **Checklisten** können Checklisten für die Event-Vor- und Nachbereitung erstellt werden, um z.B. verschiedene Setups zusammenzustellen oder verschiedene Geräte zu testen.
-- Der DMX-Patchplan ist besonders für Lichttechniker interessant, da er die Möglichkeit bietet, schon im voraus die DMX-Adressen der nachher gepatchten Geräte zu planen
+## Aufbau der App
 
-## Grundlegende Features der Inventar Seite:
+Die App besteht aus folgenden Hauptbereichen, erreichbar über die Seitenleiste:
 
-### Geräte hinzufügen
-1. Klicken Sie oben auf die Seite "Inventar"
-2. Oben befindet sich eine Befehlsleiste. Klicken Sie dort auf "+ Neues Item"
-3. Es öffnet sich ein Fenster, in dem Sie Namen, Kategorie, Menge, Ort, ... angeben können
-4. Klicken Sie unten auf "Hinzfügen"
-5. Das Gerät erscheint nun in der Liste der Geräte
+- **Dashboard** – Übersicht mit Statistiken, aktiven Ausleihen und letzten Aktivitäten
+- **Inventar** – Alle Geräte verwalten, filtern, exportieren
+- **Verleih** – Ausleihen erstellen, verwalten und Rückgaben tracken
+- **Checklisten** – Vor- und Nachbereitungs-Listen für Events
+- **Event-Sets** – Packlisten für bestimmte Veranstaltungen
+- **DMX-Patchplan** – DMX-Adressen planen und Konflikte erkennen
+- **Einstellungen** – Konto verwalten, Passwort ändern, Account löschen
+
+---
+
+## 📦 Inventar
+
+### Gerät hinzufügen
+1. Öffne die Seite **Inventar**
+2. Klicke auf **+ Neues Item**
+3. Fülle die Felder aus: Name, Kategorie, Menge, Standort, Zustand, Stückpreis, Notizen
+4. Optional: DMX-Daten (Universe, Startadresse, Kanalanzahl) angeben
+5. Klicke auf **Hinzufügen**
+
+### Gerät bearbeiten & löschen
+- Klicke auf **Edit** beim jeweiligen Gerät, um die Daten zu ändern
+- Klicke auf **Löschen**, um ein Gerät unwiderruflich zu entfernen
 
 ### Filtern & Suchen
-In der Befehlsleiste der Inventar Seite können Sie die Geräte nach Kategorien, Zuständen oder Standorten Filtern. Außerdem bietet die App die Möglichkeit in der Liste der Geräte zu suchen
+- Nutze die **Suchleiste** oben, um nach Namen zu suchen
+- Filtere nach **Kategorie**, **Zustand** oder **Standort**
+- Alle Filter lassen sich kombinieren
+
+### Batch-Operationen
+- Aktiviere den **Auswahl-Modus** über das Auswahl-Icon
+- Wähle mehrere Geräte aus
+- Führe Batch-Aktionen wie Löschen durch
+
+### Export & Druck
+- Klicke auf den **Export**-Button in der Befehlsleiste
+- Wähle zwischen **CSV** und **PDF**
+- Nutze **Drucken** für eine druckoptimierte Ansicht
+
+### Geräte-Detailseite
+- Klicke auf ein Gerät, um die Detailseite zu öffnen
+- Dort siehst du alle Infos, den QR-Code, Zubehör und die Verleih-Historie
+
+---
+
+## 🔲 QR-Codes
+
+Jedes Gerät bekommt automatisch einen QR-Code, der direkt zur Detailseite führt.
+
+### QR-Code anzeigen & nutzen
+1. Klicke auf **QR** beim jeweiligen Gerät
+2. **Herunterladen** – Speichert den QR-Code als Bild
+3. **Drucken** – Druckt den QR-Code direkt aus (z.B. für Etiketten)
+
+### QR-Code scannen
+1. Klicke auf **QR scannen** in der Inventar-Befehlsleiste
+2. Erlaube den Kamerazugriff
+3. Halte den QR-Code vor die Kamera
+4. Du wirst automatisch zur Detailseite des Geräts weitergeleitet
+
+> **Tipp:** Das Scannen funktioniert auch offline!
+
+---
+
+## 🤝 Verleih
+
+### Neue Ausleihe erstellen
+1. Öffne die Seite **Verleih**
+2. Klicke auf **+ Neue Ausleihe**
+3. Wähle das Gerät aus, gib den Namen des Ausleihenden und das Fälligkeitsdatum an
+4. Klicke auf **Erstellen**
+
+### Rückgabe verbuchen
+- Klicke bei einer aktiven Ausleihe auf den **Rückgabe**-Button
+- Die Ausleihe wird als zurückgegeben markiert und in der Historie gespeichert
+
+### Überfällige Ausleihen
+- Überfällige Rückgaben werden rot hervorgehoben
+- Du erhältst automatische Erinnerungen bei überfälligen Ausleihen
+
+### Verleih-Historie
+- Im Tab **Historie** siehst du alle abgeschlossenen Ausleihen
+- Auf der Geräte-Detailseite wird ebenfalls die Verleih-Historie des jeweiligen Geräts angezeigt
+
+---
+
+## 📋 Checklisten
+
+### Checkliste erstellen
+1. Öffne die Seite **Checklisten**
+2. Klicke auf **+ Neue Checkliste**
+3. Gib einen Event-Namen, Typ (Aufbau, Abbau, Wartung) und optionale Beschreibung ein
+4. Füge Punkte hinzu, die abgehakt werden sollen
+
+### Punkte abhaken
+- Klicke auf einen Punkt, um ihn als erledigt zu markieren
+- Der Fortschritt wird als Balken angezeigt
+
+### Typen
+- **Aufbau** – Checkliste für den Event-Aufbau
+- **Abbau** – Checkliste für den Event-Abbau
+- **Wartung** – Checkliste für Wartungsarbeiten
+
+---
+
+## 📁 Event-Sets (Packlisten)
+
+### Event-Set erstellen
+1. Öffne die Seite **Event-Sets**
+2. Klicke auf **+ Neues Set**
+3. Gib Name, Beschreibung, Zeitraum und Notizen ein
+4. Füge Artikel aus dem Inventar hinzu und lege Mengen fest
+
+### Packliste exportieren
+- Klicke auf **PDF exportieren**, um eine druckbare Packliste zu erstellen
+- Die Liste enthält Artikelname, Kategorie, Standort, Menge und Verfügbarkeit
+
+### Favoriten
+- Markiere häufig genutzte Sets als Favorit für schnellen Zugriff
+
+---
+
+## 🎛️ DMX-Patchplan
+
+### Übersicht
+Der DMX-Patchplan zeigt alle Geräte mit DMX-Konfiguration und ihre Adressbelegung.
+
+### Ansichten
+- **Timeline** – Grafische Darstellung der Adressbelegung pro Universe
+- **Tabelle** – Tabellarische Übersicht aller Zuweisungen
+
+### Konflikte
+- Überlappende DMX-Adressen werden automatisch erkannt
+- Konflikte werden als Warnung mit den betroffenen Geräten angezeigt
+
+### DMX-Daten bearbeiten
+- DMX-Adressen (Universe, Startadresse, Kanäle) werden beim Gerät im Inventar konfiguriert
+- Für mehrere Instanzen eines Geräts können separate DMX-Adressen vergeben werden
 
 ### Export
-Die App bietet die Möglichkeit, eine umfangreiche Liste der Geräte zu Exportieren. Dies geht über den "Export" Button der Befehlsleiste. Hierbei kann zwischen PDF und CSV gewechselt werden, wobei das PDF auch über die Funktion "Drucken" direkt ausgedruckt werden kann.
+- **CSV** und **PDF** Export über das Export-Menü
+- **Drucken** für eine druckoptimierte Ansicht mit Universe-Gruppierung
 
-### QR-Code Funktion
-Durch den Befehl "QR scannen" haben sie die Möglichkeit, die einzelnen QR-Codes der Geräte auszudrucken. Dies ist besonders hilfreich, wenn Sie nicht wissen, wo etwas im Lager platziert war, oder Sie schnell die Anzahl der verfügbaren Geräte überprüfen möchten.
+---
 
-**Vorgang**
-1. Drucken Sie sich den zum Gerät gehörigen QR-Code aus, indem sie die Schnellfunktion "QR" unter jedem Gerät auswählen, und dann "Herunterladen" oder "Drucken" drücken.
-2. Sie können diesen QR-Code jetzt z. B. auf ihre Geräte drucken.
-2. Scannen Sie über den "QR scannen" Button den ausgedruckten QR-Code scannen. Dies funktioniert auch **ohne Internet**
+## 📊 Dashboard
 
-### Schnellbefehle
-Jedes einzelnes Gerät auf der Inventar-Seite bietet verschiedene Schnellbefehle, die Sie nutzen können:
-- **QR**: Hier können Sie sich den QR-Code des jeweiligen Gerätes anzeigen lassen (s. oben, *QR-Code Funktion*)
-- **Edit**: Bearbeiten Sie das Gerät und ihre Eigenschaften
-- **Löschen**: Löschen Sie unwiederruflich das Gerät aus dem Inventar
+Das Dashboard zeigt dir auf einen Blick:
+- **Gesamt-Artikel** und **Gesamtwert** deines Inventars
+- **Aktive Ausleihen** mit Fälligkeitsdaten
+- **Überfällige Rückgaben** als Warnung
+- **Letzte Aktivitäten** aus der Verleih-Historie
+- **Kategorieverteilung** als Diagramm
 
+---
+
+## ⚙️ Einstellungen
+
+### Konto
+- **Anzeigename** ändern
+- **Passwort** zurücksetzen (per E-Mail)
+- **Account löschen** (unwiderruflich, erfordert E-Mail-Bestätigung)
+- **Abmelden**
+
+---
+
+## 📱 PWA – Als App installieren
+
+Rigflow kann als App auf deinem Gerät installiert werden:
+1. Öffne die App im Browser
+2. Folge den Anweisungen auf der **Installieren**-Seite
+3. Die App erscheint auf deinem Homescreen und funktioniert wie eine native App
+
+> **Tipp:** Die App funktioniert auch bei schlechter Internetverbindung. Ein Offline-Indikator zeigt dir an, wenn du offline bist.
+
+---
+
+## 💡 Tipps
+
+- **Tastenkombinationen:** Nutze die Suchleiste für schnellen Zugriff auf Geräte
+- **QR-Codes drucken:** Drucke QR-Codes auf Etiketten und klebe sie direkt auf deine Geräte
+- **Regelmäßige Wartung:** Nutze Wartungs-Checklisten, um den Zustand deiner Geräte im Blick zu behalten
+- **Event-Vorbereitung:** Erstelle Event-Sets mit Packlisten, bevor du zum Gig fährst
+- **Verleih tracken:** Nutze die Verleihverwaltung, um nie wieder vergessene Rückgaben zu haben
