@@ -15,7 +15,10 @@ import { useEventSets } from "@/hooks/useEventSets";
 import { useToast } from "@/hooks/use-toast";
 import { EventSetWithItems } from "@/types/eventSet";
 import { InventoryItem } from "@/types/inventory";
-import { SoftConfirm } from "@/components/SoftConfirm";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 function SetForm({ open, onClose, onSubmit, initial }: {
   open: boolean;
