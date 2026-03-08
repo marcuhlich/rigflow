@@ -398,13 +398,18 @@ export default function EventSetsPage() {
       />
 
       {/* Delete Confirmation */}
-      <SoftConfirm
-        isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
-        onConfirm={handleDelete}
-        title="Set löschen?"
-        description="Dieses Set wird unwiderruflich gelöscht. Deine Inventarartikel bleiben erhalten."
-      />
+      <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Set löschen?</AlertDialogTitle>
+            <AlertDialogDescription>Dieses Set wird unwiderruflich gelöscht. Deine Inventarartikel bleiben erhalten.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Löschen</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
