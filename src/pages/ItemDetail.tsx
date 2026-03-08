@@ -10,6 +10,7 @@ import { ItemForm } from "@/components/ItemForm";
 import { InventoryItem } from "@/types/inventory";
 import { useToast } from "@/hooks/use-toast";
 import { useInventory } from "@/hooks/useInventory";
+import { useLendingHistory } from "@/hooks/useLendingHistory";
 import {
   AlertDialog,
   AlertDialogAction,
