@@ -18,6 +18,9 @@ const navItems = [
   { to: "/dmx", icon: Sliders, label: "DMX Patchplan", mobileLabel: "DMX" },
 ];
 
+// Mobile nav only shows first 4 + a "More" popover for the rest
+const MOBILE_NAV_COUNT = 4;
+
 function LiquidGlassNav() {
   const location = useLocation();
   const navRef = useRef<HTMLDivElement>(null);
