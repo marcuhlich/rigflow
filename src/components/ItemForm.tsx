@@ -374,6 +374,14 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
             )}
 
             <div className="space-y-2">
+              <Label>Foto</Label>
+              <ImageUpload
+                currentImageUrl={formData.image_url}
+                onImageChange={(url) => setFormData({ ...formData, image_url: url })}
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="notes">Notizen</Label>
               <Textarea
                 id="notes"

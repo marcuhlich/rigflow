@@ -75,7 +75,7 @@ export const InventoryGrid = React.memo(function InventoryGrid({
               
               <div 
                 className={cn(
-                  "flex items-start justify-between gap-2 mb-3",
+                  "flex items-start justify-between gap-2",
                   selectionMode && "pl-7"
                 )}
               >
@@ -83,6 +83,14 @@ export const InventoryGrid = React.memo(function InventoryGrid({
                   className="flex-1 min-w-0 cursor-pointer hover:opacity-70 transition-opacity"
                   onClick={() => selectionMode ? onToggleSelection?.(item.id) : onViewDetails?.(item.id)}
                 >
+                  {item.image_url && (
+                    <img
+                      src={item.image_url}
+                      alt={item.name}
+                      className="w-full h-24 object-cover rounded-md mb-2"
+                      loading="lazy"
+                    />
+                  )}
                   <h3 className="font-semibold truncate text-sm sm:text-base">{item.name}</h3>
                   <p className="text-xs sm:text-sm text-muted-foreground">{item.category}</p>
                 </div>

@@ -171,6 +171,13 @@ export default function ItemDetail() {
                 </div>
               </div>
             </div>
+            {item.image_url && (
+              <img
+                src={item.image_url}
+                alt={item.name}
+                className="w-full max-h-64 object-cover rounded-lg mt-4 border border-border"
+              />
+            )}
           </Card>
 
           {/* Details Card */}
