@@ -382,6 +382,6 @@ export function DMXTimeline({
           </DialogContent>
         </Dialog>
       </div>
-    </TooltipProvider>
+    </>
   );
 }
