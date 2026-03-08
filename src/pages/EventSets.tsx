@@ -258,6 +258,11 @@ function SetDetailSheet({ set, open, onClose, onUpdateQty, onRemoveItem, onAddIt
                 <Download className="h-3 w-3" /> PDF
               </Button>
             </div>
+            {!allAvailable && (
+              <p className="text-xs text-muted-foreground">
+                Mindestens ein Artikel ist im selben Zeitraum bereits in anderen Sets eingeplant oder aktuell verliehen.
+              </p>
+            )}
 
             <Button variant="outline" size="sm" className="w-full gap-1" onClick={() => setPickerOpen(true)}>
               <Plus className="h-4 w-4" /> Artikel hinzufügen
