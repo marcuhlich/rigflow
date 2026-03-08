@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Plus, Package, Trash2, Edit2, ChevronRight, Search, AlertTriangle, Check,
   Star, CalendarDays, FileText, StickyNote, ArrowUpDown, Download,
