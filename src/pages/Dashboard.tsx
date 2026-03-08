@@ -421,10 +421,12 @@ export default function Dashboard() {
                   className="flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors"
                 >
                   <div className={`p-1.5 rounded-full flex-shrink-0 ${
-                    activity.type === 'lent' ? 'bg-warning/20 text-warning' : 'bg-destructive/20 text-destructive'
+                    activity.type === 'lent' ? 'bg-warning/20 text-warning' : activity.type === 'returned' ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'
                   }`}>
                     {activity.type === 'lent' ? (
                       <ArrowRightLeft className="h-3 w-3" />
+                    ) : activity.type === 'returned' ? (
+                      <CheckCircle className="h-3 w-3" />
                     ) : (
                       <AlertTriangle className="h-3 w-3" />
                     )}

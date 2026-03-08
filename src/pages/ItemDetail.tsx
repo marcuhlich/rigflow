@@ -277,6 +277,40 @@ export default function ItemDetail() {
               <p className="text-sm whitespace-pre-wrap">{item.notes}</p>
             </Card>
           )}
+
+          {/* Lending History */}
+          {(() => {
+            const history = getItemHistory(item.id);
+            if (history.length === 0) return null;
+            return (
+              <Card className="p-6">
+                <h2 className="text-lg font-semibold mb-4">Verleih-Historie</h2>
+                <div className="space-y-3">
+                  {history.map(record => (
+                    <div
+                      key={record.id}
+                      className={`flex items-center justify-between p-3 rounded-lg border ${
+                        !record.returned_at ? 'border-warning/40 bg-warning/5' : 'border-border'
+                      }`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">an {record.lent_to}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(record.lent_at), "dd. MMM yyyy", { locale: de })}
+                          {record.due_date && ` · Fällig: ${format(new Date(record.due_date), "dd. MMM yyyy", { locale: de })}`}
+                        </p>
+                      </div>
+                      <Badge variant={record.returned_at ? "secondary" : "outline"} className="shrink-0 ml-2 text-xs">
+                        {record.returned_at
+                          ? `Zurück ${format(new Date(record.returned_at), "dd.MM.yy")}`
+                          : "Aktiv"}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            );
+          })()}
         </div>
 
         {/* Sidebar */}

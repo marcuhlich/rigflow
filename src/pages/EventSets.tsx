@@ -48,6 +48,14 @@ function SetForm({ open, onClose, onSubmit, initial }: {
   const [notes, setNotes] = useState(initial?.notes || "");
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    setName(initial?.name || "");
+    setDesc(initial?.description || "");
+    setDateStart(initial?.dateStart ? new Date(initial.dateStart) : undefined);
+    setDateEnd(initial?.dateEnd ? new Date(initial.dateEnd) : undefined);
+    setNotes(initial?.notes || "");
+  }, [initial]);
+
   const handleSubmit = async () => {
     if (!name.trim()) return;
     setSaving(true);
