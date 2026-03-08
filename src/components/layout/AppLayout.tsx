@@ -1,6 +1,6 @@
 import { ReactNode, useRef, useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, Sliders, CheckSquare, Boxes } from "lucide-react";
+import { LayoutDashboard, Package, Sliders, CheckSquare, Boxes, HandCoins } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { cn } from "@/lib/utils";
