@@ -80,13 +80,11 @@ export default function AccountSettings() {
 
     setIsDeleting(true);
     try {
-      // Delete user data from profiles
-      await supabase.from("profiles").delete().eq("user_id", user?.id);
-
-      // Delete user account
-      const { error } = await supabase.auth.admin.deleteUser(user?.id || "");
+      // Delete account via secure server-side edge function
+      const { data, error } = await supabase.functions.invoke("delete-account");
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: "Konto gelöscht",

@@ -95,7 +95,7 @@ const Auth = () => {
           } else {
             toast({
               title: "Fehler",
-              description: error.message,
+              description: getAuthErrorMessage(error.message),
               variant: "destructive",
             });
           }
