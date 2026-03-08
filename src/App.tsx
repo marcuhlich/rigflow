@@ -106,6 +106,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/sets"
+        element={
+          <ProtectedRoute>
+            <EventSetsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/settings"
         element={
           <ProtectedRoute>
