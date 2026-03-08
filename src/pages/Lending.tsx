@@ -61,7 +61,7 @@ function DueSoonBadge({ dueDate }: { dueDate: string }) {
   const days = differenceInDays(new Date(dueDate), new Date());
   if (days < 0 || days > 3) return null;
   return (
-    <Badge variant="outline" className="gap-1 text-xs border-amber-500/50 text-amber-600 dark:text-amber-400">
+    <Badge variant="outline" className="gap-1 text-xs border-yellow-500/50 text-yellow-700 dark:text-yellow-400">
       <Clock className="h-3 w-3" />
       {days === 0 ? "Heute fällig" : `Noch ${days} ${days === 1 ? "Tag" : "Tage"}`}
     </Badge>
