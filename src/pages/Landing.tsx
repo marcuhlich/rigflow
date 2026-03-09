@@ -58,6 +58,10 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="text-2xl font-bold gradient-text">RigFlow</div>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleInstallApp} className="gap-1.5">
+              <Download className="h-4 w-4" />
+              {isInstalled ? 'Installiert' : 'App installieren'}
+            </Button>
             <Button variant="outline" onClick={() => navigate('/auth?step=login')}>
               Anmelden
             </Button>
