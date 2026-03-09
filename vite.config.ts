@@ -16,7 +16,8 @@ export default defineConfig(({ mode }) => ({
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
       strategies: "generateSW",
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,md}"],
+        navigateFallbackDenylist: [/^\/~oauth/],
         globIgnores: ["**/node_modules/**/*", ".git/**/*"],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
         cleanupOutdatedCaches: true,

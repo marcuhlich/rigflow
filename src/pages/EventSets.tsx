@@ -501,7 +501,7 @@ export default function EventSetsPage() {
                 <CardHeader className="pb-2 p-4 pr-10">
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-sm sm:text-base font-semibold truncate pr-2">{set.name}</CardTitle>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); setEditSet(set); }}>
                         <Edit2 className="h-3.5 w-3.5" />
                       </Button>

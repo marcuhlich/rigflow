@@ -549,24 +549,24 @@ function TimelineContainer({
 
             {/* Content */}
             <div className={cn(
-              'flex items-center gap-1 min-w-0 flex-1 pointer-events-none',
-              canDrag && !isMobile ? 'pr-2' : 'px-2'
+              'flex items-center gap-1 min-w-0 flex-1 pointer-events-none overflow-hidden',
+              canDrag && !isMobile ? 'pr-1.5' : 'px-1.5'
             )}>
               {conflict && <AlertTriangle className="h-3 w-3 shrink-0" />}
-              <span className="truncate text-[10px] sm:text-[11px] font-medium leading-tight">
+              <span className="truncate text-[9px] sm:text-[11px] font-medium leading-tight">
                 {widthPct > 5 ? device.itemName : ''}
               </span>
-              {device.totalInstances > 1 && widthPct > 7 && (
-                <span className="text-[9px] font-mono opacity-70">
+              {device.totalInstances > 1 && widthPct > 10 && (
+                <span className="text-[8px] sm:text-[9px] font-mono opacity-70 shrink-0">
                   #{device.instanceNumber}
                 </span>
               )}
               {/* Address + edit icon on the right */}
-              <span className="ml-auto shrink-0 flex items-center gap-0.5 text-[9px] font-mono opacity-80">
+              <span className="ml-auto shrink-0 flex items-center gap-0.5 text-[8px] sm:text-[9px] font-mono opacity-80">
                 {!isMobile && canDrag && (
                   <Pencil className="h-2.5 w-2.5 opacity-0 group-hover:opacity-70 transition-opacity" />
                 )}
-                {widthPct > 3 ? displayAddr : ''}
+                {widthPct > 4 ? displayAddr : ''}
               </span>
             </div>
           </div>
