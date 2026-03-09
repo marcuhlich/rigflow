@@ -115,10 +115,18 @@ export default function Landing() {
               </Card>
             </div>
 
-            <Button size="lg" onClick={handleStart} className="gap-2">
-              Jetzt entdecken
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button size="lg" onClick={handleStart} className="gap-2">
+                Jetzt entdecken
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              {!isInstalled && (
+                <Button size="lg" variant="outline" onClick={handleInstallApp} className="gap-2">
+                  <Download className="h-4 w-4" />
+                  App herunterladen
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Feature Preview */}
