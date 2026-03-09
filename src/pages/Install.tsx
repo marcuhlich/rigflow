@@ -153,7 +153,7 @@ export default function Install() {
                 Zur App
               </Button>
             </div>
-          ) : deferredPrompt ? (
+          ) : canInstall ? (
             <Button className="w-full" size="lg" onClick={handleInstall}>
               <Download className="w-5 h-5 mr-2" />
               Jetzt installieren
@@ -165,9 +165,9 @@ export default function Install() {
                   Installation über Browser-Menü:
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  <strong>iOS:</strong> Teilen → Zum Homebildschirm
+                  <strong>iOS:</strong> Teilen - Zum Homebildschirm
                   <br />
-                  <strong>Android:</strong> Menü (Drei Punkte) → Zum Startbildschirm hinzufügen
+                  <strong>Android:</strong> Menü (Drei Punkte) - Zum Startbildschirm hinzufügen
                 </p>
               </div>
               <Button variant="outline" className="w-full" onClick={() => navigate("/")}>
