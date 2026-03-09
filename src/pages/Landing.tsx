@@ -14,6 +14,15 @@ export default function Landing() {
   const [deviceSize, setDeviceSize] = useState<DeviceSize | null>(null);
   const [eventType, setEventType] = useState<EventType | null>(null);
   const navigate = useNavigate();
+  const { canInstall, isInstalled, install } = useInstallPrompt();
+
+  const handleInstallApp = async () => {
+    if (canInstall) {
+      await install();
+    } else {
+      navigate('/install');
+    }
+  };
 
   const handleStart = () => {
     setStep('questions');
