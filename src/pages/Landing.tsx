@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { ChevronRight, Zap, Lock, Smartphone, Gauge, ArrowRight } from 'lucide-react';
+import { ChevronRight, Zap, Lock, Smartphone, Gauge, ArrowRight, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
+import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 
 type OnboardingStep = 'landing' | 'questions' | 'features' | 'cta';
 type DeviceSize = 'small' | 'medium' | 'large';
