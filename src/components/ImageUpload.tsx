@@ -20,13 +20,9 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { user } = useAuth();
 
+  // Clean up pending upload state when the dialog opens with a different/no image
   useEffect(() => {
-    const savedUrl = sessionStorage.getItem(PENDING_UPLOAD_KEY);
-    if (savedUrl && !preview) {
-      setPreview(savedUrl);
-      onImageChange(savedUrl);
-      sessionStorage.removeItem(PENDING_UPLOAD_KEY);
-    }
+    sessionStorage.removeItem(PENDING_UPLOAD_KEY);
   }, []);
 
   useEffect(() => {

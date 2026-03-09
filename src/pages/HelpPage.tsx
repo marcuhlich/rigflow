@@ -11,10 +11,13 @@ export default function HelpPage() {
 
   useEffect(() => {
     fetch("/guide.md")
-      .then((res) => res.text())
+      .then((res) => {
+        if (!res.ok) throw new Error("Network error");
+        return res.text();
+      })
       .then((text) => setMarkdown(text))
-      .catch((err) =>
-        setMarkdown("# Fehler\nMarkdown konnte nicht geladen werden.")
+      .catch(() =>
+        setMarkdown("# Anleitung nicht verfügbar\nDie Anleitung konnte nicht geladen werden. Bitte stelle sicher, dass du online bist, oder versuche es später erneut.")
       );
   }, []);
 
