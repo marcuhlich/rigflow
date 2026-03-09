@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { ChevronRight, Zap, Lock, Smartphone, Gauge, ArrowRight } from 'lucide-react';
+import { ChevronRight, Zap, Lock, Smartphone, Gauge, ArrowRight, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
+import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 
 type OnboardingStep = 'landing' | 'questions' | 'features' | 'cta';
 type DeviceSize = 'small' | 'medium' | 'large';
@@ -13,6 +14,15 @@ export default function Landing() {
   const [deviceSize, setDeviceSize] = useState<DeviceSize | null>(null);
   const [eventType, setEventType] = useState<EventType | null>(null);
   const navigate = useNavigate();
+  const { canInstall, isInstalled, install } = useInstallPrompt();
+
+  const handleInstallApp = async () => {
+    if (canInstall) {
+      await install();
+    } else {
+      navigate('/install');
+    }
+  };
 
   const handleStart = () => {
     setStep('questions');
@@ -48,6 +58,10 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="text-2xl font-bold gradient-text">RigFlow</div>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleInstallApp} className="gap-1.5">
+              <Download className="h-4 w-4" />
+              {isInstalled ? 'Installiert' : 'App installieren'}
+            </Button>
             <Button variant="outline" onClick={() => navigate('/auth?step=login')}>
               Anmelden
             </Button>
@@ -101,10 +115,18 @@ export default function Landing() {
               </Card>
             </div>
 
-            <Button size="lg" onClick={handleStart} className="gap-2">
-              Jetzt entdecken
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button size="lg" onClick={handleStart} className="gap-2">
+                Jetzt entdecken
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              {!isInstalled && (
+                <Button size="lg" variant="outline" onClick={handleInstallApp} className="gap-2">
+                  <Download className="h-4 w-4" />
+                  App herunterladen
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Feature Preview */}

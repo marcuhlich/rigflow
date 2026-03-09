@@ -5,67 +5,34 @@ import { Download, Smartphone, Check, Wifi, WifiOff, Bell, AlertCircle } from "l
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PushService } from "@/lib/pushService";
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
+import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 
 export default function Install() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const { canInstall, isInstalled, install } = useInstallPrompt();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
   const [isRequestingNotification, setIsRequestingNotification] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-    };
-
-    const handleAppInstalled = () => {
-      setIsInstalled(true);
-      setDeferredPrompt(null);
-    };
-
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
-    // Check if already installed
-    if (window.matchMedia("(display-mode: standalone)").matches) {
-      setIsInstalled(true);
-    }
-
-    // Check notification permission
     if ("Notification" in window) {
       setNotificationPermission(Notification.permission);
     }
 
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    window.addEventListener("appinstalled", handleAppInstalled);
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
     return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-      window.removeEventListener("appinstalled", handleAppInstalled);
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
 
   const handleInstall = async () => {
-    if (!deferredPrompt) return;
-
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-
-    if (outcome === "accepted") {
-      setIsInstalled(true);
-    }
-    setDeferredPrompt(null);
+    await install();
   };
 
   const handleRequestNotificationPermission = async () => {
@@ -186,7 +153,7 @@ export default function Install() {
                 Zur App
               </Button>
             </div>
-          ) : deferredPrompt ? (
+          ) : canInstall ? (
             <Button className="w-full" size="lg" onClick={handleInstall}>
               <Download className="w-5 h-5 mr-2" />
               Jetzt installieren
@@ -198,9 +165,9 @@ export default function Install() {
                   Installation über Browser-Menü:
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  <strong>iOS:</strong> Teilen → Zum Homebildschirm
+                  <strong>iOS:</strong> Teilen - Zum Homebildschirm
                   <br />
-                  <strong>Android:</strong> Menü (Drei Punkte) → Zum Startbildschirm hinzufügen
+                  <strong>Android:</strong> Menü (Drei Punkte) - Zum Startbildschirm hinzufügen
                 </p>
               </div>
               <Button variant="outline" className="w-full" onClick={() => navigate("/")}>
