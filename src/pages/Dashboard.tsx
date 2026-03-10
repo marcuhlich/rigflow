@@ -313,11 +313,11 @@ export default function Dashboard() {
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
+                      backgroundColor: "hsl(var(--popover))",
                       border: "1px solid hsl(var(--border))",
                       borderRadius: "8px",
                       fontSize: "12px",
-                      color: "hsl(var(--foreground))",
+                      color: "hsl(var(--popover-foreground))",
                     }}
                   />
                 </PieChart>
