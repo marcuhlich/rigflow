@@ -272,18 +272,20 @@ export default function Lending() {
         />
       </div>
 
-      {/* Tabs */}
+      {/* Tabs with sliding indicator */}
       <Tabs defaultValue="active" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="active" className="gap-1.5">
-            <Package className="h-4 w-4" />
-            Aktiv ({filteredActive.length})
-          </TabsTrigger>
-          <TabsTrigger value="history" className="gap-1.5">
-            <History className="h-4 w-4" />
-            Historie ({filteredCompleted.length})
-          </TabsTrigger>
-        </TabsList>
+        <div className="relative">
+          <TabsList className="relative">
+            <TabsTrigger value="active" className="gap-1.5 relative z-10">
+              <Package className="h-4 w-4" />
+              Aktiv ({filteredActive.length})
+            </TabsTrigger>
+            <TabsTrigger value="history" className="gap-1.5 relative z-10">
+              <History className="h-4 w-4" />
+              Historie ({filteredCompleted.length})
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="active" className="space-y-3">
           {filteredActive.length === 0 ? (

@@ -67,40 +67,47 @@ function LiquidGlassNav() {
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-[env(safe-area-inset-bottom)]">
       <div className="mb-3 mx-3">
         {/* More popover */}
-        {moreOpen && (
-          <div
-            className="absolute bottom-full mb-2 right-3 rounded-2xl p-2 min-w-[160px] space-y-0.5"
-            style={{
-              background: "rgba(15, 23, 42, 0.85)",
-              backdropFilter: "blur(24px) saturate(180%)",
-              WebkitBackdropFilter: "blur(24px) saturate(180%)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
-            }}
-          >
-            {moreItems.map((item) => {
-              const isActive =
-                item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
-              return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.to === "/"}
-                  onClick={() => setMoreOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
-                    isActive
-                      ? "text-primary bg-primary/10"
-                      : "text-muted-foreground/80 active:bg-white/5"
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </NavLink>
-              );
-            })}
-          </div>
-        )}
+        <div
+          className="absolute bottom-full mb-2 right-3 rounded-2xl p-2 min-w-[160px] space-y-0.5 overflow-hidden"
+          style={{
+            background: "rgba(15, 23, 42, 0.85)",
+            backdropFilter: "blur(24px) saturate(180%)",
+            WebkitBackdropFilter: "blur(24px) saturate(180%)",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+            transition: "opacity 0.25s ease, transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
+            opacity: moreOpen ? 1 : 0,
+            transform: moreOpen ? "translateY(0)" : "translateY(12px)",
+            pointerEvents: moreOpen ? "auto" : "none",
+          }}
+        >
+          {moreItems.map((item, i) => {
+            const isActive =
+              item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === "/"}
+                onClick={() => setMoreOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                  isActive
+                    ? "text-primary bg-primary/10"
+                    : "text-muted-foreground/80 active:bg-white/5"
+                )}
+                style={{
+                  transition: `opacity 0.2s ease ${i * 0.06}s, transform 0.25s cubic-bezier(0.32, 0.72, 0, 1) ${i * 0.06}s`,
+                  opacity: moreOpen ? 1 : 0,
+                  transform: moreOpen ? "translateY(0)" : "translateY(8px)",
+                }}
+              >
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </NavLink>
+            );
+          })}
+        </div>
 
         <nav
           ref={navRef}

@@ -354,11 +354,11 @@ export default function Dashboard() {
                   <YAxis dataKey="name" type="category" width={90} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
+                      backgroundColor: "hsl(var(--popover))",
                       border: "1px solid hsl(var(--border))",
                       borderRadius: "8px",
                       fontSize: "12px",
-                      color: "hsl(var(--foreground))",
+                      color: "hsl(var(--popover-foreground))",
                     }}
                     formatter={(value: number) => [`${value} Stück`, 'Menge']}
                   />
