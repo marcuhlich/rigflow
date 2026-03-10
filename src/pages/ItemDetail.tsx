@@ -318,9 +318,12 @@ export default function ItemDetail() {
           {/* QR Code Preview */}
           <Card className="p-6 text-center">
             <h3 className="font-semibold mb-4">Item-ID</h3>
-            <code className="text-xs bg-muted p-3 rounded-lg block break-all font-mono">
-              {item.id}
-            </code>
+            <div className="relative group">
+              <code className="text-xs bg-muted p-3 rounded-lg block break-all font-mono pr-10">
+                {item.id}
+              </code>
+              <CopyIdButton id={item.id} />
+            </div>
             <p className="text-xs text-muted-foreground mt-3">
               Scanne einen QR-Code zum schnellen Zugriff
             </p>

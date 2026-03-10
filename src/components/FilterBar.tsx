@@ -78,7 +78,7 @@ export function FilterBar({
 
           {onLocationChange && locations.length > 0 && (
             <Select value={locationFilter} onValueChange={onLocationChange}>
-              <SelectTrigger className="w-[160px] glass-input">
+              <SelectTrigger className="flex-1 min-w-0 sm:flex-none sm:w-[160px] glass-input">
                 <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
                 <SelectValue placeholder="Standort" />
               </SelectTrigger>
