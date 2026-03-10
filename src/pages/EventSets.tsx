@@ -279,41 +279,59 @@ function SetDetailSheet({ set, open, onClose, onUpdateQty, onRemoveItem, onAddIt
             {set.items.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">Noch keine Artikel in diesem Set.</p>
             ) : (
-              <div className="space-y-2">
-                {set.items.map((si) => {
-                  const insufficient = (si.available_quantity || 0) < si.quantity;
-                  return (
-                    <div key={si.id} className="flex items-center gap-2 p-3 rounded-lg border border-border bg-card">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{si.item_name || "Unbekannt"}</p>
-                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
-                          <span>{si.item_category}</span>
-                          {si.item_location && <span>· {si.item_location}</span>}
-                          {insufficient && (
-                            <span className="basis-full text-destructive flex items-start gap-1 leading-tight break-words">
-                              <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
-                              <span>
-                                Nur {si.available_quantity} verfügbar
-                                {(si.reserved_by_other_quantity ?? 0) > 0
-                                  ? ` – ${si.reserved_by_other_quantity} bereits in anderen Sets im gleichen Zeitraum eingeplant.`
-                                  : " – Rest ist bereits eingeplant oder verliehen."}
-                              </span>
-                            </span>
-                          )}
+              (() => {
+                // Group items by category
+                const grouped: Record<string, typeof set.items> = {};
+                set.items.forEach((si) => {
+                  const cat = si.item_category || "Sonstige";
+                  if (!grouped[cat]) grouped[cat] = [];
+                  grouped[cat].push(si);
+                });
+                const sortedCategories = Object.keys(grouped).sort();
+                return (
+                  <div className="space-y-4">
+                    {sortedCategories.map((cat) => (
+                      <div key={cat}>
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{cat}</h4>
+                        <div className="space-y-2">
+                          {grouped[cat].map((si) => {
+                            const insufficient = (si.available_quantity || 0) < si.quantity;
+                            return (
+                              <div key={si.id} className="flex items-center gap-2 p-3 rounded-lg border border-border bg-card">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{si.item_name || "Unbekannt"}</p>
+                                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+                                    {si.item_location && <span>{si.item_location}</span>}
+                                    {insufficient && (
+                                      <span className="basis-full text-destructive flex items-start gap-1 leading-tight break-words">
+                                        <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                                        <span>
+                                          Nur {si.available_quantity} verfügbar
+                                          {(si.reserved_by_other_quantity ?? 0) > 0
+                                            ? ` – ${si.reserved_by_other_quantity} bereits in anderen Sets im gleichen Zeitraum eingeplant.`
+                                            : " – Rest ist bereits eingeplant oder verliehen."}
+                                        </span>
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <Input
+                                  type="number" min={1} value={si.quantity}
+                                  onChange={(e) => onUpdateQty(si.id, Math.max(1, parseInt(e.target.value) || 1))}
+                                  className="w-16 h-8 text-xs"
+                                />
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={() => onRemoveItem(si.id)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-                      <Input
-                        type="number" min={1} value={si.quantity}
-                        onChange={(e) => onUpdateQty(si.id, Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-16 h-8 text-xs"
-                      />
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={() => onRemoveItem(si.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
+                    ))}
+                  </div>
+                );
+              })()
             )}
           </div>
         </SheetContent>

@@ -50,9 +50,9 @@ export function FilterBar({
           />
         </div>
         
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-3 w-full lg:w-auto">
           <Select value={categoryFilter} onValueChange={(v) => onCategoryChange(v as ItemCategory | 'all')}>
-            <SelectTrigger className="w-[160px] glass-input">
+            <SelectTrigger className="flex-1 min-w-0 sm:flex-none sm:w-[160px] glass-input">
               <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
               <SelectValue placeholder="Kategorie" />
             </SelectTrigger>
@@ -65,7 +65,7 @@ export function FilterBar({
           </Select>
 
           <Select value={conditionFilter} onValueChange={(v) => onConditionChange(v as ItemCondition | 'all')}>
-            <SelectTrigger className="w-[160px] glass-input">
+            <SelectTrigger className="flex-1 min-w-0 sm:flex-none sm:w-[160px] glass-input">
               <SelectValue placeholder="Zustand" />
             </SelectTrigger>
             <SelectContent className="glass-card border-border/50">
@@ -78,7 +78,7 @@ export function FilterBar({
 
           {onLocationChange && locations.length > 0 && (
             <Select value={locationFilter} onValueChange={onLocationChange}>
-              <SelectTrigger className="w-[160px] glass-input">
+              <SelectTrigger className="flex-1 min-w-0 sm:flex-none sm:w-[160px] glass-input">
                 <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
                 <SelectValue placeholder="Standort" />
               </SelectTrigger>
