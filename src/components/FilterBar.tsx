@@ -52,7 +52,7 @@ export function FilterBar({
         
         <div className="flex flex-wrap gap-3 w-full lg:w-auto">
           <Select value={categoryFilter} onValueChange={(v) => onCategoryChange(v as ItemCategory | 'all')}>
-            <SelectTrigger className="w-[160px] glass-input">
+            <SelectTrigger className="flex-1 min-w-0 sm:flex-none sm:w-[160px] glass-input">
               <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
               <SelectValue placeholder="Kategorie" />
             </SelectTrigger>
