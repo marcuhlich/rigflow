@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { QrCode, Edit2, Trash2, ChevronLeft } from "lucide-react";
+import { QrCode, Edit2, Trash2, ChevronLeft, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
