@@ -65,7 +65,7 @@ export function FilterBar({
           </Select>
 
           <Select value={conditionFilter} onValueChange={(v) => onConditionChange(v as ItemCondition | 'all')}>
-            <SelectTrigger className="w-[160px] glass-input">
+            <SelectTrigger className="flex-1 min-w-0 sm:flex-none sm:w-[160px] glass-input">
               <SelectValue placeholder="Zustand" />
             </SelectTrigger>
             <SelectContent className="glass-card border-border/50">
