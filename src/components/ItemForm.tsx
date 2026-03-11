@@ -76,7 +76,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [],
     } else {
       setFormData({
         name: '',
-        category: 'Kabel',
+        category: categories[0] || '',
         quantity: '1',
         condition: 'verfügbar',
         location: '',
