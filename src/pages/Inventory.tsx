@@ -276,6 +276,7 @@ export default function Inventory() {
         locationFilter={locationFilter}
         onLocationChange={setLocationFilter}
         locations={locations}
+        categories={categoryNames}
         onClearFilters={clearFilters}
       />
 
