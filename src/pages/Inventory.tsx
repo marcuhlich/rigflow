@@ -232,7 +232,7 @@ export default function Inventory() {
             <Settings2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
             <span className="hidden sm:inline">Kategorien</span>
             <span className="sm:hidden">Kat.</span>
-          
+          </Button>
           {!isMobile && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
