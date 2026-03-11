@@ -231,7 +231,7 @@ export type Database = {
       inventory_items: {
         Row: {
           accessories: string | null
-          category: Database["public"]["Enums"]["item_category"]
+          category: string
           condition: Database["public"]["Enums"]["item_condition"]
           created_at: string
           dmx_channels: number | null
@@ -251,7 +251,7 @@ export type Database = {
         }
         Insert: {
           accessories?: string | null
-          category: Database["public"]["Enums"]["item_category"]
+          category: string
           condition?: Database["public"]["Enums"]["item_condition"]
           created_at?: string
           dmx_channels?: number | null
@@ -271,7 +271,7 @@ export type Database = {
         }
         Update: {
           accessories?: string | null
-          category?: Database["public"]["Enums"]["item_category"]
+          category?: string
           condition?: Database["public"]["Enums"]["item_condition"]
           created_at?: string
           dmx_channels?: number | null
@@ -358,6 +358,33 @@ export type Database = {
           display_name?: string | null
           id?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_categories: {
+        Row: {
+          created_at: string
+          id: string
+          is_dmx_capable: boolean
+          name: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_dmx_capable?: boolean
+          name: string
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_dmx_capable?: boolean
+          name?: string
+          sort_order?: number
           user_id?: string
         }
         Relationships: []

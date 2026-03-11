@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { InventoryItem, CATEGORIES, CONDITIONS, CONDITION_LABELS, ItemCategory, ItemCondition, DMX_CATEGORIES } from "@/types/inventory";
+import { InventoryItem, CONDITIONS, CONDITION_LABELS, ItemCategory, ItemCondition } from "@/types/inventory";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { validators } from "@/lib/validators";
 
@@ -27,13 +27,15 @@ interface ItemFormProps {
   onClose: () => void;
   onSubmit: (item: Omit<InventoryItem, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>;
   editItem?: InventoryItem | null;
+  categories?: string[];
+  dmxCategories?: string[];
 }
 
-export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps) {
+export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [], dmxCategories = [] }: ItemFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    category: 'Kabel' as ItemCategory,
+    category: '' as ItemCategory,
     quantity: '1',
     condition: 'verfügbar' as ItemCondition,
     location: '',
@@ -50,7 +52,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const showDMXFields = DMX_CATEGORIES.includes(formData.category);
+  const showDMXFields = dmxCategories.includes(formData.category);
   const showLentFields = formData.condition === 'verliehen';
 
   useEffect(() => {
@@ -74,7 +76,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
     } else {
       setFormData({
         name: '',
-        category: 'Kabel',
+        category: categories[0] || '',
         quantity: '1',
         condition: 'verfügbar',
         location: '',
@@ -206,7 +208,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="glass-card border-border/50">
-                    {CATEGORIES.map((cat) => (
+                    {categories.map((cat) => (
                       <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                     ))}
                   </SelectContent>

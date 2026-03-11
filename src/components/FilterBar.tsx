@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CATEGORIES, CONDITIONS, CONDITION_LABELS, ItemCategory, ItemCondition } from "@/types/inventory";
+import { CONDITIONS, CONDITION_LABELS, ItemCategory, ItemCondition } from "@/types/inventory";
 
 interface FilterBarProps {
   searchQuery: string;
@@ -20,6 +20,7 @@ interface FilterBarProps {
   locationFilter?: string;
   onLocationChange?: (value: string) => void;
   locations?: string[];
+  categories?: string[];
   onClearFilters: () => void;
 }
 
@@ -33,6 +34,7 @@ export function FilterBar({
   locationFilter = 'all',
   onLocationChange,
   locations = [],
+  categories = [],
   onClearFilters,
 }: FilterBarProps) {
   const hasActiveFilters = searchQuery || categoryFilter !== 'all' || conditionFilter !== 'all' || locationFilter !== 'all';
@@ -58,7 +60,7 @@ export function FilterBar({
             </SelectTrigger>
             <SelectContent className="glass-card border-border/50">
               <SelectItem value="all">Alle Kategorien</SelectItem>
-              {CATEGORIES.map((cat) => (
+              {categories.map((cat) => (
                 <SelectItem key={cat} value={cat}>{cat}</SelectItem>
               ))}
             </SelectContent>
