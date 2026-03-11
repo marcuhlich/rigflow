@@ -34,6 +34,7 @@ export function FilterBar({
   locationFilter = 'all',
   onLocationChange,
   locations = [],
+  categories = [],
   onClearFilters,
 }: FilterBarProps) {
   const hasActiveFilters = searchQuery || categoryFilter !== 'all' || conditionFilter !== 'all' || locationFilter !== 'all';
