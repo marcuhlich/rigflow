@@ -1,6 +1,7 @@
 export type ItemCondition = 'verfügbar' | 'verliehen' | 'in-einsatz' | 'defekt';
 
-export type ItemCategory = 'Kabel' | 'Lautsprecher' | 'Lichttechnik' | 'Mikrofone' | 'Zubehör' | 'Effektgeräte';
+// Category is now dynamic (stored in user_categories table)
+export type ItemCategory = string;
 
 export interface InventoryItem {
   id: string;
@@ -23,7 +24,11 @@ export interface InventoryItem {
   updated_at: string;
 }
 
-export const CATEGORIES: ItemCategory[] = ['Kabel', 'Lautsprecher', 'Lichttechnik', 'Mikrofone', 'Zubehör', 'Effektgeräte'];
+// Default categories (used as fallback only)
+export const DEFAULT_CATEGORIES: string[] = ['Kabel', 'Lautsprecher', 'Lichttechnik', 'Mikrofone', 'Zubehör', 'Effektgeräte'];
+
+// Legacy exports for backward compat – prefer useCategories() hook
+export const CATEGORIES = DEFAULT_CATEGORIES;
 
 export const CONDITIONS: ItemCondition[] = ['verfügbar', 'verliehen', 'in-einsatz', 'defekt'];
 
@@ -34,4 +39,5 @@ export const CONDITION_LABELS: Record<ItemCondition, string> = {
   'defekt': 'Defekt'
 };
 
-export const DMX_CATEGORIES: ItemCategory[] = ['Lichttechnik', 'Effektgeräte'];
+// Legacy – prefer dmxCategories from useCategories()
+export const DMX_CATEGORIES: string[] = ['Lichttechnik', 'Effektgeräte'];
