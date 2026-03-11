@@ -224,6 +224,14 @@ export default function Inventory() {
             <span className="hidden sm:inline">Neues Item</span>
             <span className="sm:hidden">Item</span>
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => setCategoryManagerOpen(true)}
+            className="gap-1 flex-1 sm:flex-none px-2 sm:px-4 h-9 text-xs sm:text-sm"
+          >
+            <Settings2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+            <span className="hidden sm:inline">Kategorien</span>
+            <span className="sm:hidden">Kat.</span>
           
           {!isMobile && (
             <DropdownMenu>
