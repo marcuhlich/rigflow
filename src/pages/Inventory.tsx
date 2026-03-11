@@ -297,6 +297,8 @@ export default function Inventory() {
         onClose={() => setIsFormOpen(false)}
         onSubmit={handleFormSubmit}
         editItem={editItem}
+        categories={categoryNames}
+        dmxCategories={dmxCategories}
       />
 
       <EnhancedQRScanner
