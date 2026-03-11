@@ -1,8 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, QrCode, CheckSquare, Square, Download, FileText, Printer } from "lucide-react";
+import { Plus, QrCode, CheckSquare, Square, Download, FileText, Printer, Settings2, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { useEffect } from "react";
 import {
   DropdownMenu,
@@ -11,6 +15,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { FilterBar } from "@/components/FilterBar";
 import { InventoryGrid } from "@/components/InventoryGrid";
 import { ItemForm } from "@/components/ItemForm";
@@ -18,6 +29,7 @@ import { EnhancedQRScanner } from "@/components/EnhancedQRScanner";
 import { BatchActionsBar } from "@/components/BatchActionsBar";
 import { AuditLogPanel } from "@/components/AuditLogPanel";
 import { useInventory } from "@/hooks/useInventory";
+import { useCategories } from "@/hooks/useCategories";
 import { InventoryItem } from "@/types/inventory";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
