@@ -42,8 +42,12 @@ export default function Inventory() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
+  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryDmx, setNewCategoryDmx] = useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { categoryNames, dmxCategories, addCategory, removeCategory, toggleDmx, categories } = useCategories();
 
   const handleExportCSV = () => {
     const csv = exportInventoryAsCSV(items);
