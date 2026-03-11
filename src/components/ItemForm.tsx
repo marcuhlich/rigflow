@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { InventoryItem, CATEGORIES, CONDITIONS, CONDITION_LABELS, ItemCategory, ItemCondition, DMX_CATEGORIES } from "@/types/inventory";
+import { InventoryItem, CONDITIONS, CONDITION_LABELS, ItemCategory, ItemCondition } from "@/types/inventory";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { validators } from "@/lib/validators";
 
@@ -27,6 +27,8 @@ interface ItemFormProps {
   onClose: () => void;
   onSubmit: (item: Omit<InventoryItem, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>;
   editItem?: InventoryItem | null;
+  categories?: string[];
+  dmxCategories?: string[];
 }
 
 export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps) {
