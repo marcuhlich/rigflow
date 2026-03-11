@@ -208,7 +208,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [],
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="glass-card border-border/50">
-                    {CATEGORIES.map((cat) => (
+                    {categories.map((cat) => (
                       <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                     ))}
                   </SelectContent>
