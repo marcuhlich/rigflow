@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CATEGORIES, CONDITIONS, CONDITION_LABELS, ItemCategory, ItemCondition } from "@/types/inventory";
+import { CONDITIONS, CONDITION_LABELS, ItemCategory, ItemCondition } from "@/types/inventory";
 
 interface FilterBarProps {
   searchQuery: string;
@@ -20,6 +20,7 @@ interface FilterBarProps {
   locationFilter?: string;
   onLocationChange?: (value: string) => void;
   locations?: string[];
+  categories?: string[];
   onClearFilters: () => void;
 }
 
