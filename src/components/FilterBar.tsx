@@ -60,7 +60,7 @@ export function FilterBar({
             </SelectTrigger>
             <SelectContent className="glass-card border-border/50">
               <SelectItem value="all">Alle Kategorien</SelectItem>
-              {CATEGORIES.map((cat) => (
+              {categories.map((cat) => (
                 <SelectItem key={cat} value={cat}>{cat}</SelectItem>
               ))}
             </SelectContent>
