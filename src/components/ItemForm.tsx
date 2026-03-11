@@ -31,11 +31,11 @@ interface ItemFormProps {
   dmxCategories?: string[];
 }
 
-export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps) {
+export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [], dmxCategories = [] }: ItemFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    category: 'Kabel' as ItemCategory,
+    category: '' as ItemCategory,
     quantity: '1',
     condition: 'verfügbar' as ItemCondition,
     location: '',
@@ -52,7 +52,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem }: ItemFormProps)
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const showDMXFields = DMX_CATEGORIES.includes(formData.category);
+  const showDMXFields = dmxCategories.includes(formData.category);
   const showLentFields = formData.condition === 'verliehen';
 
   useEffect(() => {
