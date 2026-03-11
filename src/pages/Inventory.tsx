@@ -328,6 +328,89 @@ export default function Inventory() {
         locations={locations}
         isProcessing={isProcessing}
       />
+
+      {/* Category Manager Dialog */}
+      <Dialog open={categoryManagerOpen} onOpenChange={setCategoryManagerOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Kategorien verwalten</DialogTitle>
+            <DialogDescription>Füge neue Kategorien hinzu oder entferne bestehende.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Neue Kategorie..."
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newCategoryName.trim()) {
+                    addCategory(newCategoryName, newCategoryDmx);
+                    setNewCategoryName('');
+                    setNewCategoryDmx(false);
+                  }
+                }}
+                className="flex-1"
+              />
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (newCategoryName.trim()) {
+                    addCategory(newCategoryName, newCategoryDmx);
+                    setNewCategoryName('');
+                    setNewCategoryDmx(false);
+                  }
+                }}
+                disabled={!newCategoryName.trim()}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="dmx-capable"
+                checked={newCategoryDmx}
+                onCheckedChange={setNewCategoryDmx}
+              />
+              <Label htmlFor="dmx-capable" className="text-xs text-muted-foreground flex items-center gap-1">
+                <Zap className="h-3 w-3" /> DMX-fähig
+              </Label>
+            </div>
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {categories.map((cat) => (
+                <div key={cat.id} className="flex items-center justify-between p-2 rounded-lg border border-border bg-card">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">{cat.name}</span>
+                    {cat.is_dmx_capable && (
+                      <Badge variant="secondary" className="text-xs gap-0.5 cursor-pointer" onClick={() => toggleDmx(cat.name)}>
+                        <Zap className="h-2.5 w-2.5" /> DMX
+                      </Badge>
+                    )}
+                    {!cat.is_dmx_capable && (
+                      <button
+                        onClick={() => toggleDmx(cat.name)}
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        + DMX
+                      </button>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    onClick={() => removeCategory(cat.name)}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+              {categories.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">Keine Kategorien vorhanden.</p>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
