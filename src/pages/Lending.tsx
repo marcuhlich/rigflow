@@ -133,6 +133,7 @@ export default function Lending() {
     useLendingHistory();
   const { items } = useInventory();
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState("active");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
