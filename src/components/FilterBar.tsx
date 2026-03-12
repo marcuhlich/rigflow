@@ -52,11 +52,13 @@ export function FilterBar({
           />
         </div>
         
-        <div className="flex flex-wrap gap-3 w-full lg:w-auto">
+        <div className="flex flex-wrap gap-2 w-full lg:w-auto">
           <Select value={categoryFilter} onValueChange={(v) => onCategoryChange(v as ItemCategory | 'all')}>
             <SelectTrigger className="flex-1 min-w-0 sm:flex-none sm:w-[160px] glass-input">
-              <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
-              <SelectValue placeholder="Kategorie" />
+              <Filter className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" />
+              <span className="truncate">
+                {categoryFilter === 'all' ? 'Kategorie' : categoryFilter}
+              </span>
             </SelectTrigger>
             <SelectContent className="glass-card border-border/50">
               <SelectItem value="all">Alle Kategorien</SelectItem>
@@ -68,7 +70,9 @@ export function FilterBar({
 
           <Select value={conditionFilter} onValueChange={(v) => onConditionChange(v as ItemCondition | 'all')}>
             <SelectTrigger className="flex-1 min-w-0 sm:flex-none sm:w-[160px] glass-input">
-              <SelectValue placeholder="Zustand" />
+              <span className="truncate">
+                {conditionFilter === 'all' ? 'Zustand' : CONDITION_LABELS[conditionFilter]}
+              </span>
             </SelectTrigger>
             <SelectContent className="glass-card border-border/50">
               <SelectItem value="all">Alle Zustände</SelectItem>
@@ -81,8 +85,10 @@ export function FilterBar({
           {onLocationChange && locations.length > 0 && (
             <Select value={locationFilter} onValueChange={onLocationChange}>
               <SelectTrigger className="flex-1 min-w-0 sm:flex-none sm:w-[160px] glass-input">
-                <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                <SelectValue placeholder="Standort" />
+                <MapPin className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" />
+                <span className="truncate">
+                  {locationFilter === 'all' ? 'Standort' : locationFilter}
+                </span>
               </SelectTrigger>
               <SelectContent className="glass-card border-border/50">
                 <SelectItem value="all">Alle Standorte</SelectItem>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect, ReactNode } from "react";
 import { format, differenceInDays } from "date-fns";
 import { de } from "date-fns/locale";
 import {
@@ -12,12 +12,12 @@ import {
   History,
   Search,
   Package,
+  CalendarIcon,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -45,6 +51,60 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useLendingHistory, LendingRecord } from "@/hooks/useLendingHistory";
 import { useInventory } from "@/hooks/useInventory";
+import { cn } from "@/lib/utils";
+
+interface SlidingTabsProps {
+  tabs: { value: string; label: string; icon?: ReactNode }[];
+  activeTab: string;
+  onTabChange: (value: string) => void;
+}
+
+function SlidingTabs({ tabs, activeTab, onTabChange }: SlidingTabsProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const activeIndex = tabs.findIndex((t) => t.value === activeTab);
+    const buttons = container.querySelectorAll<HTMLButtonElement>("[data-tab-btn]");
+    const btn = buttons[activeIndex];
+    if (btn) {
+      setIndicatorStyle({
+        left: btn.offsetLeft,
+        width: btn.offsetWidth,
+      });
+    }
+  }, [activeTab, tabs]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative inline-flex items-center gap-1 rounded-lg bg-muted p-1"
+    >
+      <div
+        className="absolute top-1 bottom-1 rounded-md bg-background shadow-sm transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
+        style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
+      />
+      {tabs.map((tab) => (
+        <button
+          key={tab.value}
+          data-tab-btn
+          onClick={() => onTabChange(tab.value)}
+          className={cn(
+            "relative z-10 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+            activeTab === tab.value
+              ? "text-foreground"
+              : "text-muted-foreground hover:text-foreground/80"
+          )}
+        >
+          {tab.icon}
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function OverdueBadge({ dueDate }: { dueDate: string }) {
   const days = differenceInDays(new Date(), new Date(dueDate));
@@ -133,6 +193,7 @@ export default function Lending() {
     useLendingHistory();
   const { items } = useInventory();
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState("active");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -273,21 +334,17 @@ export default function Lending() {
       </div>
 
       {/* Tabs with sliding indicator */}
-      <Tabs defaultValue="active" className="space-y-4">
-        <div className="relative">
-          <TabsList className="relative">
-            <TabsTrigger value="active" className="gap-1.5 relative z-10">
-              <Package className="h-4 w-4" />
-              Aktiv ({filteredActive.length})
-            </TabsTrigger>
-            <TabsTrigger value="history" className="gap-1.5 relative z-10">
-              <History className="h-4 w-4" />
-              Historie ({filteredCompleted.length})
-            </TabsTrigger>
-          </TabsList>
-        </div>
+      <SlidingTabs
+        tabs={[
+          { value: "active", label: `Aktiv (${filteredActive.length})`, icon: <Package className="h-4 w-4" /> },
+          { value: "history", label: `Historie (${filteredCompleted.length})`, icon: <History className="h-4 w-4" /> },
+        ]}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
 
-        <TabsContent value="active" className="space-y-3">
+      {activeTab === "active" && (
+        <div className="space-y-3">
           {filteredActive.length === 0 ? (
             <Card className="p-12 text-center">
               <HandCoins className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
@@ -301,9 +358,11 @@ export default function Lending() {
               <LendingCard key={r.id} record={r} onReturn={markReturned} onDelete={(id) => setDeleteId(id)} />
             ))
           )}
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="history" className="space-y-3">
+      {activeTab === "history" && (
+        <div className="space-y-3">
           {filteredCompleted.length === 0 ? (
             <Card className="p-12 text-center">
               <History className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
@@ -317,8 +376,8 @@ export default function Lending() {
               <LendingCard key={r.id} record={r} onReturn={markReturned} onDelete={(id) => setDeleteId(id)} />
             ))
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
       {/* Add Dialog */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -352,11 +411,32 @@ export default function Lending() {
             </div>
             <div className="space-y-2">
               <Label>Rückgabe bis</Label>
-              <Input
-                type="date"
-                value={formDueDate}
-                onChange={(e) => setFormDueDate(e.target.value)}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formDueDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formDueDate
+                      ? format(new Date(formDueDate), "dd. MMM yyyy", { locale: de })
+                      : "Datum wählen"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formDueDate ? new Date(formDueDate) : undefined}
+                    onSelect={(date) => setFormDueDate(date ? format(date, "yyyy-MM-dd") : "")}
+                    locale={de}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label>Notizen</Label>
