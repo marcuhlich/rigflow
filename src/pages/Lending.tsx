@@ -273,19 +273,14 @@ export default function Lending() {
       </div>
 
       {/* Tabs with sliding indicator */}
-      <Tabs defaultValue="active" className="space-y-4">
-        <div className="relative">
-          <TabsList className="relative">
-            <TabsTrigger value="active" className="gap-1.5 relative z-10">
-              <Package className="h-4 w-4" />
-              Aktiv ({filteredActive.length})
-            </TabsTrigger>
-            <TabsTrigger value="history" className="gap-1.5 relative z-10">
-              <History className="h-4 w-4" />
-              Historie ({filteredCompleted.length})
-            </TabsTrigger>
-          </TabsList>
-        </div>
+      <SlidingTabs
+        tabs={[
+          { value: "active", label: `Aktiv (${filteredActive.length})`, icon: <Package className="h-4 w-4" /> },
+          { value: "history", label: `Historie (${filteredCompleted.length})`, icon: <History className="h-4 w-4" /> },
+        ]}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
 
         <TabsContent value="active" className="space-y-3">
           {filteredActive.length === 0 ? (
