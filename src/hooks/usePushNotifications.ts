@@ -94,27 +94,23 @@ export function usePushNotifications() {
     try {
       console.log('[usePushNotifications] Sending notification:', options.title);
 
-      // Send to service worker if registered
-      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        console.log('[usePushNotifications] Posting message to SW');
-        navigator.serviceWorker.controller.postMessage({
-          type: 'SHOW_NOTIFICATION',
-          data: options,
-        });
-      }
+      const notificationOptions: NotificationOptions = {
+        body: options.body,
+        icon: options.icon || '/pwa-192x192.png',
+        badge: options.badge || '/favicon-32x32.png',
+        tag: options.tag || 'default',
+        requireInteraction: options.requireInteraction || false,
+      };
 
-      // Also show locally if app is in foreground
-      if (document.hasFocus()) {
-        console.log('[usePushNotifications] App in foreground, showing notification');
-        new Notification(options.title, {
-          body: options.body,
-          icon: options.icon || '/pwa-192x192.png',
-          badge: options.badge || '/favicon-32x32.png',
-          tag: options.tag || 'default',
-          requireInteraction: options.requireInteraction || false,
-        });
+      // Use service worker registration's showNotification (works in foreground AND background)
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        console.log('[usePushNotifications] Using SW registration.showNotification');
+        await registration.showNotification(options.title, notificationOptions);
       } else {
-        console.log('[usePushNotifications] App in background');
+        // Fallback: direct Notification constructor (foreground only)
+        console.log('[usePushNotifications] Fallback: new Notification()');
+        new Notification(options.title, notificationOptions);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Fehler beim Senden der Notification';
