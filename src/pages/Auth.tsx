@@ -365,10 +365,6 @@ const Auth = () => {
           )}
         </div>
 
-        {/* Info */}
-        <div className="mt-6 text-center text-xs text-muted-foreground">
-          <p>💡 Tipp: Registriere dich zuerst, dann zeigen wir dir wie die App installiert wird</p>
-        </div>
       </div>
     </div>
   );

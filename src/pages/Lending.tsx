@@ -347,11 +347,32 @@ export default function Lending() {
             </div>
             <div className="space-y-2">
               <Label>Rückgabe bis</Label>
-              <Input
-                type="date"
-                value={formDueDate}
-                onChange={(e) => setFormDueDate(e.target.value)}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formDueDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formDueDate
+                      ? format(new Date(formDueDate), "dd. MMM yyyy", { locale: de })
+                      : "Datum wählen"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formDueDate ? new Date(formDueDate) : undefined}
+                    onSelect={(date) => setFormDueDate(date ? format(date, "yyyy-MM-dd") : "")}
+                    locale={de}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label>Notizen</Label>
