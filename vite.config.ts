@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
+      includeAssets: ["apple-touch-icon.png", "mask-icon.svg"],
       strategies: "generateSW",
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,md}"],
@@ -50,6 +50,7 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       manifest: {
+        id: "rigflow-app",
         name: "RigFlow - Event Gear Inventory",
         short_name: "RigFlow",
         description: "Verwalte deine Veranstaltungstechnik einfach und übersichtlich",
@@ -60,6 +61,9 @@ export default defineConfig(({ mode }) => ({
         scope: "/",
         start_url: "/",
         categories: ["productivity", "utilities"],
+        dir: "ltr",
+        display_override: ["window-controls-overlay", "standalone"],
+        prefer_related_applications: false,
         screenshots: [
           {
             src: "pwa-192x192.png",
@@ -75,11 +79,6 @@ export default defineConfig(({ mode }) => ({
           },
         ],
         icons: [
-          {
-            src: "favicon.ico",
-            sizes: "32x32 16x16",
-            type: "image/x-icon",
-          },
           {
             src: "pwa-192x192.png",
             sizes: "192x192",
