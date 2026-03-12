@@ -283,7 +283,8 @@ export default function Lending() {
         onTabChange={setActiveTab}
       />
 
-        <TabsContent value="active" className="space-y-3">
+      {activeTab === "active" && (
+        <div className="space-y-3">
           {filteredActive.length === 0 ? (
             <Card className="p-12 text-center">
               <HandCoins className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
@@ -297,9 +298,11 @@ export default function Lending() {
               <LendingCard key={r.id} record={r} onReturn={markReturned} onDelete={(id) => setDeleteId(id)} />
             ))
           )}
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="history" className="space-y-3">
+      {activeTab === "history" && (
+        <div className="space-y-3">
           {filteredCompleted.length === 0 ? (
             <Card className="p-12 text-center">
               <History className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
@@ -313,8 +316,8 @@ export default function Lending() {
               <LendingCard key={r.id} record={r} onReturn={markReturned} onDelete={(id) => setDeleteId(id)} />
             ))
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
       {/* Add Dialog */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
