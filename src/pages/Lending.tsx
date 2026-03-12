@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect, ReactNode } from "react";
 import { format, differenceInDays } from "date-fns";
 import { de } from "date-fns/locale";
 import {
@@ -12,12 +12,12 @@ import {
   History,
   Search,
   Package,
+  CalendarIcon,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -45,6 +51,60 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useLendingHistory, LendingRecord } from "@/hooks/useLendingHistory";
 import { useInventory } from "@/hooks/useInventory";
+import { cn } from "@/lib/utils";
+
+interface SlidingTabsProps {
+  tabs: { value: string; label: string; icon?: ReactNode }[];
+  activeTab: string;
+  onTabChange: (value: string) => void;
+}
+
+function SlidingTabs({ tabs, activeTab, onTabChange }: SlidingTabsProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const activeIndex = tabs.findIndex((t) => t.value === activeTab);
+    const buttons = container.querySelectorAll<HTMLButtonElement>("[data-tab-btn]");
+    const btn = buttons[activeIndex];
+    if (btn) {
+      setIndicatorStyle({
+        left: btn.offsetLeft,
+        width: btn.offsetWidth,
+      });
+    }
+  }, [activeTab, tabs]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative inline-flex items-center gap-1 rounded-lg bg-muted p-1"
+    >
+      <div
+        className="absolute top-1 bottom-1 rounded-md bg-background shadow-sm transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
+        style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
+      />
+      {tabs.map((tab) => (
+        <button
+          key={tab.value}
+          data-tab-btn
+          onClick={() => onTabChange(tab.value)}
+          className={cn(
+            "relative z-10 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+            activeTab === tab.value
+              ? "text-foreground"
+              : "text-muted-foreground hover:text-foreground/80"
+          )}
+        >
+          {tab.icon}
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function OverdueBadge({ dueDate }: { dueDate: string }) {
   const days = differenceInDays(new Date(), new Date(dueDate));
