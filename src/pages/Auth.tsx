@@ -326,45 +326,6 @@ const Auth = () => {
             </Button>
           </div>
 
-          {/* Demo Login */}
-          <div className="mt-4">
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full gap-2"
-              disabled={isDemoLoading}
-              onClick={async () => {
-                setIsDemoLoading(true);
-                try {
-                  // Ensure demo account is seeded
-                  await supabase.functions.invoke("setup-demo");
-                  // Log in as demo
-                  const { error } = await signIn("demo@rigflow.app", "demo1234");
-                  if (error) {
-                    toast({
-                      title: "Fehler",
-                      description: "Demo-Anmeldung fehlgeschlagen. Bitte versuche es erneut.",
-                      variant: "destructive",
-                    });
-                  } else {
-                    toast({
-                      title: "Demo-Modus",
-                      description: "Du bist als Demo-Benutzer angemeldet. Änderungen können nicht gespeichert werden.",
-                    });
-                  }
-                } finally {
-                  setIsDemoLoading(false);
-                }
-              }}
-            >
-              {isDemoLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Play className="h-4 w-4" />
-              )}
-              Demo ausprobieren
-            </Button>
-          </div>
 
           <div className="mt-6 text-center">
             <button
