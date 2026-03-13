@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +21,184 @@ import { useLendingHistory } from "@/hooks/useLendingHistory";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 
+// Custom Hook für Smooth Tooltip Position Tracking
+const useSmoothTooltipPosition = (coordinate: any) => {
+  const [smoothPos, setSmoothPos] = useState({ x: coordinate?.x || 0, y: coordinate?.y || 0 });
+  const targetPosRef = useRef({ x: coordinate?.x || 0, y: coordinate?.y || 0 });
+  const animationFrameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!coordinate) return;
+    
+    targetPosRef.current = { x: coordinate.x, y: coordinate.y };
+    
+    const animate = () => {
+      setSmoothPos((prev) => {
+        const target = targetPosRef.current;
+        const dx = target.x - prev.x;
+        const dy = target.y - prev.y;
+        
+        // Easing: 0.2 smoothing factor (20% des Weges pro Frame)
+        const newX = prev.x + dx * 0.2;
+        const newY = prev.y + dy * 0.2;
+        
+        // Stop wenn nah genug
+        if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
+          return target;
+        }
+        
+        return { x: newX, y: newY };
+      });
+      
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+    
+    animationFrameRef.current = requestAnimationFrame(animate);
+    
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [coordinate]);
+  
+  return smoothPos;
+};
+
+// Custom Tooltip mit weißem Text für Pie Chart - Fixed Position mit Smooth Animation
+const PieTooltip = (props: any) => {
+  const { active, payload, coordinate } = props;
+  const smoothPos = useSmoothTooltipPosition(active && payload?.length ? coordinate : null);
+  
+  if (active && payload && payload.length) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          left: `${smoothPos.x + 10}px`,
+          top: `${smoothPos.y - 10}px`,
+          pointerEvents: "none",
+          zIndex: 1000,
+          backgroundColor: "hsl(var(--popover))",
+          border: "1px solid hsl(var(--border))",
+          borderRadius: "8px",
+          padding: "8px 12px",
+          fontSize: "12px",
+          color: "#ffffff",
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+          willChange: "transform",
+        }}
+      >
+        <p style={{ color: "#ffffff", margin: "0 0 4px 0" }}>
+          <strong>{payload[0].name}</strong>
+        </p>
+        <p style={{ color: "#ffffff", margin: "0" }}>{payload[0].value} Stück</p>
+      </div>
+    );
+  }
+  return null;
+};
+
+// Custom Label für Bar Chart
+const BarLabel = (props: any) => {
+  const { x, y, width, height, value } = props;
+  return (
+    <text
+      x={x + width + 4}
+      y={y + height / 2}
+      fill="hsl(var(--foreground))"
+      fontSize={10}
+      fontWeight="600"
+      textAnchor="start"
+      dominantBaseline="middle"
+    >
+      {value}
+    </text>
+  );
+};
+
+// Custom Label für Pie Chart (Prozentzahlen)
+const PieLabel = (props: any) => {
+  const { cx, cy, midAngle, innerRadius, outerRadius, value, total } = props;
+  const RADIAN = Math.PI / 180;
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  const percentage = ((value / total) * 100).toFixed(0);
+
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="#ffffff"
+      fontSize={11}
+      fontWeight="700"
+      textAnchor={x > cx ? 'start' : 'end'}
+      dominantBaseline="central"
+      style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
+    >
+      {percentage}%
+    </text>
+  );
+};
+
+// Custom Tooltip für Pie Chart
+const BarTooltip = (props: any) => {
+  const { active, payload } = props;
+  if (active && payload && payload.length) {
+    return (
+      <div
+        style={{
+          backgroundColor: "hsl(var(--popover))",
+          border: "1px solid hsl(var(--border))",
+          borderRadius: "8px",
+          padding: "8px 12px",
+          fontSize: "12px",
+          color: "#ffffff",
+        }}
+      >
+        <p style={{ color: "#ffffff", margin: "0" }}>{payload[0].value} Stück</p>
+      </div>
+    );
+  }
+  return null;
+};
+
+// Custom Active Bar Shape - vereinfaches Highlighting
+const AnimatedActiveBar = (props: any) => {
+  const { fill, x, y, width, height } = props;
+  
+  return (
+    <g>
+      {/* Background highlight - elegant fading */}
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill={fill}
+        rx="4"
+        ry="4"
+        opacity="0.25"
+        style={{
+          animation: "fadeIn 0.2s ease-out forwards",
+        }}
+      />
+      
+      {/* Main bar */}
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill={fill}
+        rx="4"
+        ry="4"
+      />
+    </g>
+  );
+};
+
 export default function Dashboard() {
   const { allItems, stats, loading } = useInventory();
   const { checklists } = useEventChecklists();
@@ -28,6 +206,15 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { activeLoans, overdueLoans, completedLoans, loading: lendingLoading } = useLendingHistory();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [chartsVisible, setChartsVisible] = useState(false);
+  const [pieActiveIndex] = useState(-1);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
+  useEffect(() => {
+    // Show charts nach kurzer Verzögerung für Animation
+    const timer = setTimeout(() => setChartsVisible(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -142,6 +329,25 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5 sm:space-y-8 pb-24">
+      <style>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 0.25;
+          }
+        }
+        @keyframes chartFadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+      `}</style>
+      
       {showOnboarding && <AppOnboardingTour onComplete={handleOnboardingComplete} />}
 
       <div>
@@ -303,35 +509,29 @@ export default function Dashboard() {
             Status-Verteilung
           </h3>
           {pieData.length > 0 ? (
-            <div className="h-[220px] sm:h-[260px]">
+            chartsVisible && (
+            <div className="h-[220px] sm:h-[260px] animate-in fade-in duration-1000">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={2} dataKey="value" strokeWidth={0}>
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={isMobile ? 30 : 55} outerRadius={isMobile ? 60 : 90} paddingAngle={2} dataKey="value" strokeWidth={0} activeIndex={pieActiveIndex}>
                     {pieData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--popover))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                      color: "hsl(var(--popover-foreground))",
-                    }}
-                  />
+                  <Tooltip content={<PieTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="flex justify-center gap-4 -mt-2">
+              <div className="flex flex-wrap justify-center gap-2 sm:gap-4 -mt-2">
                 {pieData.map(d => (
-                  <div key={d.name} className="flex items-center gap-1.5 text-xs">
-                    <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: d.color }} />
-                    <span className="text-muted-foreground">{d.name}</span>
-                    <span className="font-medium">{d.value}</span>
+                  <div key={d.name} className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs">
+                    <div className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                    <span className="text-muted-foreground truncate">{d.name}</span>
+                    <span className="font-medium shrink-0">{d.value}</span>
                   </div>
                 ))}
               </div>
             </div>
+            )
           ) : (
             <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
               Keine Daten vorhanden
@@ -346,26 +546,25 @@ export default function Dashboard() {
             Artikel nach Kategorie
           </h3>
           {categoryData.length > 0 ? (
-            <div className="h-[260px] sm:h-[280px]">
+            chartsVisible && (
+            <div className="h-[240px] sm:h-[260px] animate-in fade-in duration-1000">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={categoryData} layout="vertical" margin={{ left: 0, right: 16, top: 0, bottom: 0 }}>
+                <BarChart data={categoryData} layout="vertical" margin={{ left: isMobile ? 55 : 80, right: isMobile ? 12 : 16, top: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                  <YAxis dataKey="name" type="category" width={90} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--popover))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                      color: "hsl(var(--popover-foreground))",
-                    }}
-                    formatter={(value: number) => [`${value} Stück`, 'Menge']}
+                  <XAxis type="number" tick={{ fontSize: isMobile ? 10 : 11, fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis dataKey="name" type="category" width={isMobile ? 55 : 80} tick={{ fontSize: isMobile ? 9 : 11, fill: "hsl(var(--muted-foreground))" }} />
+                  <Tooltip content={<BarTooltip />} cursor={{ fill: "rgba(59, 130, 246, 0.1)" }} />
+                  <Bar
+                    dataKey="value"
+                    fill="hsl(var(--primary))"
+                    radius={[0, 4, 4, 0]}
+                    activeBar={<AnimatedActiveBar />}
+                    label={<BarLabel />}
                   />
-                  <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
+            )
           ) : (
             <div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">
               Keine Kategorien vorhanden

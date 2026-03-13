@@ -83,8 +83,12 @@ function SlidingTabs({ tabs, activeTab, onTabChange }: SlidingTabsProps) {
       className="relative inline-flex items-center gap-1 rounded-lg bg-muted p-1"
     >
       <div
-        className="absolute top-1 bottom-1 rounded-md bg-background shadow-sm transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
-        style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
+        className="absolute top-1 bottom-1 rounded-md bg-background shadow-sm transition-all duration-300"
+        style={{ 
+          left: indicatorStyle.left, 
+          width: indicatorStyle.width,
+          transitionTimingFunction: "cubic-bezier(0.25,0.1,0.25,1)"
+        }}
       />
       {tabs.map((tab) => (
         <button

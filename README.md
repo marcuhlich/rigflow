@@ -1,102 +1,173 @@
-# Rigflow
+# RigFlow
 
 **Professionelle Inventarverwaltung für Veranstaltungstechnik**
 
-Rigflow ist eine moderne Web-App zur Verwaltung von Event-Equipment – mit QR-Code-Integration, DMX-Patchplanung, Verleihverwaltung und Event-Sets. Optimiert für kleine bis mittelgroße Technik-Sammlungen.
+RigFlow ist eine moderne Web-App zur Verwaltung von Event-Equipment – mit **QR-Code-Integration, DMX-Patchplanung, Verleihverwaltung und Event-Sets**.
 
-[![Live Demo](https://img.shields.io/badge/Live-rigflow.lovable.app-blue?style=flat-square)](https://rigflow.lovable.app)
-[![Built with React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)](https://typescriptlang.org)
+Optimiert für **kleine bis mittelgroße Technik-Sammlungen**, z. B.:
+
+- Veranstaltungstechniker
+- kleine Rental-Firmen
+- Schul- oder Vereins-Equipment
+- private Technik-Sammlungen
+
+[![Live Demo](https://img.shields.io/badge/Live-rigflow.lovable.app-blue?style=flat-square)](https://rigflow.lovable.app)  
+[![Built with React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)](https://react.dev)  
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)](https://typescriptlang.org)  
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-06B6D4?style=flat-square&logo=tailwindcss)](https://tailwindcss.com)
 
 ---
 
-## Features
+# Nutzung / Installation
+
+RigFlow kann auf **mehreren Wegen verwendet werden**.
+
+| Plattform | Nutzung |
+|-----------|--------|
+| 🌐 Browser | Direkt ohne Installation |
+| 📱 Android / iOS | Als installierbare PWA |
+| 💻 Windows | Desktop-App |
+
+---
+
+# 🌐 Browser
+
+Die einfachste Nutzung.
+
+➡️ **RigFlow öffnen**
+
+https://rigflow.lovable.app
+
+Keine Installation erforderlich – einfach anmelden und starten.
+
+---
+
+# 📱 Mobile App (PWA)
+
+RigFlow kann auf Smartphones wie eine **normale App installiert werden**.
+
+## Android
+
+1. RigFlow in **Chrome** öffnen  
+2. Menü **⋮ (3 Punkte)** öffnen  
+3. **„Zum Startbildschirm hinzufügen“** auswählen  
+
+Die App erscheint anschließend auf dem Home-Screen.
+
+---
+
+## iOS
+
+1. RigFlow in **Safari** öffnen  
+2. **Teilen-Button** drücken  
+3. **„Zum Home-Bildschirm“** auswählen  
+
+---
+
+# 💻 Desktop App
+
+Für Windows gibt es eine **native Desktop-Version**.
+
+Download:  
+https://github.com/marcuhlich/rigflow-desktop
+
+Installation:
+
+1. Release herunterladen  
+2. Setup ausführen  
+3. RigFlow starten  
+
+---
+
+# Features
 
 | Feature | Beschreibung |
 |---------|-------------|
-| **Inventar** | Geräte verwalten mit Kategorien, Zustand, Standort, Stückpreis und Notizen |
-| **QR-Codes** | Automatische QR-Generierung, Download, Druck und Kamera-Scanner |
-| **DMX-Patchplan** | Adressenplanung mit Konflikt-Erkennung und Timeline-Visualisierung |
-| **Checklisten** | Vor- und Nachbereitungs-Checklisten für Events |
-| **Event-Sets** | Packlisten mit Artikelzuordnung und Verfügbarkeitsprüfung |
-| **Verleih** | Ausleihen verwalten mit Fälligkeitsdaten und Rückgabe-Tracking |
-| **Dashboard** | Übersicht mit Statistiken, aktiven Ausleihen und letzten Aktivitäten |
-| **Export** | CSV, PDF und Druckansicht für Inventar, Patchplan und Packlisten |
-| **Erinnerungen** | Automatische Benachrichtigungen bei überfälligen Rückgaben |
-| **PWA** | Installierbar als App, offline-fähig mit Service Worker |
-| **Auth** | Benutzer-Authentifizierung mit E-Mail-Verifizierung und Passwort-Reset |
-| **Audit-Log** | Änderungsverlauf für alle Inventar-Aktionen |
+| **Inventar** | Geräte verwalten mit Kategorien, Zustand, Standort und Notizen |
+| **QR-Codes** | Automatische QR-Generierung + Scanner |
+| **DMX-Patchplan** | Adressenplanung mit Konflikt-Erkennung |
+| **Checklisten** | Event-Vorbereitungslisten |
+| **Event-Sets** | Packlisten mit Artikelzuordnung |
+| **Verleih** | Geräte verleihen mit Rückgabe-Tracking |
+| **Dashboard** | Statistiken und Aktivitätsübersicht |
+| **Export** | CSV, PDF und Druckansichten |
+| **Erinnerungen** | Hinweise bei überfälligen Rückgaben |
+| **PWA** | Installierbar + Offlinefähig |
+| **Auth** | Login mit E-Mail-Verifizierung |
+| **Audit-Log** | Änderungsverlauf |
 
 ---
 
-## Tech-Stack
+# Tech Stack
 
-- **Frontend:** React 18 · TypeScript · Vite
-- **Styling:** Tailwind CSS · shadcn/ui
-- **Backend:** Supabase (PostgreSQL, Auth, Storage, Edge Functions)
-- **State:** TanStack React Query
-- **PDF:** jsPDF + AutoTable
-- **QR:** jsQR (Scanner) · api.qrserver.com (Generator)
-- **PWA:** vite-plugin-pwa · Service Worker
-
----
-
-## Nutzung der App
-
-1. rigflow.lovable.app in Chrome öffnen
-2. Über den Download Button in der App
-ODER
-- **Android:** In Chrome → 3 Punkte → "Zum Startbildschirm hinzufügen"
-- **iOS:** Teilen → Zum Homebildschirm
-- **Windows:** Rechts in der Adressleiste den Download Button klicken
+| Bereich | Technologie |
+|-------|-------------|
+| Frontend | React 18 · TypeScript · Vite |
+| Styling | Tailwind CSS · shadcn/ui |
+| Backend | Supabase |
+| State | TanStack React Query |
+| PDF Export | jsPDF + AutoTable |
+| QR Codes | jsQR · api.qrserver |
+| PWA | vite-plugin-pwa |
 
 ---
 
-## Lokale Entwicklung
+# Lokale Entwicklung
+
+Repository klonen:
 
 ```bash
-# Repository klonen
-git clone https://github.com/<dein-username>/rigflow.git
+git clone https://github.com/<username>/rigflow.git
 cd rigflow
-
-# Dependencies installieren
-npm install
-
-# Development Server starten
-npm run dev
 ```
 
-Die App läuft dann unter `http://localhost:5173`.
+Dependencies installieren:
+```bash
+npm install
+```
+Development Server starten:
+```bash
+npm run dev
+```
+Die App läuft anschließend unter:
+```
+http://localhost:5173
+```
 
-> **Hinweis:** Die App benötigt eine Supabase-Instanz. Die Umgebungsvariablen (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`) werden über Lovable Cloud automatisch konfiguriert.
+## Environment Variablen
+RigFlow benötigt eine Supabase Instanz.
 
----
+Erstelle eine `.env` Datei:
 
-## Projektstruktur
+```
+VITE_SUPABASE_URL=your_project_url
+VITE_SUPABASE_PUBLISHABLE_KEY=your_anon_key
+```
 
+Bei Deployments über Lovable Cloud werden diese Variablen automatisch gesetzt.
+
+# Projektstruktur
 ```
 src/
 ├── components/          # React-Komponenten
 │   ├── ui/              # shadcn/ui Basiskomponenten
-│   └── layout/          # App-Layout (Sidebar, Navigation)
+│   └── layout/          # Layout (Sidebar, Navigation)
+│
 ├── pages/               # Seiten
-│   ├── Dashboard.tsx    # Übersicht & Statistiken
-│   ├── Inventory.tsx    # Inventarverwaltung
-│   ├── ItemDetail.tsx   # Geräte-Detailseite
-│   ├── DMXPatchplan.tsx # DMX-Adressenplanung
-│   ├── Checklists.tsx   # Event-Checklisten
-│   ├── EventSets.tsx    # Packlisten / Event-Sets
-│   ├── Lending.tsx      # Verleihverwaltung
-│   └── Auth.tsx         # Login / Registrierung
-├── hooks/               # Custom Hooks (Auth, Inventory, DMX, etc.)
-├── lib/                 # Utilities (Export, Print, QR, Validierung)
-├── types/               # TypeScript-Typen
-└── integrations/        # Supabase Client & Types
+│   ├── Dashboard.tsx
+│   ├── Inventory.tsx
+│   ├── ItemDetail.tsx
+│   ├── DMXPatchplan.tsx
+│   ├── Checklists.tsx
+│   ├── EventSets.tsx
+│   ├── Lending.tsx
+│   └── Auth.tsx
+│
+├── hooks/               # Custom Hooks
+├── lib/                 # Utilities
+├── types/               # TypeScript Typen
+└── integrations/        # Supabase Integration
 ```
 
----
-
-## Lizenz
-
-MIT
+# Lizenz
+MIT License
