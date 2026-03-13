@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { lovable } from "@/integrations/lovable/index";
-import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 
 function getAuthErrorMessage(rawMessage: string): string {
