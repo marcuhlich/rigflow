@@ -326,6 +326,7 @@ const Auth = () => {
             </Button>
           </div>
 
+
           <div className="mt-6 text-center">
             <button
               type="button"
