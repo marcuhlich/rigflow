@@ -50,6 +50,22 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Check if user is demo account - demo account cannot be deleted
+    const { data: userEmail, error: emailError } = await supabaseAdmin.auth.admin.getUserById(userId);
+    if (emailError || !userEmail?.user) {
+      return new Response(
+        JSON.stringify({ error: "Benutzer nicht gefunden" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (userEmail.user.email === "demo@rigflow.app") {
+      return new Response(
+        JSON.stringify({ error: "Das Demo-Konto kann nicht gelöscht werden. Es ist nur für Demonstrationszwecke bestimmt." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Delete user data from all tables
     await supabaseAdmin.from("audit_log").delete().eq("user_id", userId);
     await supabaseAdmin.from("checklist_items").delete().in(

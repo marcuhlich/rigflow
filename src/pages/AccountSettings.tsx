@@ -30,6 +30,9 @@ export default function AccountSettings() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
 
+  // Check if this is the demo account
+  const isDemoAccount = user?.email === "demo@rigflow.app";
+
   // Debug: Log SW state on mount (hilfreich beim Debuggen)
   useEffect(() => {
     const checkSWState = async () => {
@@ -204,95 +207,124 @@ export default function AccountSettings() {
       </Card>
 
       {/* Danger Zone */}
-      <Card className="glass-card p-6 border-destructive/30 bg-destructive/5">
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2 text-destructive">
-            <AlertTriangle className="h-5 w-5" />
-            Gefahrenzone
-          </h3>
+      {isDemoAccount ? (
+        <Card className="glass-card p-6 border-blue-500/30 bg-blue-500/5">
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2 text-blue-600">
+              <Zap className="h-5 w-5" />
+              Demo-Konto
+            </h3>
 
-          <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
-            <p className="text-sm text-muted-foreground">
-              <strong>Warnung:</strong> Diese Aktion kann nicht rückgängig gemacht werden.
-              Alle deine Daten werden permanent gelöscht.
-            </p>
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+              <p className="text-sm text-muted-foreground">
+                <strong>Hinweis:</strong> Dies ist ein Demo-Konto zu Demonstrationszwecken.
+                Du kannst dieses Konto nicht löschen, um es anderen Benutzern als Test-Account zur Verfügung zu stellen.
+              </p>
+            </div>
+
+            <Button
+              disabled
+              variant="ghost"
+              className="w-full gap-2 opacity-50"
+            >
+              <Trash2 className="h-4 w-4" />
+              Konto löschen (nicht verfügbar)
+            </Button>
           </div>
+        </Card>
+      ) : (
+        <Card className="glass-card p-6 border-destructive/30 bg-destructive/5">
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Gefahrenzone
+            </h3>
 
-          <Button
-            onClick={() => setShowDeleteDialog(true)}
-            variant="destructive"
-            className="w-full gap-2"
-          >
-            <Trash2 className="h-4 w-4" />
-            Konto löschen
-          </Button>
-        </div>
-      </Card>
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
+              <p className="text-sm text-muted-foreground">
+                <strong>Warnung:</strong> Diese Aktion kann nicht rückgängig gemacht werden.
+                Alle deine Daten werden permanent gelöscht.
+              </p>
+            </div>
+
+            <Button
+              onClick={() => setShowDeleteDialog(true)}
+              variant="destructive"
+              className="w-full gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Konto löschen
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {/* Delete Account Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              Konto wirklich löschen?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              <div className="space-y-4 mt-4">
-                <p>
-                  Diese Aktion wird dein Konto und <strong>alle deine Daten</strong> permanent löschen:
-                </p>
-                <ul className="text-sm space-y-1 list-disc list-inside text-foreground">
-                  <li>Alle Inventar-Items</li>
-                  <li>Alle Event-Checklisten</li>
-                  <li>Alle DMX-Konfigurationen</li>
-                  <li>Alle Audit-Logs</li>
-                </ul>
-                <p className="text-xs text-muted-foreground">
-                  Dies kann <strong>nicht rückgängig gemacht</strong> werden.
-                </p>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-email" className="text-sm font-medium">
-                    Gib deine E-Mail ein um zu bestätigen:
-                  </Label>
-                  <Input
-                    id="confirm-email"
-                    type="email"
-                    placeholder="deine@email.com"
-                    value={deleteConfirmEmail}
-                    onChange={(e) => setDeleteConfirmEmail(e.target.value)}
-                    className="glass-input"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    E-Mail: <span className="font-mono text-foreground">{user?.email}</span>
+      {!isDemoAccount && (
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent className="max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                Konto wirklich löschen?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                <div className="space-y-4 mt-4">
+                  <p>
+                    Diese Aktion wird dein Konto und <strong>alle deine Daten</strong> permanent löschen:
                   </p>
-                </div>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+                  <ul className="text-sm space-y-1 list-disc list-inside text-foreground">
+                    <li>Alle Inventar-Items</li>
+                    <li>Alle Event-Checklisten</li>
+                    <li>Alle DMX-Konfigurationen</li>
+                    <li>Alle Audit-Logs</li>
+                  </ul>
+                  <p className="text-xs text-muted-foreground">
+                    Dies kann <strong>nicht rückgängig gemacht</strong> werden.
+                  </p>
 
-          <div className="flex gap-3">
-            <AlertDialogCancel disabled={isDeleting}>
-              Abbrechen
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteAccount}
-              disabled={isDeleting || deleteConfirmEmail !== user?.email}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Wird gelöscht...
-                </>
-              ) : (
-                "Ja, löschen"
-              )}
-            </AlertDialogAction>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-email" className="text-sm font-medium">
+                      Gib deine E-Mail ein um zu bestätigen:
+                    </Label>
+                    <Input
+                      id="confirm-email"
+                      type="email"
+                      placeholder="deine@email.com"
+                      value={deleteConfirmEmail}
+                      onChange={(e) => setDeleteConfirmEmail(e.target.value)}
+                      className="glass-input"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      E-Mail: <span className="font-mono text-foreground">{user?.email}</span>
+                    </p>
+                  </div>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <div className="flex gap-3">
+              <AlertDialogCancel disabled={isDeleting}>
+                Abbrechen
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteAccount}
+                disabled={isDeleting || deleteConfirmEmail !== user?.email}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Wird gelöscht...
+                  </>
+                ) : (
+                  "Ja, löschen"
+                )}
+              </AlertDialogAction>
+            </div>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }
