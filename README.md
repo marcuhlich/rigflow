@@ -156,4 +156,4 @@ src/
 ```
 
 ## Lizenz
-[LICENSE.txt](docs/LICENSE.txt)
+[LICENSE.txt](public/LICENSE.txt)
