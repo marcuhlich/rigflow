@@ -42,6 +42,17 @@ Rigflow ist eine moderne Web-App zur Verwaltung von Event-Equipment – mit QR-C
 
 ---
 
+## Nutzung der App
+
+1. rigflow.lovable.app in Chrome öffnen
+2. Über den Download Button in der App
+ODER
+- **Android:** In Chrome → 3 Punkte → "Zum Startbildschirm hinzufügen"
+- **iOS:** Teilen → Zum Homebildschirm
+- **Windows:** Rechts in der Adressleiste den Download Button klicken
+
+---
+
 ## Lokale Entwicklung
 
 ```bash
