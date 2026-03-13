@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => ({
       strategies: "generateSW",
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,md}"],
-        navigateFallbackDenylist: [/^\/~oauth/],
+        navigateFallbackDenylist: [/^\/~oauth/, /^\/.well-known/],
         globIgnores: ["**/node_modules/**/*", ".git/**/*"],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
         cleanupOutdatedCaches: true,
