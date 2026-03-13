@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import { Zap, Mail, Lock, User, Loader2, Download, ChevronLeft } from "lucide-react";
+import { Zap, Mail, Lock, User, Loader2, Download, ChevronLeft, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { lovable } from "@/integrations/lovable/index";
+import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 
 function getAuthErrorMessage(rawMessage: string): string {
