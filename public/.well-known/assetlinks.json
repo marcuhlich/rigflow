@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.lovable.rigflow.twa",
+        "sha256_cert_fingerprints": ["9D:93:7E:30:92:61:26:F4:95:12:53:86:48:03:40:AF:39:AC:BE:3D:32:08:18:55:0C:66:82:C4:95:B3:B3:68"]
+      }
+    }]
