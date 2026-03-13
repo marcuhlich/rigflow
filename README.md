@@ -23,47 +23,47 @@ RigFlow kann auf **mehreren Wegen verwendet werden**.
 
 ---
 
-### Browser
+- ### Browser
 
-Die einfachste Nutzung.
+    Die einfachste Nutzung.
 
-➡️ **RigFlow öffnen**
+    ➡️ **RigFlow öffnen**
 
-https://rigflow.lovable.app
+    https://rigflow.lovable.app
 
-Keine Installation erforderlich – einfach anmelden und starten.
+    Keine Installation erforderlich – einfach anmelden und starten.
 
-### Mobile App (PWA)
+- ### Mobile App (PWA)
 
-RigFlow kann auf Smartphones wie eine **normale App installiert werden**.
+    RigFlow kann auf Smartphones wie eine **normale App installiert werden**.
 
-#### Android
+    #### Android
 
-1. RigFlow in **Chrome** öffnen  
-2. Menü **⋮ (3 Punkte)** öffnen  
-3. **„Zum Startbildschirm hinzufügen“** auswählen  
+    1. RigFlow in **Chrome** öffnen  
+    2. Menü **⋮ (3 Punkte)** öffnen  
+    3. **„Zum Startbildschirm hinzufügen“** auswählen  
 
-Die App erscheint anschließend auf dem Home-Screen.
+    Die App erscheint anschließend auf dem Home-Screen.
 
-#### iOS
+    #### iOS
 
-1. RigFlow in **Safari** öffnen  
-2. **Teilen-Button** drücken  
-3. **„Zum Home-Bildschirm“** auswählen  
+    1. RigFlow in **Safari** öffnen  
+    2. **Teilen-Button** drücken  
+    3. **„Zum Home-Bildschirm“** auswählen  
 
 
-### Desktop App
+- ### Desktop App
 
-Für Windows gibt es eine **native Desktop-Version**.
+    Für Windows gibt es eine **native Desktop-Version**.
 
-Download:  
-https://github.com/marcuhlich/rigflow-desktop
+    Download:  
+    https://github.com/marcuhlich/rigflow-desktop
 
-Installation:
+    Installation:
 
-1. Release herunterladen  
-2. Setup ausführen  
-3. RigFlow starten  
+    1. Release herunterladen  
+    2. Setup ausführen  
+    3. RigFlow starten  
 
 ---
 
