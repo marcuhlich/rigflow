@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import { Zap, Mail, Lock, User, Loader2, Download, ChevronLeft, Play } from "lucide-react";
+import { Zap, Mail, Lock, User, Loader2, Download, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { lovable } from "@/integrations/lovable/index";
-import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 
 function getAuthErrorMessage(rawMessage: string): string {
@@ -39,7 +38,6 @@ const Auth = () => {
   const [displayName, setDisplayName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isDemoLoading, setIsDemoLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   const { signIn, signUp, user, loading } = useAuth();
@@ -328,45 +326,6 @@ const Auth = () => {
             </Button>
           </div>
 
-          {/* Demo Login */}
-          <div className="mt-4">
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full gap-2"
-              disabled={isDemoLoading}
-              onClick={async () => {
-                setIsDemoLoading(true);
-                try {
-                  // Ensure demo account is seeded
-                  await supabase.functions.invoke("setup-demo");
-                  // Log in as demo
-                  const { error } = await signIn("demo@rigflow.app", "demo1234");
-                  if (error) {
-                    toast({
-                      title: "Fehler",
-                      description: "Demo-Anmeldung fehlgeschlagen. Bitte versuche es erneut.",
-                      variant: "destructive",
-                    });
-                  } else {
-                    toast({
-                      title: "Demo-Modus",
-                      description: "Du bist als Demo-Benutzer angemeldet. Änderungen können nicht gespeichert werden.",
-                    });
-                  }
-                } finally {
-                  setIsDemoLoading(false);
-                }
-              }}
-            >
-              {isDemoLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Play className="h-4 w-4" />
-              )}
-              Demo ausprobieren
-            </Button>
-          </div>
 
           <div className="mt-6 text-center">
             <button
