@@ -15,7 +15,7 @@ Optimiert für **kleine bis mittelgroße Technik-Sammlungen**, z. B.:
 
 ---
 
-# Nutzung / Installation
+## Nutzung / Installation
 
 RigFlow kann auf **mehreren Wegen verwendet werden**.
 
@@ -27,7 +27,7 @@ RigFlow kann auf **mehreren Wegen verwendet werden**.
 
 ---
 
-# 🌐 Browser
+### 🌐 Browser
 
 Die einfachste Nutzung.
 
@@ -39,11 +39,11 @@ Keine Installation erforderlich – einfach anmelden und starten.
 
 ---
 
-# 📱 Mobile App (PWA)
+### 📱 Mobile App (PWA)
 
 RigFlow kann auf Smartphones wie eine **normale App installiert werden**.
 
-## Android
+#### Android
 
 1. RigFlow in **Chrome** öffnen  
 2. Menü **⋮ (3 Punkte)** öffnen  
@@ -53,7 +53,7 @@ Die App erscheint anschließend auf dem Home-Screen.
 
 ---
 
-## iOS
+#### iOS
 
 1. RigFlow in **Safari** öffnen  
 2. **Teilen-Button** drücken  
@@ -61,7 +61,7 @@ Die App erscheint anschließend auf dem Home-Screen.
 
 ---
 
-# 💻 Desktop App
+### 💻 Desktop App
 
 Für Windows gibt es eine **native Desktop-Version**.
 
@@ -76,7 +76,7 @@ Installation:
 
 ---
 
-# Features
+## Features
 
 | Feature | Beschreibung |
 |---------|-------------|
@@ -95,7 +95,7 @@ Installation:
 
 ---
 
-# Tech Stack
+## Tech Stack
 
 | Bereich | Technologie |
 |-------|-------------|
@@ -109,7 +109,7 @@ Installation:
 
 ---
 
-# Lokale Entwicklung
+## Lokale Entwicklung
 
 Repository klonen:
 
@@ -131,7 +131,7 @@ Die App läuft anschließend unter:
 http://localhost:5173
 ```
 
-## Environment Variablen
+### Environment Variablen
 RigFlow benötigt eine Supabase Instanz.
 
 Erstelle eine `.env` Datei:
@@ -143,7 +143,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=your_anon_key
 
 Bei Deployments über Lovable Cloud werden diese Variablen automatisch gesetzt.
 
-# Projektstruktur
+## Projektstruktur
 ```
 src/
 ├── components/          # React-Komponenten
@@ -166,5 +166,5 @@ src/
 └── integrations/        # Supabase Integration
 ```
 
-# Lizenz
+## Lizenz
 MIT License
