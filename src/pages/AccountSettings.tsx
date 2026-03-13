@@ -163,7 +163,7 @@ export default function AccountSettings() {
       <Card className="glass-card p-6">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <BookOpen className="h-5 w-5 text-primary" />
-          Hilfe & Anleitung
+          Info & Anleitung
         </h3>
         <p className="text-sm text-muted-foreground mt-2">
           Hier findest du eine Schritt-für-Schritt-Anleitung zur App.
@@ -171,6 +171,14 @@ export default function AccountSettings() {
         <Link to="/help">
           <Button variant="outline" className="mt-4 w-full">
             Anleitung öffnen
+          </Button>
+        </Link>
+        <p className="text-sm text-muted-foreground mt-5">
+          Weitere Informationen, Quellcode und Mitwirkungsmöglichkeiten findest du auf GitHub.
+        </p>
+        <Link to="https://github.com/marcuhlich/rigflow" target="_blank" rel="noopener noreferrer">
+          <Button variant="outline" className="mt-4 w-full">
+            Informationen zur App
           </Button>
         </Link>
       </Card>
