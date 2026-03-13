@@ -1,33 +1,29 @@
-# RigFlow
+# Rigflow
 
 **Professionelle Inventarverwaltung für Veranstaltungstechnik**
 
-RigFlow ist eine moderne Web-App zur Verwaltung von Event-Equipment – mit **QR-Code-Integration, DMX-Patchplanung, Verleihverwaltung und Event-Sets**.
+Rigflow ist eine moderne Web-App zur Verwaltung von Event-Equipment – mit QR-Code-Integration, DMX-Patchplanung, Verleihverwaltung und Event-Sets. Optimiert für kleine bis mittelgroße Technik-Sammlungen.
 
-Optimiert für **kleine bis mittelgroße Technik-Sammlungen**, z. B.:
-
-- Veranstaltungstechniker
-- kleine Rental-Firmen
-- Schul- oder Vereins-Equipment
-- private Technik-Sammlungen
-
-[![Live Demo](https://img.shields.io/badge/Live-rigflow.lovable.app-blue?style=flat-square)](https://rigflow.lovable.app) [![Built with React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)](https://react.dev) [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)](https://typescriptlang.org) [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-06B6D4?style=flat-square&logo=tailwindcss)](https://tailwindcss.com)
+[![Live Demo](https://img.shields.io/badge/Live-rigflow.lovable.app-blue?style=flat-square)](https://rigflow.lovable.app)
+[![Built with React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)](https://typescriptlang.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-06B6D4?style=flat-square&logo=tailwindcss)](https://tailwindcss.com)
 
 ---
 
-## Nutzung / Installation
+## Installation
 
 RigFlow kann auf **mehreren Wegen verwendet werden**.
 
 | Plattform | Nutzung |
 |-----------|--------|
-| 🌐 Browser | Direkt ohne Installation |
-| 📱 Android / iOS | Als installierbare PWA |
-| 💻 Windows | Desktop-App |
+| Browser | Direkt ohne Installation |
+| Android / iOS | Als installierbare PWA |
+| Windows | Desktop-App |
 
 ---
 
-### 🌐 Browser
+### Browser
 
 Die einfachste Nutzung.
 
@@ -37,9 +33,7 @@ https://rigflow.lovable.app
 
 Keine Installation erforderlich – einfach anmelden und starten.
 
----
-
-### 📱 Mobile App (PWA)
+### Mobile App (PWA)
 
 RigFlow kann auf Smartphones wie eine **normale App installiert werden**.
 
@@ -51,17 +45,14 @@ RigFlow kann auf Smartphones wie eine **normale App installiert werden**.
 
 Die App erscheint anschließend auf dem Home-Screen.
 
----
-
 #### iOS
 
 1. RigFlow in **Safari** öffnen  
 2. **Teilen-Button** drücken  
 3. **„Zum Home-Bildschirm“** auswählen  
 
----
 
-### 💻 Desktop App
+### Desktop App
 
 Für Windows gibt es eine **native Desktop-Version**.
 
@@ -80,32 +71,30 @@ Installation:
 
 | Feature | Beschreibung |
 |---------|-------------|
-| **Inventar** | Geräte verwalten mit Kategorien, Zustand, Standort und Notizen |
-| **QR-Codes** | Automatische QR-Generierung + Scanner |
-| **DMX-Patchplan** | Adressenplanung mit Konflikt-Erkennung |
-| **Checklisten** | Event-Vorbereitungslisten |
-| **Event-Sets** | Packlisten mit Artikelzuordnung |
-| **Verleih** | Geräte verleihen mit Rückgabe-Tracking |
-| **Dashboard** | Statistiken und Aktivitätsübersicht |
-| **Export** | CSV, PDF und Druckansichten |
-| **Erinnerungen** | Hinweise bei überfälligen Rückgaben |
-| **PWA** | Installierbar + Offlinefähig |
-| **Auth** | Login mit E-Mail-Verifizierung |
-| **Audit-Log** | Änderungsverlauf |
+| **Inventar** | Geräte verwalten mit Kategorien, Zustand, Standort, Stückpreis und Notizen |
+| **QR-Codes** | Automatische QR-Generierung, Download, Druck und Kamera-Scanner |
+| **DMX-Patchplan** | Adressenplanung mit Konflikt-Erkennung und Timeline-Visualisierung |
+| **Checklisten** | Vor- und Nachbereitungs-Checklisten für Events |
+| **Event-Sets** | Packlisten mit Artikelzuordnung und Verfügbarkeitsprüfung |
+| **Verleih** | Ausleihen verwalten mit Fälligkeitsdaten und Rückgabe-Tracking |
+| **Dashboard** | Übersicht mit Statistiken, aktiven Ausleihen und letzten Aktivitäten |
+| **Export** | CSV, PDF und Druckansicht für Inventar, Patchplan und Packlisten |
+| **Erinnerungen** | Automatische Benachrichtigungen bei überfälligen Rückgaben |
+| **PWA** | Installierbar als App, offline-fähig mit Service Worker |
+| **Auth** | Benutzer-Authentifizierung mit E-Mail-Verifizierung und Passwort-Reset |
+| **Audit-Log** | Änderungsverlauf für alle Inventar-Aktionen |
 
 ---
 
-## Tech Stack
+## Tech-Stack
 
-| Bereich | Technologie |
-|-------|-------------|
-| Frontend | React 18 · TypeScript · Vite |
-| Styling | Tailwind CSS · shadcn/ui |
-| Backend | Supabase |
-| State | TanStack React Query |
-| PDF Export | jsPDF + AutoTable |
-| QR Codes | jsQR · api.qrserver |
-| PWA | vite-plugin-pwa |
+- **Frontend:** React 18 · TypeScript · Vite
+- **Styling:** Tailwind CSS · shadcn/ui
+- **Backend:** Supabase (PostgreSQL, Auth, Storage, Edge Functions)
+- **State:** TanStack React Query
+- **PDF:** jsPDF + AutoTable
+- **QR:** jsQR (Scanner) · api.qrserver.com (Generator)
+- **PWA:** vite-plugin-pwa · Service Worker
 
 ---
 
@@ -167,4 +156,4 @@ src/
 ```
 
 ## Lizenz
-MIT License
+[LICENSE.txt](docs/LICENSE.txt)
