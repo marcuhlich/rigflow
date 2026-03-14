@@ -13,7 +13,7 @@ Rigflow ist eine moderne Web-App zur Verwaltung von Event-Equipment – mit QR-C
 
 ## Demo
 
-Um die App erst mal zu testen, bevor man einen Account erstellt, bitte Folgende Credentials nutzen:
+Zum Testen der App kann folgender Demo-Account verwendet werden:
 1. https://rigflow.lovable.app aufrufen
 2. Folgende Credentials eingeben:
     - E-Mail: demo@rigflow.app
