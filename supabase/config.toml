@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.setup-demo]
 verify_jwt = false
+
+[functions.latestRelease]
+verify_jwt = false
