@@ -8,6 +8,14 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      // Proxy API requests to Lovable Cloud during local development
+      "/api": {
+        target: "https://rigflow.lovable.app",
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
   plugins: [
     react(),

@@ -1,30 +1,33 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Smartphone, Check, Wifi, WifiOff, Bell, AlertCircle } from "lucide-react";
+import { Download, Smartphone, Check, Wifi, WifiOff, Bell, AlertCircle, Monitor, ExternalLink, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PushService } from "@/lib/pushService";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
+import { useDeviceDetection } from "@/hooks/useDeviceDetection";
+import { useLatestRelease, formatFileSize } from "@/hooks/useLatestRelease";
 
 export default function Install() {
   const { canInstall, isInstalled, install } = useInstallPrompt();
+  const { isMobile, isDesktop, os } = useDeviceDetection();
+  const { release, loading, error } = useLatestRelease();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
   const [isRequestingNotification, setIsRequestingNotification] = useState(false);
+
   const navigate = useNavigate();
 
+  // Online/offline Status & Notification permission
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
-    if ("Notification" in window) {
-      setNotificationPermission(Notification.permission);
-    }
+    if ("Notification" in window) setNotificationPermission(Notification.permission);
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
-
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
@@ -40,16 +43,14 @@ export default function Install() {
     try {
       const permission = await PushService.requestNotificationPermission();
       setNotificationPermission(permission);
-
       if (permission === "granted") {
-        // Show test notification
         await PushService.showNotification("RigFlow", {
           body: "Benachrichtigungen sind aktiviert! 🎉",
           tag: "welcome",
         });
       }
-    } catch (error) {
-      console.error("Failed to request notification permission:", error);
+    } catch (err) {
+      console.error(err);
     } finally {
       setIsRequestingNotification(false);
     }
@@ -57,6 +58,97 @@ export default function Install() {
 
   const hasNotificationPermission = notificationPermission === "granted";
 
+  // --- Desktop view ---
+  if (isDesktop) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-card/50 backdrop-blur-sm border-border/50">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center">
+              <Monitor className="w-10 h-10 text-primary" />
+            </div>
+            <CardTitle className="text-2xl">RigFlow Desktop</CardTitle>
+            <CardDescription>
+              Lade die Desktop-App für {os === "windows" ? "Windows" : os === "macos" ? "macOS" : os === "linux" ? "Linux" : "dein System"} herunter
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              {isOnline ? (
+                <>
+                  <Wifi className="w-5 h-5 text-green-500" />
+                  <span className="text-sm text-muted-foreground">Online - Download verfügbar</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="w-5 h-5 text-amber-500" />
+                  <span className="text-sm text-muted-foreground">Offline - Download nicht verfügbar</span>
+                </>
+              )}
+            </div>
+
+            {loading ? (
+              <div className="flex items-center justify-center gap-2 p-4">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                <span className="text-sm text-muted-foreground">Prüfe auf Updates...</span>
+              </div>
+            ) : error ? (
+              <Alert variant="destructive" className="bg-destructive/10">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-xs">{error}</AlertDescription>
+              </Alert>
+            ) : release?.downloadUrl ? (
+              <div className="space-y-3">
+                <div className="p-4 rounded-lg bg-muted/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">Version {release.version}</span>
+                    {release.fileSize && (
+                      <span className="text-xs text-muted-foreground">{formatFileSize(release.fileSize)}</span>
+                    )}
+                  </div>
+                  {release.fileName && (
+                    <p className="text-xs text-muted-foreground truncate">{release.fileName}</p>
+                  )}
+                </div>
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={() => window.open(release.downloadUrl!, "_blank")}
+                >
+                  <Download className="w-5 h-5 mr-2" />
+                  Installer herunterladen
+                </Button>
+              </div>
+            ) : (
+              <Alert className="bg-amber-500/10 border-amber-500/20">
+                <AlertCircle className="h-4 w-4 text-amber-500" />
+                <AlertDescription className="text-xs">
+                  Kein Installer für dein System verfügbar.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex items-center justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open("https://github.com/marcuhlich/rigflow-desktop/releases", "_blank")}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Alle Releases auf GitHub
+              </Button>
+            </div>
+
+            <Button variant="ghost" className="w-full" onClick={() => navigate("/")}>
+              Weiter zur Web-App
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // --- Mobile view ---
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-card/50 backdrop-blur-sm border-border/50">
@@ -70,7 +162,6 @@ export default function Install() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Online Status */}
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
             {isOnline ? (
               <>
@@ -85,16 +176,10 @@ export default function Install() {
             )}
           </div>
 
-          {/* Installation Section */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-foreground">App-Installation:</h3>
             <ul className="space-y-2">
-              {[
-                "Schneller Zugriff vom Homescreen",
-                "Funktioniert offline",
-                "Automatische Updates",
-                "Vollbildmodus ohne Browser-UI",
-              ].map((feature, i) => (
+              {["Schneller Zugriff vom Homescreen", "Funktioniert offline", "Automatische Updates", "Vollbildmodus ohne Browser-UI"].map((feature, i) => (
                 <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Check className="w-4 h-4 text-primary" />
                   {feature}
@@ -103,7 +188,6 @@ export default function Install() {
             </ul>
           </div>
 
-          {/* Notifications Section */}
           <div className="space-y-3 p-3 rounded-lg bg-accent/5 border border-accent/20">
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-accent" />
@@ -142,7 +226,6 @@ export default function Install() {
             )}
           </div>
 
-          {/* Install Button */}
           {isInstalled ? (
             <div className="space-y-3">
               <div className="flex items-center justify-center gap-2 p-4 rounded-lg bg-green-500/10 text-green-500">
