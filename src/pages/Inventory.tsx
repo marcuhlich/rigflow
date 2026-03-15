@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, QrCode, CheckSquare, Square, Download, FileText, Printer, Settings2, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +29,8 @@ import { BatchActionsBar } from "@/components/BatchActionsBar";
 import { AuditLogPanel } from "@/components/AuditLogPanel";
 import { useInventory } from "@/hooks/useInventory";
 import { useCategories } from "@/hooks/useCategories";
+import { useInventoryHistory } from "@/hooks/useInventoryHistory";
+import { useUndoRedoContext } from "@/contexts/UndoRedoContext";
 import { InventoryItem } from "@/types/inventory";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -48,7 +49,8 @@ export default function Inventory() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const { categoryNames, dmxCategories, addCategory, removeCategory, toggleDmx, categories } = useCategories();
-
+  const history = useInventoryHistory();
+  const undoRedoCtx = useUndoRedoContext();
   const handleExportCSV = () => {
     const csv = exportInventoryAsCSV(items);
     downloadCSV(csv, `inventar-${new Date().toISOString().split('T')[0]}.csv`);
@@ -66,6 +68,7 @@ export default function Inventory() {
 
   const {
     items,
+    allItems,
     loading,
     searchQuery,
     setSearchQuery,
@@ -101,8 +104,12 @@ export default function Inventory() {
   };
 
   const handleDeleteClick = async (id: string) => {
+    const item = items.find(i => i.id === id) || allItems.find(i => i.id === id);
     try {
       await deleteItem(id);
+      if (item) {
+        history.pushAction({ type: 'delete', item });
+      }
       toast({
         title: "Item gelöscht",
         description: "Das Item wurde erfolgreich entfernt.",
@@ -137,18 +144,116 @@ export default function Inventory() {
   const handleFormSubmit = async (data: Omit<InventoryItem, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     if (editItem) {
       await updateItem(editItem.id, data);
+      const newItem = { ...editItem, ...data, updated_at: new Date().toISOString() };
+      history.pushAction({ type: 'update', oldItem: editItem, newItem });
       toast({
         title: "Item aktualisiert",
         description: "Die Änderungen wurden gespeichert.",
       });
     } else {
       await addItem(data);
+      // For add, we need the item from the list after it's added
+      // We'll find it by name+timestamp approximation - pushAction in next render
+      // Use a simpler approach: track the latest added item
+      const latestItem = allItems[0]; // After optimistic update, newest is first
+      if (latestItem) {
+        history.pushAction({ type: 'add', item: latestItem });
+      }
       toast({
         title: "Item hinzugefügt",
         description: "Das neue Item wurde erfolgreich erstellt.",
       });
     }
   };
+
+  // Undo/Redo handlers
+  const handleUndo = useCallback(async () => {
+    const action = history.undo();
+    if (!action) return;
+
+    try {
+      switch (action.type) {
+        case 'add':
+          await deleteItem(action.item.id);
+          toast({ title: "Rückgängig", description: `"${action.item.name}" wurde entfernt.` });
+          break;
+        case 'update': {
+          const { id, user_id, created_at, updated_at, ...oldData } = action.oldItem;
+          await updateItem(action.oldItem.id, oldData as any);
+          toast({ title: "Rückgängig", description: `"${action.oldItem.name}" wurde zurückgesetzt.` });
+          break;
+        }
+        case 'delete': {
+          const { id, user_id, created_at, updated_at, ...itemData } = action.item;
+          await addItem(itemData as any);
+          toast({ title: "Rückgängig", description: `"${action.item.name}" wurde wiederhergestellt.` });
+          break;
+        }
+      }
+    } catch {
+      // Re-push the action since undo failed
+      history.pushAction(action);
+    }
+  }, [history, deleteItem, updateItem, addItem, toast]);
+
+  const handleRedo = useCallback(async () => {
+    const action = history.redo();
+    if (!action) return;
+
+    try {
+      switch (action.type) {
+        case 'add': {
+          const { id, user_id, created_at, updated_at, ...itemData } = action.item;
+          await addItem(itemData as any);
+          toast({ title: "Wiederherstellen", description: `"${action.item.name}" wurde erneut hinzugefügt.` });
+          break;
+        }
+        case 'update': {
+          const { id, user_id, created_at, updated_at, ...newData } = action.newItem;
+          await updateItem(action.newItem.id, newData as any);
+          toast({ title: "Wiederherstellen", description: `"${action.newItem.name}" wurde erneut geändert.` });
+          break;
+        }
+        case 'delete':
+          await deleteItem(action.item.id);
+          toast({ title: "Wiederherstellen", description: `"${action.item.name}" wurde erneut gelöscht.` });
+          break;
+      }
+    } catch {
+      // Failed redo
+    }
+  }, [history, deleteItem, updateItem, addItem, toast]);
+
+  // Register undo/redo with global context
+  useEffect(() => {
+    undoRedoCtx.register({
+      canUndo: history.canUndo,
+      canRedo: history.canRedo,
+      onUndo: handleUndo,
+      onRedo: handleRedo,
+    });
+  }, [history.canUndo, history.canRedo, handleUndo, handleRedo]);
+
+  // Unregister on unmount
+  useEffect(() => {
+    return () => undoRedoCtx.unregister();
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [handleUndo, handleRedo]);
 
   const toggleSelectionMode = () => {
     if (selectionMode) {

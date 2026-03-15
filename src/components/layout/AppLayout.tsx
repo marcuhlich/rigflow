@@ -3,6 +3,9 @@ import { NavLink, useLocation } from "react-router-dom";
 import { LayoutDashboard, Package, Sliders, CheckSquare, Boxes, HandCoins, MoreHorizontal } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { UndoRedoButtons } from "@/components/UndoRedoButtons";
+import { useUndoRedoContext } from "@/contexts/UndoRedoContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 interface AppLayoutProps {
@@ -199,6 +202,10 @@ function LiquidGlassNav() {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const { canUndo, canRedo, onUndo, onRedo } = useUndoRedoContext();
+  const isMobile = useIsMobile();
+  const showUndoRedo = onUndo !== null && onRedo !== null;
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -216,10 +223,30 @@ export function AppLayout({ children }: AppLayoutProps) {
               </h1>
               <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">Inventarverwaltung</p>
             </div>
+            {/* Undo/Redo - mobile: compact next to logo */}
+            {showUndoRedo && isMobile && (
+              <UndoRedoButtons
+                canUndo={canUndo}
+                canRedo={canRedo}
+                onUndo={onUndo!}
+                onRedo={onRedo!}
+                isMobile
+              />
+            )}
           </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-1">
+            {/* Undo/Redo - desktop: in nav area */}
+            {showUndoRedo && (
+              <UndoRedoButtons
+                canUndo={canUndo}
+                canRedo={canRedo}
+                onUndo={onUndo!}
+                onRedo={onRedo!}
+              />
+            )}
+            <div className="w-px h-6 bg-border/50 mx-1" />
             {navItems.map((item) => (
               <NavLink
                 key={item.to}

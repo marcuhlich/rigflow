@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { UndoRedoProvider } from "@/contexts/UndoRedoContext";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -266,15 +267,17 @@ const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppInitializer />
-            <OverdueReminderInit />
-            <AppRoutes />
-          </BrowserRouter>
-        </TooltipProvider>
+        <UndoRedoProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppInitializer />
+              <OverdueReminderInit />
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
+        </UndoRedoProvider>
       </AuthProvider>
     </QueryClientProvider>
   </ErrorBoundary>
