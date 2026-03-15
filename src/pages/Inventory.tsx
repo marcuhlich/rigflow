@@ -68,6 +68,7 @@ export default function Inventory() {
 
   const {
     items,
+    allItems,
     loading,
     searchQuery,
     setSearchQuery,
