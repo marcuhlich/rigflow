@@ -3,6 +3,9 @@ import { NavLink, useLocation } from "react-router-dom";
 import { LayoutDashboard, Package, Sliders, CheckSquare, Boxes, HandCoins, MoreHorizontal } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { UndoRedoButtons } from "@/components/UndoRedoButtons";
+import { useUndoRedoContext } from "@/contexts/UndoRedoContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 interface AppLayoutProps {
