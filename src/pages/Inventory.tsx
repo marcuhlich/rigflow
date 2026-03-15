@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, QrCode, CheckSquare, Square, Download, FileText, Printer, Settings2, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +29,8 @@ import { BatchActionsBar } from "@/components/BatchActionsBar";
 import { AuditLogPanel } from "@/components/AuditLogPanel";
 import { useInventory } from "@/hooks/useInventory";
 import { useCategories } from "@/hooks/useCategories";
+import { useInventoryHistory } from "@/hooks/useInventoryHistory";
+import { useUndoRedoContext } from "@/contexts/UndoRedoContext";
 import { InventoryItem } from "@/types/inventory";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
