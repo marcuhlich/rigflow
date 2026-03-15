@@ -49,7 +49,8 @@ export default function Inventory() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const { categoryNames, dmxCategories, addCategory, removeCategory, toggleDmx, categories } = useCategories();
-
+  const history = useInventoryHistory();
+  const undoRedoCtx = useUndoRedoContext();
   const handleExportCSV = () => {
     const csv = exportInventoryAsCSV(items);
     downloadCSV(csv, `inventar-${new Date().toISOString().split('T')[0]}.csv`);
