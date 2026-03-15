@@ -266,15 +266,17 @@ const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppInitializer />
-            <OverdueReminderInit />
-            <AppRoutes />
-          </BrowserRouter>
-        </TooltipProvider>
+        <UndoRedoProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppInitializer />
+              <OverdueReminderInit />
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
+        </UndoRedoProvider>
       </AuthProvider>
     </QueryClientProvider>
   </ErrorBoundary>
