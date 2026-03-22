@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogOut, Trash2, User, Mail, AlertTriangle, Loader2, RefreshCw, Zap } from "lucide-react";
+import { LogOut, Trash2, User, Mail, AlertTriangle, Loader2, RefreshCw, Zap, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function AccountSettings() {
@@ -212,6 +212,21 @@ export default function AccountSettings() {
             )}
           </Button>
         </div>
+      </Card>
+
+      <Card className="glass-card p-6">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Download className="h-5 w-5 text-primary" />
+          App installieren
+        </h3>
+        <p className="text-sm text-muted-foreground mt-2">
+          Installiere RigFlow als App auf deinem Gerät für schnelleren Zugriff und Offline-Nutzung.
+        </p>
+        <Link to="/install">
+          <Button variant="outline" className="mt-4 w-full">
+            Installationsanleitung öffnen
+          </Button>
+        </Link>
       </Card>
 
       {/* Danger Zone */}
