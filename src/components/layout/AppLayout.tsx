@@ -28,7 +28,7 @@ function LiquidGlassNav() {
   const location = useLocation();
   const navRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
-  const [bubbleStyle, setBubbleStyle] = useState({ left: 0, width: 0 });
+  const [bubbleStyle, setBubbleStyle] = useState<{ left: number, width: number } | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
 
   const mobileItems = navItems.slice(0, MOBILE_NAV_COUNT);
@@ -125,6 +125,7 @@ function LiquidGlassNav() {
           }}
         >
           {/* Animated highlight bubble */}
+          {bubbleStyle !== null && (
           <div
             className="absolute top-1.5 bottom-1.5 rounded-[16px] pointer-events-none"
             style={{
@@ -136,6 +137,7 @@ function LiquidGlassNav() {
               transition: "left 0.4s cubic-bezier(0.32, 0.72, 0, 1), width 0.35s cubic-bezier(0.32, 0.72, 0, 1)",
             }}
           />
+          )}
 
           {mobileItems.map((item, i) => {
             const isActive =

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, QrCode, CheckSquare, Square, Download, FileText, Printer, Settings2, X, Zap } from "lucide-react";
+import { Plus, QrCode, CheckSquare, Square, Download, FileText, Printer, Settings2, X, Zap, Table2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { exportInventoryAsCSV, exportInventoryAsPDF, downloadCSV } from "@/lib/exportUtils";
 import { printInventory } from "@/lib/printUtils";
+import { useGoogleSheets } from "@/hooks/useGoogleSheets";
 
 export default function Inventory() {
   const navigate = useNavigate();
@@ -66,6 +67,8 @@ export default function Inventory() {
     printInventory(items);
   };
 
+  const { exportToSheets, isExporting } = useGoogleSheets();
+
   const {
     items,
     allItems,
@@ -92,6 +95,16 @@ export default function Inventory() {
     batchUpdateLocation,
     batchDelete,
   } = useInventory();
+
+  const handleExportSheets = async () => {
+    try {
+      await exportToSheets(items);
+      toast({ title: "Export erfolgreich", description: "Google Sheet wurde geöffnet." });
+    } catch {
+      toast({ title: "Export fehlgeschlagen", description: "Bitte versuche es erneut.", variant: "destructive" });
+    }
+  };
+
 
   const handleAddClick = () => {
     setEditItem(null);
@@ -354,6 +367,10 @@ export default function Inventory() {
                 <DropdownMenuItem onClick={handleExportPDF}>
                   <FileText className="h-4 w-4 mr-2" />
                   Als PDF exportieren
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportSheets} disabled={isExporting}>
+                  <Table2 className="h-4 w-4 mr-2" />
+                  {isExporting ? "Wird exportiert..." : "Nach Google Sheets exportieren"}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handlePrint}>
