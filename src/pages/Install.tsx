@@ -139,8 +139,8 @@ export default function Install() {
               </Button>
             </div>
 
-            <Button variant="ghost" className="w-full" onClick={() => navigate("/")}>
-              Weiter zur Web-App
+            <Button variant="outline" className="w-full" onClick={() => navigate(-1)}>
+              Zurück
             </Button>
           </CardContent>
         </Card>
