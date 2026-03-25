@@ -186,16 +186,19 @@ function AppInitializer() {
     initializePush();
 
     // Offline / Online Notifications
+    let offlineNotified = false;
+
     const handleOffline = () => {
-      logger.info("App", "Network: offline");
+      if (offlineNotified) return;
+      offlineNotified = true;
       PushService.showNotification("🔌 Offline", {
         body: "Du bist offline. Änderungen werden synchronisiert, sobald du wieder online bist.",
-        tag: "network-offline",
+        tag: "network-offline", // gleicher tag verhindert doppelte Notification
       });
     };
 
     const handleOnline = () => {
-      logger.info("App", "Network: online");
+      offlineNotified = false;
       PushService.showNotification("🟢 Online", {
         body: "Du bist wieder online. Synchronisierung läuft...",
         tag: "network-online",

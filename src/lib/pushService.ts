@@ -94,7 +94,7 @@ export class PushService {
     try {
       await this.swRegistration!.showNotification(title, {
         icon: '/pwa-192x192.png',
-        badge: '/favicon-32x32.png',
+        badge: '/badge-96x96.png',
         ...options,
       });
     } catch (error) {
