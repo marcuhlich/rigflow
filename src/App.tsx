@@ -1,175 +1,282 @@
-import { logger } from '@/lib/logger';
+import { useEffect } from "react";
+import { UndoRedoProvider } from "@/contexts/UndoRedoContext";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { PushService } from "@/lib/pushService";
+import { logger } from "@/lib/logger";
+import Landing from "./pages/Landing";
+import InstallPrompt from "./pages/InstallPrompt";
+import Dashboard from "./pages/Dashboard";
+import Inventory from "./pages/Inventory";
+import ItemDetail from "./pages/ItemDetail";
+import HelpPage from "./pages/HelpPage";
+import DMXPatchplan from "./pages/DMXPatchplan";
+import { ChecklistsPage } from "./pages/Checklists";
+import EventSetsPage from "./pages/EventSets";
+import Lending from "./pages/Lending";
+import AccountSettings from "./pages/AccountSettings";
+import Auth from "./pages/Auth";
+import Install from "./pages/Install";
+import NotFound from "./pages/NotFound";
+import { Loader2 } from "lucide-react";
+import { useOverdueReminder } from "@/hooks/useOverdueReminder";
 
-export interface PushServiceConfig {
-  enableNotifications: boolean;
-  enableBackground: boolean;
-  notificationTimeout: number;
+const queryClient = new QueryClient();
+
+function OverdueReminderInit() {
+  useOverdueReminder();
+  return null;
 }
 
-const DEFAULT_CONFIG: PushServiceConfig = {
-  enableNotifications: true,
-  enableBackground: true,
-  notificationTimeout: 5000,
-};
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
 
-export class PushService {
-  private static config: PushServiceConfig = DEFAULT_CONFIG;
-  private static swRegistration: ServiceWorkerRegistration | null = null;
-
-  /**
-   * Initialize push service — nutzt den von vite-plugin-pwa generierten SW
-   */
-  static async initialize(config: Partial<PushServiceConfig> = {}): Promise<boolean> {
-    this.config = { ...DEFAULT_CONFIG, ...config };
-
-    if (!('serviceWorker' in navigator)) {
-      logger.warn('PushService', 'Service Workers not supported');
-      return false;
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/landing", { replace: true });
     }
+  }, [user, loading, navigate]);
 
-    try {
-      // NICHT selbst registrieren — vite-plugin-pwa macht das automatisch.
-      // Wir warten einfach bis der SW bereit ist.
-      this.swRegistration = await navigator.serviceWorker.ready;
-      logger.info('PushService', 'Service Worker ready', {
-        scope: this.swRegistration.scope,
-      });
-      return true;
-    } catch (error) {
-      logger.error('PushService', 'Service Worker not ready', error);
-      return false;
-    }
-  }
-
-  /**
-   * Request notification permission
-   */
-  static async requestNotificationPermission(): Promise<NotificationPermission> {
-    if (!('Notification' in window)) {
-      logger.warn('PushService', 'Notifications not supported');
-      return 'denied';
-    }
-
-    if (Notification.permission === 'granted') return 'granted';
-
-    if (Notification.permission !== 'denied') {
-      try {
-        return await Notification.requestPermission();
-      } catch (error) {
-        logger.error('PushService', 'Failed to request notification permission', error);
-        return 'denied';
-      }
-    }
-
-    return 'denied';
-  }
-
-  /**
-   * Check if notifications are available
-   */
-  static isNotificationAvailable(): boolean {
+  if (loading) {
     return (
-      this.config.enableNotifications &&
-      'Notification' in window &&
-      Notification.permission === 'granted' &&
-      this.swRegistration !== null
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
 
-  /**
-   * Show notification — immer über den SW (funktioniert Foreground + Background + PWA)
-   */
-  static async showNotification(
-    title: string,
-    options?: NotificationOptions
-  ): Promise<void> {
-    if (!this.isNotificationAvailable()) {
-      logger.warn('PushService', 'Notifications not available', {
-        permission: Notification.permission,
-        swReady: !!this.swRegistration,
-      });
-      return;
-    }
+  if (!user) return null;
 
-    try {
-      await this.swRegistration!.showNotification(title, {
-        icon: '/pwa-192x192.png',
-        badge: '/favicon-32x32.png',
-        ...options,
-      });
-    } catch (error) {
-      logger.error('PushService', 'Failed to show notification', error);
-    }
-  }
-
-  /**
-   * Register background sync
-   */
-  static async registerBackgroundSync(tag: string): Promise<boolean> {
-    if (!this.swRegistration) return false;
-
-    try {
-      if ('sync' in this.swRegistration) {
-        await (this.swRegistration as any).sync.register(tag);
-        logger.info('PushService', 'Background sync registered:', tag);
-        return true;
-      }
-    } catch (error) {
-      logger.warn('PushService', 'Background sync not available:', error);
-    }
-
-    return false;
-  }
-
-  /**
-   * Send message to service worker
-   */
-  static async broadcastMessage(message: any): Promise<void> {
-    if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return;
-
-    try {
-      navigator.serviceWorker.controller.postMessage(message);
-    } catch (error) {
-      logger.error('PushService', 'Failed to send message to SW', error);
-    }
-  }
-
-  /**
-   * Listen for messages from service worker
-   */
-  static onMessage(callback: (message: any) => void): () => void {
-    if (!('serviceWorker' in navigator)) return () => {};
-
-    const handler = (event: MessageEvent) => callback(event.data);
-    navigator.serviceWorker.addEventListener('message', handler);
-    return () => navigator.serviceWorker.removeEventListener('message', handler);
-  }
-
-  /**
-   * Clear all cached data
-   */
-  static async clearCache(): Promise<void> {
-    try {
-      const cacheNames = await caches.keys();
-      await Promise.all(cacheNames.map((name) => caches.delete(name)));
-      logger.info('PushService', 'Cache cleared');
-    } catch (error) {
-      logger.error('PushService', 'Failed to clear cache', error);
-    }
-  }
-
-  /**
-   * Get service worker registration info
-   */
-  static getRegistrationInfo() {
-    if (!this.swRegistration) return { registered: false };
-
-    return {
-      registered: true,
-      scope: this.swRegistration.scope,
-      installing: !!this.swRegistration.installing,
-      waiting: !!this.swRegistration.waiting,
-      active: !!this.swRegistration.active,
-    };
-  }
+  return <AppLayout>{children}</AppLayout>;
 }
+
+function AppRoutes() {
+  return (
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/landing" element={<Landing />} />
+      <Route path="/auth" element={<Auth />} />
+
+      {/* Install Prompt (nach Auth) */}
+      <Route path="/install-prompt" element={<InstallPrompt />} />
+
+      {/* PWA Install Guide */}
+      <Route path="/install" element={<Install />} />
+
+      {/* Protected Routes */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/inventory"
+        element={
+          <ProtectedRoute>
+            <Inventory />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/inventory/:id"
+        element={
+          <ProtectedRoute>
+            <ItemDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dmx"
+        element={
+          <ProtectedRoute>
+            <DMXPatchplan />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/checklists"
+        element={
+          <ProtectedRoute>
+            <ChecklistsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/sets"
+        element={
+          <ProtectedRoute>
+            <EventSetsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lending"
+        element={
+          <ProtectedRoute>
+            <Lending />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <AccountSettings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/help"
+        element={
+          <ProtectedRoute>
+            <HelpPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Fallback */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
+function AppInitializer() {
+  useEffect(() => {
+    // Initialize push service
+    const initializePush = async () => {
+      try {
+        const initialized = await PushService.initialize({
+          enableNotifications: true,
+          enableBackground: true,
+        });
+
+        if (initialized) {
+          logger.info("App", "Push service initialized");
+
+          PushService.onMessage((message) => {
+            logger.info("App", "Message from SW:", message.type);
+
+            switch (message.type) {
+              case "SW_UPDATE_AVAILABLE":
+                logger.info("App", "Service worker update available");
+                break;
+              case "SYNC_START":
+                logger.info("App", "Background sync started");
+                break;
+              default:
+                break;
+            }
+          });
+        }
+      } catch (error) {
+        logger.error("App", "Failed to initialize push service", error);
+      }
+    };
+
+    initializePush();
+
+    // Offline / Online Notifications
+    const handleOffline = () => {
+      logger.info("App", "Network: offline");
+      PushService.showNotification("🔌 Offline", {
+        body: "Du bist offline. Änderungen werden synchronisiert, sobald du wieder online bist.",
+        tag: "network-offline",
+      });
+    };
+
+    const handleOnline = () => {
+      logger.info("App", "Network: online");
+      PushService.showNotification("🟢 Online", {
+        body: "Du bist wieder online. Synchronisierung läuft...",
+        tag: "network-online",
+      });
+    };
+
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("online", handleOnline);
+
+    // SW Update Handling
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.ready.then((registration) => {
+        if (registration.waiting) {
+          logger.info("App", "New SW waiting, forcing activation");
+          registration.waiting.postMessage({ type: "SKIP_WAITING" });
+        }
+      });
+
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (!refreshing) {
+          refreshing = true;
+          logger.info("App", "SW controller changed, reloading");
+          window.location.reload();
+        }
+      });
+
+      navigator.serviceWorker.addEventListener("message", (event) => {
+        if (event.data?.type === "FORCE_RELOAD") {
+          logger.info("App", "SW requested force reload");
+          setTimeout(() => {
+            window.location.href = window.location.href.split("?")[0];
+          }, 200);
+        }
+      });
+    }
+
+    // SW Update Check bei Visibility Change (wichtig für Mobile)
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === "visible") {
+        logger.info("App", "App visible, checking for SW updates");
+        try {
+          const registration = await navigator.serviceWorker.getRegistration();
+          if (registration) await registration.update();
+        } catch (error) {
+          logger.error("App", "Failed to check for SW updates", error);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    handleVisibilityChange();
+
+    return () => {
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("online", handleOnline);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  return null;
+}
+
+const App = () => (
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <UndoRedoProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppInitializer />
+              <OverdueReminderInit />
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
+        </UndoRedoProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
+);
+
+export default App;
