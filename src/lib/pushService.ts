@@ -3,7 +3,7 @@ import { logger } from '@/lib/logger';
 export interface PushServiceConfig {
   enableNotifications: boolean;
   enableBackground: boolean;
-  notificationTimeout: number; // ms
+  notificationTimeout: number;
 }
 
 const DEFAULT_CONFIG: PushServiceConfig = {
@@ -12,16 +12,12 @@ const DEFAULT_CONFIG: PushServiceConfig = {
   notificationTimeout: 5000,
 };
 
-/**
- * Push Service - Manages notifications and background sync
- * Works offline-first, browser-native
- */
 export class PushService {
   private static config: PushServiceConfig = DEFAULT_CONFIG;
   private static swRegistration: ServiceWorkerRegistration | null = null;
 
   /**
-   * Initialize push service and register service worker
+   * Initialize push service — nutzt den von vite-plugin-pwa generierten SW
    */
   static async initialize(config: Partial<PushServiceConfig> = {}): Promise<boolean> {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -32,37 +28,15 @@ export class PushService {
     }
 
     try {
-      const registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/',
+      // NICHT selbst registrieren — vite-plugin-pwa macht das automatisch.
+      // Wir warten einfach bis der SW bereit ist.
+      this.swRegistration = await navigator.serviceWorker.ready;
+      logger.info('PushService', 'Service Worker ready', {
+        scope: this.swRegistration.scope,
       });
-
-      this.swRegistration = registration;
-      logger.info('PushService', 'Service Worker registered successfully');
-
-      // Check for updates periodically
-      setInterval(() => {
-        registration.update();
-      }, 60000); // Check every minute
-
-      // Listen for updates
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        if (!newWorker) return;
-
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            logger.info('PushService', 'New service worker available');
-            // Notify app about update
-            this.broadcastMessage({
-              type: 'SW_UPDATE_AVAILABLE',
-            });
-          }
-        });
-      });
-
       return true;
     } catch (error) {
-      logger.error('PushService', 'Failed to register service worker', error);
+      logger.error('PushService', 'Service Worker not ready', error);
       return false;
     }
   }
@@ -76,14 +50,11 @@ export class PushService {
       return 'denied';
     }
 
-    if (Notification.permission === 'granted') {
-      return 'granted';
-    }
+    if (Notification.permission === 'granted') return 'granted';
 
     if (Notification.permission !== 'denied') {
       try {
-        const permission = await Notification.requestPermission();
-        return permission;
+        return await Notification.requestPermission();
       } catch (error) {
         logger.error('PushService', 'Failed to request notification permission', error);
         return 'denied';
@@ -100,38 +71,32 @@ export class PushService {
     return (
       this.config.enableNotifications &&
       'Notification' in window &&
-      Notification.permission === 'granted'
+      Notification.permission === 'granted' &&
+      this.swRegistration !== null
     );
   }
 
   /**
-   * Show notification
+   * Show notification — immer über den SW (funktioniert Foreground + Background + PWA)
    */
   static async showNotification(
     title: string,
     options?: NotificationOptions
   ): Promise<void> {
     if (!this.isNotificationAvailable()) {
-      logger.warn('PushService', 'Notifications not available');
+      logger.warn('PushService', 'Notifications not available', {
+        permission: Notification.permission,
+        swReady: !!this.swRegistration,
+      });
       return;
     }
 
     try {
-      // If app is in foreground, show directly
-      if (document.hasFocus()) {
-        new Notification(title, {
-          icon: '/pwa-192x192.png',
-          badge: '/favicon-32x32.png',
-          ...options,
-        });
-      } else if (this.swRegistration) {
-        // If app is in background, use service worker
-        this.swRegistration.showNotification(title, {
-          icon: '/pwa-192x192.png',
-          badge: '/favicon-32x32.png',
-          ...options,
-        });
-      }
+      await this.swRegistration!.showNotification(title, {
+        icon: '/pwa-192x192.png',
+        badge: '/favicon-32x32.png',
+        ...options,
+      });
     } catch (error) {
       logger.error('PushService', 'Failed to show notification', error);
     }
@@ -141,9 +106,7 @@ export class PushService {
    * Register background sync
    */
   static async registerBackgroundSync(tag: string): Promise<boolean> {
-    if (!('serviceWorker' in navigator) || !this.swRegistration) {
-      return false;
-    }
+    if (!this.swRegistration) return false;
 
     try {
       if ('sync' in this.swRegistration) {
@@ -162,9 +125,7 @@ export class PushService {
    * Send message to service worker
    */
   static async broadcastMessage(message: any): Promise<void> {
-    if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
-      return;
-    }
+    if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return;
 
     try {
       navigator.serviceWorker.controller.postMessage(message);
@@ -177,20 +138,11 @@ export class PushService {
    * Listen for messages from service worker
    */
   static onMessage(callback: (message: any) => void): () => void {
-    if (!('serviceWorker' in navigator)) {
-      return () => {};
-    }
+    if (!('serviceWorker' in navigator)) return () => {};
 
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      callback(event.data);
-    });
-
-    // Return unsubscribe function
-    return () => {
-      navigator.serviceWorker.removeEventListener('message', (event) => {
-        callback(event.data);
-      });
-    };
+    const handler = (event: MessageEvent) => callback(event.data);
+    navigator.serviceWorker.addEventListener('message', handler);
+    return () => navigator.serviceWorker.removeEventListener('message', handler);
   }
 
   /**
@@ -199,9 +151,7 @@ export class PushService {
   static async clearCache(): Promise<void> {
     try {
       const cacheNames = await caches.keys();
-      await Promise.all(
-        cacheNames.map((name) => caches.delete(name))
-      );
+      await Promise.all(cacheNames.map((name) => caches.delete(name)));
       logger.info('PushService', 'Cache cleared');
     } catch (error) {
       logger.error('PushService', 'Failed to clear cache', error);
@@ -212,16 +162,11 @@ export class PushService {
    * Get service worker registration info
    */
   static getRegistrationInfo() {
-    if (!this.swRegistration) {
-      return {
-        registered: false,
-      };
-    }
+    if (!this.swRegistration) return { registered: false };
 
     return {
       registered: true,
       scope: this.swRegistration.scope,
-      updateViaCache: (this.swRegistration as any).updateViaCache,
       installing: !!this.swRegistration.installing,
       waiting: !!this.swRegistration.waiting,
       active: !!this.swRegistration.active,
