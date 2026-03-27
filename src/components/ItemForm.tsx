@@ -399,7 +399,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [],
               <Button type="button" variant="ghost" onClick={onClose} className="flex-1" disabled={isLoading}>
                 Abbrechen
               </Button>
-              <Button type="submit" className="flex-1" disabled={isLoading}>
+              <Button haptic="success" type="submit" className="flex-1" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
