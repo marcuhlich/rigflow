@@ -152,8 +152,27 @@ function AppRoutes() {
 
 function AppInitializer() {
   useEffect(() => {
-    // Initialize push service
-    const initializePush = async () => {
+    const init = async () => {
+      // Alten leeren /sw.js deregistrieren falls noch vorhanden
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          if (reg.active?.scriptURL.endsWith('/sw.js')) {
+            try {
+              const response = await fetch(reg.active.scriptURL);
+              const text = await response.text();
+              if (text.trim().length < 100) {
+                await reg.unregister();
+                logger.info('App', 'Alten leeren SW deregistriert');
+              }
+            } catch (e) {
+              // ignore
+            }
+          }
+        }
+      }
+
+      // Initialize push service
       try {
         const initialized = await PushService.initialize({
           enableNotifications: true,
@@ -165,7 +184,6 @@ function AppInitializer() {
 
           PushService.onMessage((message) => {
             logger.info("App", "Message from SW:", message.type);
-
             switch (message.type) {
               case "SW_UPDATE_AVAILABLE":
                 logger.info("App", "Service worker update available");
@@ -181,9 +199,37 @@ function AppInitializer() {
       } catch (error) {
         logger.error("App", "Failed to initialize push service", error);
       }
+
+      // SW Update Handling
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.ready.then((registration) => {
+          if (registration.waiting) {
+            logger.info("App", "New SW waiting, forcing activation");
+            registration.waiting.postMessage({ type: "SKIP_WAITING" });
+          }
+        });
+
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (!refreshing) {
+            refreshing = true;
+            logger.info("App", "SW controller changed, reloading");
+            window.location.reload();
+          }
+        });
+
+        navigator.serviceWorker.addEventListener("message", (event) => {
+          if (event.data?.type === "FORCE_RELOAD") {
+            logger.info("App", "SW requested force reload");
+            setTimeout(() => {
+              window.location.href = window.location.href.split("?")[0];
+            }, 200);
+          }
+        });
+      }
     };
 
-    initializePush();
+    init();
 
     // Offline / Online Notifications
     let offlineNotified = false;
@@ -193,7 +239,7 @@ function AppInitializer() {
       offlineNotified = true;
       PushService.showNotification("🔌 Offline", {
         body: "Du bist offline. Änderungen werden synchronisiert, sobald du wieder online bist.",
-        tag: "network-offline", // gleicher tag verhindert doppelte Notification
+        tag: "network-offline",
       });
     };
 
@@ -208,35 +254,7 @@ function AppInitializer() {
     window.addEventListener("offline", handleOffline);
     window.addEventListener("online", handleOnline);
 
-    // SW Update Handling
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.ready.then((registration) => {
-        if (registration.waiting) {
-          logger.info("App", "New SW waiting, forcing activation");
-          registration.waiting.postMessage({ type: "SKIP_WAITING" });
-        }
-      });
-
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (!refreshing) {
-          refreshing = true;
-          logger.info("App", "SW controller changed, reloading");
-          window.location.reload();
-        }
-      });
-
-      navigator.serviceWorker.addEventListener("message", (event) => {
-        if (event.data?.type === "FORCE_RELOAD") {
-          logger.info("App", "SW requested force reload");
-          setTimeout(() => {
-            window.location.href = window.location.href.split("?")[0];
-          }, 200);
-        }
-      });
-    }
-
-    // SW Update Check bei Visibility Change (wichtig für Mobile)
+    // SW Update Check bei Visibility Change
     const handleVisibilityChange = async () => {
       if (document.visibilityState === "visible") {
         logger.info("App", "App visible, checking for SW updates");
