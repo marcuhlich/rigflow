@@ -176,7 +176,6 @@ function LiquidGlassNav() {
           <button
             ref={(el) => { itemRefs.current[MOBILE_NAV_COUNT] = el as any; }}
             onClick={() => setMoreOpen((v) => !v)}
-            haptic="select"
             className={cn(
               "relative z-10 flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-[16px] text-[10px] font-medium transition-all duration-300 min-w-[52px]",
               isMoreActive || moreOpen

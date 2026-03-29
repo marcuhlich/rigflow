@@ -159,7 +159,6 @@ export const InventoryGrid = React.memo(function InventoryGrid({
                 <Button
                   variant="ghost"
                   size="sm"
-                  haptic="heavy"
                   onClick={() => onDelete(item.id)}
                   className="text-destructive hover:text-destructive px-1 sm:px-2"
                   title="Löschen"
