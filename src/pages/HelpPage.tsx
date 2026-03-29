@@ -22,7 +22,7 @@ export default function HelpPage() {
   }, []);
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className="px-3 py-4 sm:px-6 sm:py-6 md:px-8 lg:px-12 xl:px-16 w-full max-w-none">
       <Button
         variant="ghost"
         onClick={() => navigate(-1)}
@@ -31,9 +31,7 @@ export default function HelpPage() {
         <ArrowLeft className="h-4 w-4" /> Zurück
       </Button>
 
-      <Card className="p-6 glass-card bg-background/80">
-
-
+      <Card className="p-4 sm:p-6 md:p-8 lg:p-10 glass-card bg-background/80">
         <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:text-foreground">
           <ReactMarkdown
             components={{

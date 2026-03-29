@@ -5,7 +5,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { BookOpen } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +16,23 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogOut, Trash2, User, Mail, AlertTriangle, Loader2, RefreshCw, Zap, Download } from "lucide-react";
+import {
+  LogOut,
+  Trash2,
+  User,
+  AlertTriangle,
+  Loader2,
+  Zap,
+  Download,
+  Settings,
+  Bell,
+  Shield,
+  Palette,
+  ChevronRight,
+  FileText,
+  Moon,
+  Sun,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function AccountSettings() {
@@ -28,44 +43,27 @@ export default function AccountSettings() {
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
 
-  // Check if this is the demo account
   const isDemoAccount = user?.email === "demo@rigflow.app";
 
-  // Debug: Log SW state on mount (hilfreich beim Debuggen)
-  useEffect(() => {
-    const checkSWState = async () => {
-      if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.getRegistration();
-        if (registration) {
-          console.log('[Settings] SW State:', {
-            active: registration.active?.state,
-            waiting: registration.waiting?.state,
-            installing: registration.installing?.state,
-            hasController: !!navigator.serviceWorker.controller,
-          });
-        }
-      }
-    };
-    checkSWState();
-  }, []);
+  const displayName =
+    user?.user_metadata?.display_name ||
+    user?.email?.split("@")[0] ||
+    "Benutzer";
+
+  const memberSince = new Date(user?.created_at || "").toLocaleDateString(
+    "de-DE",
+    { year: "numeric", month: "long" }
+  );
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
       await signOut();
-      toast({
-        title: "Abgemeldet",
-        description: "Du wurdest erfolgreich abgemeldet.",
-      });
+      toast({ title: "Abgemeldet", description: "Du wurdest erfolgreich abgemeldet." });
       navigate("/auth");
-    } catch (error) {
-      toast({
-        title: "Fehler",
-        description: "Abmeldung fehlgeschlagen",
-        variant: "destructive",
-      });
+    } catch {
+      toast({ title: "Fehler", description: "Abmeldung fehlgeschlagen", variant: "destructive" });
     } finally {
       setIsLoggingOut(false);
     }
@@ -80,23 +78,14 @@ export default function AccountSettings() {
       });
       return;
     }
-
     setIsDeleting(true);
     try {
-      // Delete account via secure server-side edge function
       const { data, error } = await supabase.functions.invoke("delete-account");
-
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-
-      toast({
-        title: "Konto gelöscht",
-        description: "Dein Konto wurde permanent gelöscht.",
-      });
-
+      toast({ title: "Konto gelöscht", description: "Dein Konto wurde permanent gelöscht." });
       navigate("/auth");
     } catch (error) {
-      console.error("Delete account error:", error);
       toast({
         title: "Fehler",
         description: error instanceof Error ? error.message : "Konto konnte nicht gelöscht werden",
@@ -110,179 +99,180 @@ export default function AccountSettings() {
   };
 
   return (
-    <div className="space-y-6 pb-20">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Einstellungen</h2>
-        <p className="text-muted-foreground text-sm mt-1">Verwalte dein Konto</p>
+    <div className="space-y-4 pb-20">
+
+      {/* ── Profile Header ── */}
+      <div className="flex flex-col items-center pt-6 pb-2 gap-3">
+        {/* Avatar Circle */}
+        <div className="relative">
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg"
+            style={{ background: "hsl(var(--primary))" }}
+          >
+            {displayName.charAt(0).toUpperCase()}
+          </div>
+        </div>
+        <div className="text-center">
+          <h2 className="text-xl font-bold tracking-tight">{displayName}</h2>
+          <p className="text-sm text-muted-foreground">{user?.email}</p>
+        </div>
       </div>
 
-      {/* Account Info */}
-      <Card className="glass-card p-6 space-y-6">
-        <div>
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <User className="h-5 w-5 text-primary" />
-            Kontoinformationen
-          </h3>
-
-          <div className="space-y-4">
-            <div>
-              <Label className="text-sm text-muted-foreground">E-Mail</Label>
-              <div className="mt-2 p-3 rounded-lg bg-muted/30 border border-border/50">
-                <p className="text-sm font-medium flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  {user?.email}
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-sm text-muted-foreground">Benutzername</Label>
-              <div className="mt-2 p-3 rounded-lg bg-muted/30 border border-border/50">
-                <p className="text-sm font-medium">
-                  {user?.user_metadata?.display_name || "Nicht gesetzt"}
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-sm text-muted-foreground">Registriert seit</Label>
-              <div className="mt-2 p-3 rounded-lg bg-muted/30 border border-border/50">
-                <p className="text-sm font-medium">
-                  {new Date(user?.created_at || "").toLocaleDateString("de-DE", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <Card className="glass-card p-6">
-        <h3 className="text-lg font-semibold flex items-center gap-2">
-          <BookOpen className="h-5 w-5 text-primary" />
-          Info & Anleitung
-        </h3>
-        <p className="text-sm text-muted-foreground mt-2">
-          Hier findest du eine Schritt-für-Schritt-Anleitung zur App.
-        </p>
-        <Link to="/help">
-          <Button variant="outline" className="mt-4 w-full">
-            Anleitung öffnen
-          </Button>
-        </Link>
-        <p className="text-sm text-muted-foreground mt-5">
-          Weitere Informationen, Quellcode und Mitwirkungsmöglichkeiten findest du auf GitHub.
-        </p>
-        <Link to="https://github.com/marcuhlich/rigflow" target="_blank" rel="noopener noreferrer">
-          <Button variant="outline" className="mt-4 w-full">
-            Informationen zur App
-          </Button>
-        </Link>
-      </Card>
-
-      {/* Logout */}
-      <Card className="glass-card p-6">
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <LogOut className="h-5 w-5 text-primary" />
-            Abmelden
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Melde dich von diesem Gerät ab. Du kannst dich jederzeit wieder anmelden.
-          </p>
-          <Button
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            variant="outline"
-            className="w-full gap-2"
-          >
-            {isLoggingOut ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Wird abgemeldet...
-              </>
-            ) : (
-              <>
-                <LogOut className="h-4 w-4" />
-                Jetzt abmelden
-              </>
-            )}
-          </Button>
-        </div>
-      </Card>
-
-      <Card className="glass-card p-6">
-        <h3 className="text-lg font-semibold flex items-center gap-2">
-          <Download className="h-5 w-5 text-primary" />
-          App installieren
-        </h3>
-        <p className="text-sm text-muted-foreground mt-2">
-          Installiere RigFlow als App auf deinem Gerät für schnelleren Zugriff und Offline-Nutzung.
-        </p>
-        <Link to="/install">
-          <Button variant="outline" className="mt-4 w-full">
-            Installationsanleitung öffnen
-          </Button>
-        </Link>
-      </Card>
-
-      {/* Danger Zone */}
-      {isDemoAccount ? (
-        <Card className="glass-card p-6 border-blue-500/30 bg-blue-500/5">
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2 text-blue-600">
-              <Zap className="h-5 w-5" />
-              Demo-Konto
-            </h3>
-
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-              <p className="text-sm text-muted-foreground">
-                <strong>Hinweis:</strong> Dies ist ein Demo-Konto zu Demonstrationszwecken.
-                Du kannst dieses Konto nicht löschen, um es anderen Benutzern als Test-Account zur Verfügung zu stellen.
-              </p>
-            </div>
-
-            <Button
-              disabled
-              variant="ghost"
-              className="w-full gap-2 opacity-50"
+      {/* ── Nav Menu Items ── */}
+      <Card className="glass-card overflow-hidden p-0">
+        {[
+          { icon: Settings, label: "Kontoinformationen", to: null },
+          { icon: Bell, label: "Benachrichtigungen", to: null },
+          { icon: Shield, label: "Datenschutz & Sicherheit", to: null },
+          {
+            icon: Palette,
+            label: "Erscheinungsbild",
+            to: null,
+            trailing: (
+              <span className="flex items-center gap-1 text-muted-foreground">
+                <Moon className="h-3.5 w-3.5" />
+                <Sun className="h-3.5 w-3.5" />
+              </span>
+            ),
+          },
+        ].map((item, idx, arr) => (
+          <div key={item.label}>
+            <button
+              className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors text-left"
+              onClick={() =>
+                toast({
+                  title: item.label,
+                  description: "Diese Funktion kommt bald.",
+                })
+              }
             >
-              <Trash2 className="h-4 w-4" />
-              Konto löschen (nicht verfügbar)
-            </Button>
+              <item.icon className="h-5 w-5 text-primary shrink-0" />
+              <span className="flex-1 text-sm font-medium">{item.label}</span>
+              {item.trailing ?? <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+            </button>
+            {idx < arr.length - 1 && (
+              <div className="h-px bg-border/50 mx-4" />
+            )}
           </div>
+        ))}
+      </Card>
+
+      {/* ── General Settings Info Box ── */}
+      <Card className="glass-card p-4">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+          Allgemein
+        </p>
+        <div className="space-y-1">
+          <p className="text-sm text-muted-foreground">
+            Mitglied seit: <span className="text-foreground font-medium">{memberSince}</span>
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Konto-ID: <span className="text-foreground font-mono text-xs">{user?.id?.slice(0, 8)}…</span>
+          </p>
+        </div>
+      </Card>
+
+      {/* ── Support & Legal ── */}
+      <Card className="glass-card overflow-hidden p-0">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 pt-3 pb-1">
+          Support & Rechtliches
+        </p>
+        {[
+          { icon: FileText, label: "Nutzungsbedingungen", to: null },
+          { icon: FileText, label: "Anleitung öffnen", to: "/help" },
+          { icon: FileText, label: "Informationen zur App", to: "https://github.com/marcuhlich/rigflow", external: true },
+        ].map((item, idx, arr) => (
+          <div key={item.label}>
+            {item.to ? (
+              <Link
+                to={item.to}
+                target={item.external ? "_blank" : undefined}
+                rel={item.external ? "noopener noreferrer" : undefined}
+                className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors"
+              >
+                <item.icon className="h-5 w-5 text-primary shrink-0" />
+                <span className="flex-1 text-sm font-medium text-primary">{item.label}</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+            ) : (
+              <button
+                className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors text-left"
+                onClick={() =>
+                  toast({ title: item.label, description: "Diese Funktion kommt bald." })
+                }
+              >
+                <item.icon className="h-5 w-5 text-primary shrink-0" />
+                <span className="flex-1 text-sm font-medium text-primary">{item.label}</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+            )}
+            {idx < arr.length - 1 && <div className="h-px bg-border/50 mx-4" />}
+          </div>
+        ))}
+      </Card>
+
+      {/* ── App installieren ── */}
+      <Card className="glass-card overflow-hidden p-0">
+        <Link
+          to="/install"
+          className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors"
+        >
+          <Download className="h-5 w-5 text-primary shrink-0" />
+          <span className="flex-1 text-sm font-medium">App installieren</span>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </Link>
+      </Card>
+
+      {/* ── Abmelden ── */}
+      <Card className="glass-card overflow-hidden p-0">
+        <button
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors text-left disabled:opacity-60"
+        >
+          <LogOut className="h-5 w-5 text-primary shrink-0" />
+          <span className="flex-1 text-sm font-medium">
+            {isLoggingOut ? "Wird abgemeldet…" : "Abmelden"}
+          </span>
+          {isLoggingOut ? (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          )}
+        </button>
+      </Card>
+
+      {/* ── Danger Zone ── */}
+      {isDemoAccount ? (
+        <Card className="glass-card p-4 border-blue-500/30 bg-blue-500/5">
+          <p className="text-xs font-semibold text-blue-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <Zap className="h-3.5 w-3.5" /> Demo-Konto
+          </p>
+          <p className="text-sm text-muted-foreground mb-3">
+            Dieses Konto steht anderen Nutzern als Testaccount zur Verfügung und kann nicht gelöscht werden.
+          </p>
+          <Button disabled variant="ghost" className="w-full gap-2 opacity-40">
+            <Trash2 className="h-4 w-4" />
+            Konto löschen (nicht verfügbar)
+          </Button>
         </Card>
       ) : (
-        <Card className="glass-card p-6 border-destructive/30 bg-destructive/5">
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              Gefahrenzone
-            </h3>
-
-            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
-              <p className="text-sm text-muted-foreground">
-                <strong>Warnung:</strong> Diese Aktion kann nicht rückgängig gemacht werden.
-                Alle deine Daten werden permanent gelöscht.
-              </p>
-            </div>
-
-            <Button
-              onClick={() => setShowDeleteDialog(true)}
-              variant="destructive"
-              className="w-full gap-2"
-            >
-              <Trash2 className="h-4 w-4" />
-              Konto löschen
-            </Button>
-          </div>
+        <Card className="glass-card p-4 border-destructive/30 bg-destructive/5">
+          <p className="text-xs font-semibold text-destructive uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <AlertTriangle className="h-3.5 w-3.5" /> Gefahrenzone
+          </p>
+          <Button
+            onClick={() => setShowDeleteDialog(true)}
+            variant="destructive"
+            className="w-full gap-2"
+          >
+            <Trash2 className="h-4 w-4" />
+            Konto löschen
+          </Button>
         </Card>
       )}
 
-      {/* Delete Account Dialog */}
+      {/* ── Delete Dialog ── */}
       {!isDemoAccount && (
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <AlertDialogContent className="max-w-md">
@@ -294,7 +284,7 @@ export default function AccountSettings() {
               <AlertDialogDescription>
                 <div className="space-y-4 mt-4">
                   <p>
-                    Diese Aktion wird dein Konto und <strong>alle deine Daten</strong> permanent löschen:
+                    Diese Aktion löscht dein Konto und <strong>alle deine Daten</strong> permanent:
                   </p>
                   <ul className="text-sm space-y-1 list-disc list-inside text-foreground">
                     <li>Alle Inventar-Items</li>
@@ -305,10 +295,9 @@ export default function AccountSettings() {
                   <p className="text-xs text-muted-foreground">
                     Dies kann <strong>nicht rückgängig gemacht</strong> werden.
                   </p>
-
                   <div className="space-y-2">
                     <Label htmlFor="confirm-email" className="text-sm font-medium">
-                      Gib deine E-Mail ein um zu bestätigen:
+                      E-Mail zur Bestätigung eingeben:
                     </Label>
                     <Input
                       id="confirm-email"
@@ -325,11 +314,8 @@ export default function AccountSettings() {
                 </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
-
             <div className="flex gap-3">
-              <AlertDialogCancel disabled={isDeleting}>
-                Abbrechen
-              </AlertDialogCancel>
+              <AlertDialogCancel disabled={isDeleting}>Abbrechen</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDeleteAccount}
                 disabled={isDeleting || deleteConfirmEmail !== user?.email}
@@ -338,7 +324,7 @@ export default function AccountSettings() {
                 {isDeleting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Wird gelöscht...
+                    Wird gelöscht…
                   </>
                 ) : (
                   "Ja, löschen"
