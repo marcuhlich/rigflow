@@ -178,9 +178,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const showUndoRedo = onUndo !== null && onRedo !== null;
 
   return (
-    <div className="min-h-[100dvh] flex flex-col relative">
+    <div className="h-screen flex flex-col relative overflow-hidden">
       {/* ── Header ── */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
+      <header className="shrink-0 top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40 pt-[env(safe-area-inset-top)]">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 h-12 lg:h-14 flex items-center justify-between gap-2">
 
           {/* Left: Logo — Auf Mobile flexibel, auf Desktop fest */}
