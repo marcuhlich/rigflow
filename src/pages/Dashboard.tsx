@@ -3,13 +3,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Package, CheckCircle, ArrowRightLeft, AlertTriangle, Zap, Clock, Activity,
   CheckSquare, ArrowRight, TrendingUp, CalendarDays, Star, MapPin, DollarSign,
+  RotateCcw, Bell,
 } from "lucide-react";
 import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from "recharts";
 import { StatCard } from "@/components/StatCard";
 import { AppOnboardingTour } from "@/components/AppOnboardingTour";
@@ -21,7 +22,7 @@ import { useLendingHistory } from "@/hooks/useLendingHistory";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 
-// Custom Hook für Smooth Tooltip Position Tracking
+// ─── Smooth Tooltip ──────────────────────────────────────────────────────────
 const useSmoothTooltipPosition = (coordinate: any) => {
   const [smoothPos, setSmoothPos] = useState({ x: coordinate?.x || 0, y: coordinate?.y || 0 });
   const targetPosRef = useRef({ x: coordinate?.x || 0, y: coordinate?.y || 0 });
@@ -29,69 +30,36 @@ const useSmoothTooltipPosition = (coordinate: any) => {
 
   useEffect(() => {
     if (!coordinate) return;
-    
     targetPosRef.current = { x: coordinate.x, y: coordinate.y };
-    
     const animate = () => {
       setSmoothPos((prev) => {
         const target = targetPosRef.current;
         const dx = target.x - prev.x;
         const dy = target.y - prev.y;
-        
-        // Easing: 0.2 smoothing factor (20% des Weges pro Frame)
-        const newX = prev.x + dx * 0.2;
-        const newY = prev.y + dy * 0.2;
-        
-        // Stop wenn nah genug
-        if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
-          return target;
-        }
-        
-        return { x: newX, y: newY };
+        if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return target;
+        return { x: prev.x + dx * 0.2, y: prev.y + dy * 0.2 };
       });
-      
       animationFrameRef.current = requestAnimationFrame(animate);
     };
-    
     animationFrameRef.current = requestAnimationFrame(animate);
-    
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
+    return () => { if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current); };
   }, [coordinate]);
-  
+
   return smoothPos;
 };
 
-// Custom Tooltip mit weißem Text für Pie Chart - Fixed Position mit Smooth Animation
 const PieTooltip = (props: any) => {
   const { active, payload, coordinate } = props;
   const smoothPos = useSmoothTooltipPosition(active && payload?.length ? coordinate : null);
-  
   if (active && payload && payload.length) {
     return (
-      <div
-        style={{
-          position: "fixed",
-          left: `${smoothPos.x + 10}px`,
-          top: `${smoothPos.y - 10}px`,
-          pointerEvents: "none",
-          zIndex: 1000,
-          backgroundColor: "hsl(var(--popover))",
-          border: "1px solid hsl(var(--border))",
-          borderRadius: "8px",
-          padding: "8px 12px",
-          fontSize: "12px",
-          color: "#ffffff",
-          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-          willChange: "transform",
-        }}
-      >
-        <p style={{ color: "#ffffff", margin: "0 0 4px 0" }}>
-          <strong>{payload[0].name}</strong>
-        </p>
+      <div style={{
+        position: "fixed", left: `${smoothPos.x + 10}px`, top: `${smoothPos.y - 10}px`,
+        pointerEvents: "none", zIndex: 1000, backgroundColor: "hsl(var(--popover))",
+        border: "1px solid hsl(var(--border))", borderRadius: "8px", padding: "8px 12px",
+        fontSize: "12px", color: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.15)", willChange: "transform",
+      }}>
+        <p style={{ color: "#ffffff", margin: "0 0 4px 0" }}><strong>{payload[0].name}</strong></p>
         <p style={{ color: "#ffffff", margin: "0" }}>{payload[0].value} Stück</p>
       </div>
     );
@@ -99,64 +67,22 @@ const PieTooltip = (props: any) => {
   return null;
 };
 
-// Custom Label für Bar Chart
 const BarLabel = (props: any) => {
   const { x, y, width, height, value } = props;
   return (
-    <text
-      x={x + width + 4}
-      y={y + height / 2}
-      fill="hsl(var(--foreground))"
-      fontSize={10}
-      fontWeight="600"
-      textAnchor="start"
-      dominantBaseline="middle"
-    >
-      {value}
-    </text>
+    <text x={x + width + 4} y={y + height / 2} fill="hsl(var(--foreground))"
+      fontSize={10} fontWeight="600" textAnchor="start" dominantBaseline="middle">{value}</text>
   );
 };
 
-// Custom Label für Pie Chart (Prozentzahlen)
-const PieLabel = (props: any) => {
-  const { cx, cy, midAngle, innerRadius, outerRadius, value, total } = props;
-  const RADIAN = Math.PI / 180;
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-  const percentage = ((value / total) * 100).toFixed(0);
-
-  return (
-    <text
-      x={x}
-      y={y}
-      fill="#ffffff"
-      fontSize={11}
-      fontWeight="700"
-      textAnchor={x > cx ? 'start' : 'end'}
-      dominantBaseline="central"
-      style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
-    >
-      {percentage}%
-    </text>
-  );
-};
-
-// Custom Tooltip für Pie Chart
 const BarTooltip = (props: any) => {
   const { active, payload } = props;
   if (active && payload && payload.length) {
     return (
-      <div
-        style={{
-          backgroundColor: "hsl(var(--popover))",
-          border: "1px solid hsl(var(--border))",
-          borderRadius: "8px",
-          padding: "8px 12px",
-          fontSize: "12px",
-          color: "#ffffff",
-        }}
-      >
+      <div style={{
+        backgroundColor: "hsl(var(--popover))", border: "1px solid hsl(var(--border))",
+        borderRadius: "8px", padding: "8px 12px", fontSize: "12px", color: "#ffffff",
+      }}>
         <p style={{ color: "#ffffff", margin: "0" }}>{payload[0].value} Stück</p>
       </div>
     );
@@ -164,123 +90,348 @@ const BarTooltip = (props: any) => {
   return null;
 };
 
-// Custom Active Bar Shape - vereinfaches Highlighting
 const AnimatedActiveBar = (props: any) => {
   const { fill, x, y, width, height } = props;
-  
   return (
     <g>
-      {/* Background highlight - elegant fading */}
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        fill={fill}
-        rx="4"
-        ry="4"
-        opacity="0.25"
-        style={{
-          animation: "fadeIn 0.2s ease-out forwards",
-        }}
-      />
-      
-      {/* Main bar */}
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        fill={fill}
-        rx="4"
-        ry="4"
-      />
+      <rect x={x} y={y} width={width} height={height} fill={fill} rx="4" ry="4" opacity="0.25"
+        style={{ animation: "fadeIn 0.2s ease-out forwards" }} />
+      <rect x={x} y={y} width={width} height={height} fill={fill} rx="4" ry="4" />
     </g>
   );
 };
 
+// ─── Mobile: Hero Donut + Bento ──────────────────────────────────────────────
+interface MobileBentoStatsProps {
+  stats: any;
+  totalValue: number;
+  activeLoansCount: number;
+}
+
+const MobileBentoStats = ({ stats, totalValue, activeLoansCount }: MobileBentoStatsProps) => {
+  const [pressedCard, setPressedCard] = useState<string | null>(null);
+
+  const press = (id: string) => {
+    setPressedCard(id);
+    if (navigator.vibrate) navigator.vibrate(8);
+    setTimeout(() => setPressedCard(null), 150);
+  };
+
+  const cardScale = (id: string): React.CSSProperties => ({
+    transform: pressedCard === id ? "scale(0.97)" : "scale(1)",
+    transition: "transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1)",
+  });
+
+  const available = stats.available || 0;
+  const availPct  = stats.total > 0 ? Math.round((available / stats.total) * 100) : 0;
+
+  const donutData = [
+    { name: "Verfügbar",  value: stats.available || 0, color: "hsl(var(--success))" },
+    { name: "Im Einsatz", value: stats.inUse || 0,     color: "hsl(var(--primary))" },
+    { name: "Verliehen",  value: stats.lent || 0,      color: "hsl(var(--warning))" },
+    { name: "Defekt",     value: stats.defect || 0,    color: "hsl(var(--destructive))" },
+  ].filter(d => d.value > 0);
+
+  const tiles = [
+    { id: "avail", label: "Verfügbar",  value: stats.available,                color: "#22c55e", icon: <CheckCircle className="h-3.5 w-3.5" />,    to: "/inventory?filter=verfügbar" },
+    { id: "lent",  label: "Verliehen",  value: activeLoansCount || stats.lent, color: "#f97316", icon: <ArrowRightLeft className="h-3.5 w-3.5" />, to: "/lending" },
+    { id: "use",   label: "Im Einsatz", value: stats.inUse,                    color: "hsl(var(--primary))", icon: <Zap className="h-3.5 w-3.5" />, to: "/sets" },
+    { id: "def",   label: "Defekt",     value: stats.defect,                   color: "#ef4444", icon: <AlertTriangle className="h-3.5 w-3.5" />,  to: "/inventory?filter=defekt" },
+  ];
+
+  return (
+    <section className="mobile-bento-grid">
+      {/* Hero card */}
+      <Link
+        to="/inventory"
+        className="mobile-hero-card"
+        style={cardScale("hero")}
+        onPointerDown={() => press("hero")}
+      >
+        <div className="mobile-hero-mesh" />
+        <div style={{ position: "relative", zIndex: 10, padding: "14px", height: "100%", display: "flex", flexDirection: "column" }}>
+          <p style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", margin: "0 0 6px 0" }}>
+            Wo ist mein Zeug?
+          </p>
+
+          {/* Donut */}
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+            <div style={{ width: "120px", height: "120px" }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={donutData.length > 0 ? donutData : [{ name: "Leer", value: 1, color: "rgba(255,255,255,0.08)" }]}
+                    cx="50%" cy="50%"
+                    innerRadius={36} outerRadius={52}
+                    paddingAngle={donutData.length > 1 ? 3 : 0}
+                    dataKey="value" strokeWidth={0}
+                    startAngle={90} endAngle={-270}
+                  >
+                    {(donutData.length > 0 ? donutData : [{ color: "rgba(255,255,255,0.08)" }]).map((entry: any, i: number) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            {/* Center % */}
+            <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", pointerEvents: "none" }}>
+              <p style={{ fontSize: "22px", fontWeight: 800, color: "#fff", lineHeight: 1, margin: 0 }}>{availPct}%</p>
+              <p style={{ fontSize: "9px", color: "rgba(255,255,255,0.45)", margin: "2px 0 0 0" }}>frei</p>
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "6px" }}>
+            {donutData.map(d => (
+              <div key={d.name} style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+                <div style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: d.color, flexShrink: 0 }} />
+                <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.45)" }}>{d.name}</span>
+                <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.7)", fontWeight: 700 }}>{d.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Link>
+
+      {/* 4 secondary tiles */}
+      <div className="mobile-secondary-grid">
+        {tiles.map((s) => (
+          <Link
+            key={s.id}
+            to={s.to}
+            className="mobile-stat-tile"
+            style={{ ...cardScale(s.id), "--tile-accent": s.color } as React.CSSProperties}
+            onPointerDown={() => press(s.id)}
+          >
+            <span className="mobile-tile-icon" style={{ color: s.color }}>{s.icon}</span>
+            <span className="mobile-tile-value">{s.value}</span>
+            <span className="mobile-tile-label">{s.label}</span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+// ─── Mobile: Swipeable Lent Item ─────────────────────────────────────────────
+// Korrekte "Freilegungs"-Mechanik:
+//   Karte + Buttons leben im selben horizontalen Track.
+//   Der Track ist (100% + ACTION_WIDTH) breit und startet bündig links.
+//   Beim Swipen verschiebt sich der gesamte Track nach links →
+//   die Karte schiebt sich weg und gibt die rechts danebenliegenden Buttons frei.
+interface SwipeLentItemProps {
+  item: any;
+  onReturn?: (id: string) => void;
+  onRemind?: (id: string) => void;
+}
+
+const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
+  const ACTION_WIDTH = 140;
+  const THRESHOLD    = 72;
+
+  const [offsetX,  setOffsetX]  = useState(0);
+  const [revealed, setRevealed] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const startX    = useRef(0);
+  const startOff  = useRef(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startX.current   = e.touches[0].clientX;
+    startOff.current = offsetX;
+    setDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const dx   = e.touches[0].clientX - startX.current;
+    const next = Math.min(0, Math.max(startOff.current + dx, -ACTION_WIDTH));
+    setOffsetX(next);
+  };
+
+  const handleTouchEnd = () => {
+    setDragging(false);
+    if (offsetX < -THRESHOLD) {
+      setOffsetX(-ACTION_WIDTH);
+      setRevealed(true);
+    } else {
+      setOffsetX(0);
+      setRevealed(false);
+    }
+  };
+
+  const close = () => { setOffsetX(0); setRevealed(false); };
+
+  const now           = new Date();
+  const soonThreshold = item.lent_until
+    ? new Date(item.lent_until).getTime() - now.getTime() < 3 * 86_400_000
+    : false;
+  const urgencyColor = item.isOverdue ? "#ef4444" : soonThreshold ? "#f97316" : "#22c55e";
+  const urgencyPulse = item.isOverdue || soonThreshold;
+
+  return (
+    /* Clip container – hides the buttons until revealed */
+    <div style={{ position: "relative", overflow: "hidden", borderRadius: "12px", marginBottom: "8px" }}>
+
+      {/* Sliding track: [card][btn-return][btn-remind] */}
+      <div
+        style={{
+          display: "flex",
+          width: `calc(100% + ${ACTION_WIDTH}px)`,
+          transform: `translateX(${offsetX}px)`,
+          transition: dragging ? "none" : "transform 0.28s cubic-bezier(0.34, 1.2, 0.64, 1)",
+          willChange: "transform",
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* ── Card ── */}
+        <div style={{ flex: `0 0 calc(100% - ${ACTION_WIDTH}px)`, minWidth: 0 }}>
+          <Link
+            to={`/inventory/${item.id}`}
+            onClick={(e) => { if (revealed) e.preventDefault(); }}
+            style={{
+              display: "block",
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.07)",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
+              borderRadius: "12px",
+              textDecoration: "none",
+              overflow: "hidden",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 12px 10px" }}>
+              <div style={{
+                width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0,
+                backgroundColor: urgencyColor,
+                boxShadow: urgencyPulse ? `0 0 8px ${urgencyColor}` : "none",
+              }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: "13px", fontWeight: 600, margin: 0, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {item.name}
+                </p>
+                <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.45)", margin: "2px 0 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  an {item.lent_to || "–"}
+                  {item.lent_until && ` · bis ${format(new Date(item.lent_until), "dd.MM.yy")}`}
+                </p>
+              </div>
+              {item.isOverdue && (
+                <span style={{
+                  fontSize: "10px", fontWeight: 700, borderRadius: "20px", padding: "2px 8px", flexShrink: 0,
+                  background: "rgba(239,68,68,0.18)", color: "#f87171",
+                  border: "1px solid rgba(239,68,68,0.35)",
+                  animation: "glowPill 2s ease-in-out infinite",
+                }}>
+                  Überfällig
+                </span>
+              )}
+            </div>
+            {/* Progress bar */}
+            <div style={{
+              height: "2.5px", width: "100%", backgroundColor: urgencyColor,
+              borderRadius: "0 0 12px 12px",
+              ...(urgencyPulse ? { animation: "pulseBar 2s ease-in-out infinite" } : {}),
+            }} />
+          </Link>
+        </div>
+
+        {/* ── Action buttons ── */}
+        <button
+          style={{
+            flex: `0 0 ${ACTION_WIDTH / 2}px`, border: "none", cursor: "pointer",
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "4px",
+            background: "hsl(var(--primary))", color: "#fff", fontSize: "10px", fontWeight: 700,
+          }}
+          onClick={() => { close(); onReturn?.(item.id); }}
+        >
+          <RotateCcw style={{ width: "16px", height: "16px" }} />
+          Rückgabe
+        </button>
+        <button
+          style={{
+            flex: `0 0 ${ACTION_WIDTH / 2}px`, border: "none", cursor: "pointer",
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "4px",
+            background: "#f97316", color: "#fff", fontSize: "10px", fontWeight: 700,
+            borderRadius: "0 12px 12px 0",
+          }}
+          onClick={() => { close(); onRemind?.(item.id); }}
+        >
+          <Bell style={{ width: "16px", height: "16px" }} />
+          Mahnen
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { allItems, stats, loading } = useInventory();
   const { checklists } = useEventChecklists();
-  const { sets, loading: setsLoading } = useEventSets();
+  const { sets } = useEventSets();
   const { user } = useAuth();
-  const { activeLoans, overdueLoans, completedLoans, loading: lendingLoading } = useLendingHistory();
+  const { activeLoans, completedLoans } = useLendingHistory();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [chartsVisible, setChartsVisible] = useState(false);
   const [pieActiveIndex] = useState(-1);
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
   useEffect(() => {
-    // Show charts nach kurzer Verzögerung für Animation
-    const timer = setTimeout(() => setChartsVisible(true), 100);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => setChartsVisible(true), 100);
+    return () => clearTimeout(t);
   }, []);
 
   useEffect(() => {
-    if (user) {
-      const hasCompletedOnboarding = localStorage.getItem(`onboarding_completed_${user.id}`);
-      if (!hasCompletedOnboarding) setShowOnboarding(true);
-    }
+    if (user && !localStorage.getItem(`onboarding_completed_${user.id}`)) setShowOnboarding(true);
   }, [user]);
 
   const handleOnboardingComplete = () => {
-    if (user) localStorage.setItem(`onboarding_completed_${user.id}`, 'true');
+    if (user) localStorage.setItem(`onboarding_completed_${user.id}`, "true");
     setShowOnboarding(false);
   };
 
-  // Pie data
   const pieData = useMemo(() => [
-    { name: "Verfügbar", value: stats.available, color: "hsl(var(--success))" },
-    { name: "Verliehen", value: stats.lent, color: "hsl(var(--warning))" },
-    { name: "Im Einsatz", value: stats.inUse, color: "hsl(var(--primary))" },
-    { name: "Defekt", value: stats.defect, color: "hsl(var(--destructive))" },
-  ].filter(d => d.value > 0), [stats]);
+    { name: "Verfügbar",  value: stats.available, color: "hsl(var(--success))" },
+    { name: "Verliehen",  value: stats.lent,       color: "hsl(var(--warning))" },
+    { name: "Im Einsatz", value: stats.inUse,      color: "hsl(var(--primary))" },
+    { name: "Defekt",     value: stats.defect,     color: "hsl(var(--destructive))" },
+  ].filter((d) => d.value > 0), [stats]);
 
-  // Category bar chart data
   const categoryData = useMemo(() => {
     const counts: Record<string, number> = {};
-    allItems.forEach(item => {
-      counts[item.category] = (counts[item.category] || 0) + item.quantity;
-    });
-    return Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .map(([name, value]) => ({ name, value }));
+    allItems.forEach((item) => { counts[item.category] = (counts[item.category] || 0) + item.quantity; });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name, value }));
   }, [allItems]);
 
-  // Total inventory value
-  const totalValue = useMemo(() => {
-    return allItems.reduce((sum, item) => sum + (item.unit_price || 0) * item.quantity, 0);
-  }, [allItems]);
+  const totalValue = useMemo(() =>
+    allItems.reduce((sum, item) => sum + (item.unit_price || 0) * item.quantity, 0),
+  [allItems]);
 
-  // Items by location
   const locationData = useMemo(() => {
     const counts: Record<string, number> = {};
-    allItems.forEach(item => {
+    allItems.forEach((item) => {
       const loc = item.location || "Unbekannt";
       counts[loc] = (counts[loc] || 0) + item.quantity;
     });
     return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
   }, [allItems]);
 
-  // Upcoming event sets (next 30 days)
   const upcomingSets = useMemo(() => {
     const now = new Date();
     const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     return sets
-      .filter(s => s.event_date_start && new Date(s.event_date_start) >= now && new Date(s.event_date_start) <= in30)
+      .filter((s) => s.event_date_start && new Date(s.event_date_start) >= now && new Date(s.event_date_start) <= in30)
       .sort((a, b) => new Date(a.event_date_start!).getTime() - new Date(b.event_date_start!).getTime())
       .slice(0, 5);
   }, [sets]);
 
-  // Lent items with overdue check
   const lentItems = useMemo(() => {
     const now = new Date();
     return allItems
-      .filter(i => i.condition === 'verliehen')
-      .map(i => ({
-        ...i,
-        isOverdue: i.lent_until ? new Date(i.lent_until) < now : false,
-      }))
+      .filter((i) => i.condition === "verliehen")
+      .map((i) => ({ ...i, isOverdue: i.lent_until ? new Date(i.lent_until) < now : false }))
       .sort((a, b) => {
         if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
         return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
@@ -288,25 +439,19 @@ export default function Dashboard() {
       .slice(0, 5);
   }, [allItems]);
 
-  // Defect items
-  const defectItems = useMemo(() =>
-    allItems.filter(i => i.condition === 'defekt').slice(0, 5),
-  [allItems]);
+  const defectItems = useMemo(() => allItems.filter((i) => i.condition === "defekt").slice(0, 5), [allItems]);
 
-  // Recent activities - combine lending history with defect items
   const recentActivities = useMemo(() => {
-    const activities: { id: string; message: string; time: string; type: 'lent' | 'returned' | 'defect' }[] = [];
-    // Use real lending history
-    activeLoans.forEach(record => {
-      activities.push({ id: record.id, message: `${record.item_name} verliehen an ${record.lent_to}`, time: record.created_at, type: 'lent' });
+    const activities: { id: string; message: string; time: string; type: "lent" | "returned" | "defect" }[] = [];
+    activeLoans.forEach((r) => {
+      activities.push({ id: r.id, message: `${r.item_name} verliehen an ${r.lent_to}`, time: r.created_at, type: "lent" });
     });
-    completedLoans.slice(0, 5).forEach(record => {
-      activities.push({ id: record.id, message: `${record.item_name} zurückgegeben (war an ${record.lent_to})`, time: record.returned_at!, type: 'returned' });
+    completedLoans.slice(0, 5).forEach((r) => {
+      activities.push({ id: r.id, message: `${r.item_name} zurückgegeben (war an ${r.lent_to})`, time: r.returned_at!, type: "returned" });
     });
-    allItems.forEach(item => {
-      if (item.condition === 'defekt') {
-        activities.push({ id: item.id, message: `${item.name} als defekt markiert`, time: item.updated_at, type: 'defect' });
-      }
+    allItems.forEach((item) => {
+      if (item.condition === "defekt")
+        activities.push({ id: item.id, message: `${item.name} als defekt markiert`, time: item.updated_at, type: "defect" });
     });
     return activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 8);
   }, [allItems, activeLoans, completedLoans]);
@@ -315,9 +460,7 @@ export default function Dashboard() {
     return (
       <div className="space-y-6">
         <section className="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 sm:h-20 w-full" />
-          ))}
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 sm:h-20 w-full" />)}
         </section>
         <div className="grid lg:grid-cols-2 gap-4">
           <Skeleton className="h-[280px] w-full rounded-lg" />
@@ -330,24 +473,103 @@ export default function Dashboard() {
   return (
     <div className="space-y-5 sm:space-y-8 pb-24">
       <style>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
+        @keyframes fadeIn      { from { opacity: 0 } to { opacity: 0.25 } }
+        @keyframes chartFadeIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes pulseBar    { 0%,100%{ opacity:1 } 50%{ opacity:0.4 } }
+        @keyframes glowPill    { 0%,100%{ box-shadow:0 0 6px 1px rgba(239,68,68,.5) } 50%{ box-shadow:0 0 14px 4px rgba(239,68,68,.85) } }
+        @keyframes meshMove    { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+
+        /* ── Mobile Bento ─────────────────────────── */
+        @media (max-width: 767px) {
+          .mobile-bento-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 0;
+            gap: 10px;
+            align-items: stretch;
+            overflow: visible;
+            width: 100%;
+            min-height: 220px;
           }
-          to {
-            opacity: 0.25;
+          .mobile-hero-card {
+            grid-column: 1;
+            height: 100%;
+            border-radius: 20px;
+            z-index: 2;
+            overflow: hidden;
+            text-decoration: none;
+            display: block;
+            min-height: 220px;
+            position: relative;
+            background: linear-gradient(145deg, #0f2027, #1a3a4a, #0b3d2e);
+            box-shadow: 0 8px 32px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.25);
           }
+          .mobile-hero-mesh {
+            position: absolute; inset: 0;
+            background:
+              radial-gradient(ellipse at 20% 20%, rgba(52,211,153,.18) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 80%, rgba(14,165,233,.14) 0%, transparent 55%),
+              radial-gradient(ellipse at 50% 110%, rgba(16,185,129,.10) 0%, transparent 50%);
+            background-size: 200% 200%;
+            z-index: 1;
+            pointer-events: none;
+            animation: meshMove 8s ease-in-out infinite;
+          }
+          .mobile-secondary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+            height: 100%;
+            z-index: 3;
+          }
+          .mobile-stat-tile {
+            border-radius: 16px;
+            min-height: 105px;
+            background: rgba(255,255,255,.03);
+            border: 1px solid rgba(255,255,255,.07);
+            z-index: 10;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 4px 16px rgba(0,0,0,.3), 0 1px 4px rgba(0,0,0,.2);
+            padding: 12px 12px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+          }
+          .mobile-stat-tile::before {
+            content: "";
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 2px;
+            background: var(--tile-accent);
+            opacity: 0.7;
+            border-radius: 16px 16px 0 0;
+          }
+          .mobile-tile-icon  { margin-bottom: 2px; }
+          .mobile-tile-value { font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -0.02em; line-height: 1; }
+          .mobile-tile-label { font-size: 10px; color: rgba(255,255,255,.45); font-weight: 500; }
+
+          .mobile-section-header { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+          .mobile-section-title  { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.35); }
         }
-        @keyframes chartFadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
+
+        /* ── Show/hide guards ─────────────────────── */
+        @media (min-width: 768px) {
+          .mobile-bento-grid { display: none !important; }
+          .mobile-only       { display: none !important; }
+        }
+        @media (max-width: 767px) {
+          .desktop-only { display: none !important; }
         }
       `}</style>
-      
+
       {showOnboarding && <AppOnboardingTour onComplete={handleOnboardingComplete} />}
 
       <div>
@@ -355,19 +577,24 @@ export default function Dashboard() {
         <p className="text-muted-foreground text-xs sm:text-sm mt-1">Übersicht über dein Equipment</p>
       </div>
 
-      {/* Stats Grid */}
-      <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-        <StatCard title="Gesamt" value={stats.total} icon={Package} variant="default" />
-        <StatCard title="Verfügbar" value={stats.available} icon={CheckCircle} variant="success" />
-        <StatCard title="Verliehen" value={activeLoans.length || stats.lent} icon={ArrowRightLeft} variant="warning" />
-        <StatCard title="Im Einsatz" value={stats.inUse} icon={Zap} variant="primary" />
-        <StatCard title="Defekt" value={stats.defect} icon={AlertTriangle} variant="destructive" />
+      {/* ══ 1. BENTO STATS ══════════════════════════════════════════════════════ */}
+
+      {/* Mobile */}
+      <MobileBentoStats stats={stats} totalValue={totalValue} activeLoansCount={activeLoans.length} />
+
+      {/* Desktop */}
+      <section className="desktop-only grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        <StatCard title="Gesamt"     value={stats.total}                    icon={Package}       variant="default"     />
+        <StatCard title="Verfügbar"  value={stats.available}                icon={CheckCircle}   variant="success"     />
+        <StatCard title="Verliehen"  value={activeLoans.length || stats.lent} icon={ArrowRightLeft} variant="warning"  />
+        <StatCard title="Im Einsatz" value={stats.inUse}                    icon={Zap}           variant="primary"     />
+        <StatCard title="Defekt"     value={stats.defect}                   icon={AlertTriangle} variant="destructive" />
         <div className="glass-card p-3 sm:p-5 hover:shadow-md transition-shadow duration-200">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">Gesamtwert</p>
               <p className="text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1">
-                {totalValue > 0 ? `${totalValue.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €` : '–'}
+                {totalValue > 0 ? `${totalValue.toLocaleString("de-DE", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €` : "–"}
               </p>
             </div>
             <div className="p-2 sm:p-3 rounded-lg bg-primary/10 flex-shrink-0">
@@ -377,9 +604,34 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* Upcoming Events & Quick Links */}
+      {/* ══ 2. MOBILE: Defekte Artikel ══════════════════════════════════════════ */}
+      {defectItems.length > 0 && (
+        <div className="mobile-only">
+          <div className="mobile-section-header">
+            <AlertTriangle className="h-3.5 w-3.5" style={{ color: "rgba(255,255,255,.35)" }} />
+            <span className="mobile-section-title">Defekt · {stats.defect} Artikel</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {defectItems.map((item) => (
+              <Link key={item.id} to={`/inventory/${item.id}`} style={{
+                display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px",
+                background: "rgba(239,68,68,.07)", border: "1px solid rgba(239,68,68,.18)",
+                borderRadius: "12px", textDecoration: "none",
+                backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+              }}>
+                <div style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#ef4444", flexShrink: 0, boxShadow: "0 0 6px #ef4444" }} />
+                <p style={{ fontSize: "13px", fontWeight: 600, color: "#fff", margin: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {item.name}
+                </p>
+                <span style={{ fontSize: "10px", color: "rgba(255,255,255,.4)", flexShrink: 0 }}>{item.category}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ══ 3. Anstehende Events + Quick Links ══════════════════════════════════ */}
       <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
-        {/* Upcoming sets */}
         <Card className="border-border/50">
           <CardContent className="p-4 sm:p-5">
             <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
@@ -388,14 +640,11 @@ export default function Dashboard() {
             </h3>
             {upcomingSets.length > 0 ? (
               <div className="space-y-2">
-                {upcomingSets.map(s => {
-                  const allOk = s.items.length > 0 && s.items.every(i => (i.available_quantity || 0) >= i.quantity);
+                {upcomingSets.map((s) => {
+                  const allOk = s.items.length > 0 && s.items.every((i: any) => (i.available_quantity || 0) >= i.quantity);
                   return (
-                    <Link
-                      key={s.id}
-                      to="/sets"
-                      className="flex items-center justify-between p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors"
-                    >
+                    <Link key={s.id} to="/sets"
+                      className="flex items-center justify-between p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           {s.is_favorite && <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 shrink-0" />}
@@ -422,45 +671,39 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Quick Links */}
         <div className="space-y-3">
           {checklists.length > 0 && (
-            <Link
-              to="/checklists"
-              className="flex items-center justify-between p-3 sm:p-4 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors group"
-            >
+            <Link to="/checklists"
+              className="flex items-center justify-between p-3 sm:p-4 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors group">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
                   <CheckSquare className="h-4 w-4 text-primary" />
                 </div>
                 <div className="min-w-0">
                   <p className="font-semibold text-xs sm:text-sm truncate">Event Checklisten</p>
-                  <p className="text-[11px] text-muted-foreground">{checklists.length} aktive Checkliste{checklists.length !== 1 ? 'n' : ''}</p>
+                  <p className="text-[11px] text-muted-foreground">{checklists.length} aktive Checkliste{checklists.length !== 1 ? "n" : ""}</p>
                 </div>
               </div>
               <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
             </Link>
           )}
 
-          {/* Lent items warning */}
+          {/* Desktop: Lent */}
           {lentItems.length > 0 && (
-            <Card className="border-warning/30">
+            <Card className="desktop-only border-warning/30">
               <CardContent className="p-4">
                 <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
                   <ArrowRightLeft className="h-4 w-4 text-warning" />
                   Verliehene Artikel
                 </h3>
                 <div className="space-y-1.5">
-                  {lentItems.map(item => (
-                    <Link
-                      key={item.id}
-                      to={`/inventory/${item.id}`}
-                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/20 transition-colors"
-                    >
+                  {lentItems.map((item) => (
+                    <Link key={item.id} to={`/inventory/${item.id}`}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/20 transition-colors">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium truncate">{item.name}</p>
                         <p className="text-[11px] text-muted-foreground truncate">
-                          an {item.lent_to || '–'}
+                          an {item.lent_to || "–"}
                           {item.lent_until && ` · bis ${format(new Date(item.lent_until), "dd.MM.yy")}`}
                         </p>
                       </div>
@@ -474,21 +717,18 @@ export default function Dashboard() {
             </Card>
           )}
 
-          {/* Defect items */}
+          {/* Desktop: Defect */}
           {defectItems.length > 0 && (
-            <Card className="border-destructive/30">
+            <Card className="desktop-only border-destructive/30">
               <CardContent className="p-4">
                 <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-destructive" />
                   Defekte Artikel ({stats.defect})
                 </h3>
                 <div className="space-y-1.5">
-                  {defectItems.map(item => (
-                    <Link
-                      key={item.id}
-                      to={`/inventory/${item.id}`}
-                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/20 transition-colors"
-                    >
+                  {defectItems.map((item) => (
+                    <Link key={item.id} to={`/inventory/${item.id}`}
+                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/20 transition-colors">
                       <p className="text-xs font-medium truncate">{item.name}</p>
                       <span className="text-[11px] text-muted-foreground shrink-0">{item.category}</span>
                     </Link>
@@ -500,9 +740,29 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Charts Row */}
+      {/* ══ 4. MOBILE: Swipeable Lent Items ════════════════════════════════════ */}
+      {lentItems.length > 0 && (
+        <div className="mobile-only">
+          <div className="mobile-section-header">
+            <ArrowRightLeft className="h-3.5 w-3.5" style={{ color: "rgba(255,255,255,.35)" }} />
+            <span className="mobile-section-title">Verliehen · Links wischen</span>
+          </div>
+          {lentItems.map((item) => (
+            <SwipeLentItem
+              key={item.id}
+              item={item}
+              onReturn={(id) => console.log("return", id)}  // eigenen Handler einsetzen
+              onRemind={(id) => console.log("remind", id)}
+            />
+          ))}
+          <Link to="/lending" className="flex items-center gap-1 mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+            Alle Ausleihen <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+      )}
+
+      {/* ══ 5. Charts & Aktivitäten ═════════════════════════════════════════════ */}
       <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Pie Chart */}
         <div className="glass-card p-4 sm:p-6">
           <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
             <Activity className="h-4 w-4 text-primary" />
@@ -510,36 +770,33 @@ export default function Dashboard() {
           </h3>
           {pieData.length > 0 ? (
             chartsVisible && (
-            <div className="h-[220px] sm:h-[260px] animate-in fade-in duration-1000">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={isMobile ? 30 : 55} outerRadius={isMobile ? 60 : 90} paddingAngle={2} dataKey="value" strokeWidth={0} activeIndex={pieActiveIndex}>
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<PieTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-wrap justify-center gap-2 sm:gap-4 -mt-2">
-                {pieData.map(d => (
-                  <div key={d.name} className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs">
-                    <div className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full" style={{ backgroundColor: d.color }} />
-                    <span className="text-muted-foreground truncate">{d.name}</span>
-                    <span className="font-medium shrink-0">{d.value}</span>
-                  </div>
-                ))}
+              <div className="h-[220px] sm:h-[260px] animate-in fade-in duration-1000">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={pieData} cx="50%" cy="50%"
+                      innerRadius={isMobile ? 30 : 55} outerRadius={isMobile ? 60 : 90}
+                      paddingAngle={2} dataKey="value" strokeWidth={0} activeIndex={pieActiveIndex}>
+                      {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip content={<PieTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex flex-wrap justify-center gap-2 sm:gap-4 -mt-2">
+                  {pieData.map((d) => (
+                    <div key={d.name} className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs">
+                      <div className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                      <span className="text-muted-foreground truncate">{d.name}</span>
+                      <span className="font-medium shrink-0">{d.value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
             )
           ) : (
-            <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
-              Keine Daten vorhanden
-            </div>
+            <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">Keine Daten vorhanden</div>
           )}
         </div>
 
-        {/* Bar Chart - Categories */}
         <div className="glass-card p-4 sm:p-6">
           <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-primary" />
@@ -547,35 +804,28 @@ export default function Dashboard() {
           </h3>
           {categoryData.length > 0 ? (
             chartsVisible && (
-            <div className="h-[240px] sm:h-[260px] animate-in fade-in duration-1000">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={categoryData} layout="vertical" margin={{ left: isMobile ? 55 : 80, right: isMobile ? 12 : 16, top: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: isMobile ? 10 : 11, fill: "hsl(var(--muted-foreground))" }} />
-                  <YAxis dataKey="name" type="category" width={isMobile ? 55 : 80} tick={{ fontSize: isMobile ? 9 : 11, fill: "hsl(var(--muted-foreground))" }} />
-                  <Tooltip content={<BarTooltip />} cursor={{ fill: "rgba(59, 130, 246, 0.1)" }} />
-                  <Bar
-                    dataKey="value"
-                    fill="hsl(var(--primary))"
-                    radius={[0, 4, 4, 0]}
-                    activeBar={<AnimatedActiveBar />}
-                    label={<BarLabel />}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+              <div className="h-[240px] sm:h-[260px] animate-in fade-in duration-1000">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={categoryData} layout="vertical"
+                    margin={{ left: isMobile ? 55 : 80, right: isMobile ? 12 : 16, top: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: isMobile ? 10 : 11, fill: "hsl(var(--muted-foreground))" }} />
+                    <YAxis dataKey="name" type="category" width={isMobile ? 55 : 80}
+                      tick={{ fontSize: isMobile ? 9 : 11, fill: "hsl(var(--muted-foreground))" }} />
+                    <Tooltip content={<BarTooltip />} cursor={{ fill: "rgba(59,130,246,0.1)" }} />
+                    <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]}
+                      activeBar={<AnimatedActiveBar />} label={<BarLabel />} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             )
           ) : (
-            <div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">
-              Keine Kategorien vorhanden
-            </div>
+            <div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">Keine Kategorien vorhanden</div>
           )}
         </div>
       </div>
 
-      {/* Location & Activity Row */}
       <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Locations */}
         <div className="glass-card p-4 sm:p-6">
           <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
             <MapPin className="h-4 w-4 text-primary" />
@@ -592,10 +842,7 @@ export default function Dashboard() {
                       <span className="text-muted-foreground shrink-0 ml-2">{count} Stück</span>
                     </div>
                     <div className="h-2 rounded-full bg-muted/40 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-primary/70 transition-all"
-                        style={{ width: `${Math.max(pct, 2)}%` }}
-                      />
+                      <div className="h-full rounded-full bg-primary/70 transition-all" style={{ width: `${Math.max(pct, 2)}%` }} />
                     </div>
                   </div>
                 );
@@ -606,7 +853,6 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Recent Activities */}
         <div className="glass-card p-4 sm:p-6">
           <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
             <Clock className="h-4 w-4 text-primary" />
@@ -615,20 +861,16 @@ export default function Dashboard() {
           {recentActivities.length > 0 ? (
             <div className="space-y-2">
               {recentActivities.map((activity) => (
-                <div
-                  key={activity.id + activity.time}
-                  className="flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors"
-                >
+                <div key={activity.id + activity.time}
+                  className="flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
                   <div className={`p-1.5 rounded-full flex-shrink-0 ${
-                    activity.type === 'lent' ? 'bg-warning/20 text-warning' : activity.type === 'returned' ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'
+                    activity.type === "lent" ? "bg-warning/20 text-warning"
+                    : activity.type === "returned" ? "bg-primary/20 text-primary"
+                    : "bg-destructive/20 text-destructive"
                   }`}>
-                    {activity.type === 'lent' ? (
-                      <ArrowRightLeft className="h-3 w-3" />
-                    ) : activity.type === 'returned' ? (
-                      <CheckCircle className="h-3 w-3" />
-                    ) : (
-                      <AlertTriangle className="h-3 w-3" />
-                    )}
+                    {activity.type === "lent" ? <ArrowRightLeft className="h-3 w-3" />
+                     : activity.type === "returned" ? <CheckCircle className="h-3 w-3" />
+                     : <AlertTriangle className="h-3 w-3" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium truncate">{activity.message}</p>

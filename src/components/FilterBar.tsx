@@ -14,6 +14,7 @@ interface FilterBarProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
   categoryFilter: ItemCategory | 'all';
+  searchRef?: React.RefObject<HTMLInputElement | null>;
   onCategoryChange: (value: ItemCategory | 'all') => void;
   conditionFilter: ItemCondition | 'all';
   onConditionChange: (value: ItemCondition | 'all') => void;
@@ -29,6 +30,7 @@ export function FilterBar({
   onSearchChange,
   categoryFilter,
   onCategoryChange,
+  searchRef,
   conditionFilter,
   onConditionChange,
   locationFilter = 'all',
@@ -43,13 +45,19 @@ export function FilterBar({
     <div className="glass-card p-4">
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
           <Input
             placeholder="Suche nach Name, Standort..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-10 glass-input"
+            ref={searchRef}
           />
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1 pointer-events-none">
+            <kbd className="h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+              <span className="text-xs">/</span>
+            </kbd>
+          </div>
         </div>
         
         <div className="flex flex-wrap gap-2 w-full lg:w-auto">

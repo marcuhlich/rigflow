@@ -1,6 +1,6 @@
 import { ReactNode, useRef, useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, Sliders, CheckSquare, Boxes, HandCoins, MoreHorizontal } from "lucide-react";
+import { LayoutDashboard, Package, Sliders, CheckSquare, Boxes, HandCoins, MoreHorizontal, Search } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { UndoRedoButtons } from "@/components/UndoRedoButtons";
@@ -18,17 +18,16 @@ const navItems = [
   { to: "/lending", icon: HandCoins, label: "Verleih", mobileLabel: "Verleih" },
   { to: "/sets", icon: Boxes, label: "Sets", mobileLabel: "Sets" },
   { to: "/checklists", icon: CheckSquare, label: "Checklisten", mobileLabel: "Checks" },
-  { to: "/dmx", icon: Sliders, label: "DMX Patchplan", mobileLabel: "DMX" },
+  { to: "/dmx", icon: Sliders, label: "DMX", mobileLabel: "DMX" },
 ];
 
-// Mobile nav only shows first 4 + a "More" popover for the rest
 const MOBILE_NAV_COUNT = 4;
 
 function LiquidGlassNav() {
   const location = useLocation();
   const navRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
-  const [bubbleStyle, setBubbleStyle] = useState<{ left: number, width: number } | null>(null);
+  const [bubbleStyle, setBubbleStyle] = useState<{ left: number; width: number } | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
 
   const mobileItems = navItems.slice(0, MOBILE_NAV_COUNT);
@@ -38,13 +37,12 @@ function LiquidGlassNav() {
     item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to)
   );
 
-  // Index in the rendered mobile nav (0..MOBILE_NAV_COUNT for the "more" button)
   const activeIndex = (() => {
     const mainIdx = mobileItems.findIndex((item) =>
       item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to)
     );
     if (mainIdx >= 0) return mainIdx;
-    if (isMoreActive) return MOBILE_NAV_COUNT; // "More" button position
+    if (isMoreActive) return MOBILE_NAV_COUNT;
     return -1;
   })();
 
@@ -54,17 +52,11 @@ function LiquidGlassNav() {
     if (el && nav) {
       const navRect = nav.getBoundingClientRect();
       const elRect = el.getBoundingClientRect();
-      setBubbleStyle({
-        left: elRect.left - navRect.left,
-        width: elRect.width,
-      });
+      setBubbleStyle({ left: elRect.left - navRect.left, width: elRect.width });
     }
   }, [activeIndex]);
 
-  // Close more menu on route change
-  useEffect(() => {
-    setMoreOpen(false);
-  }, [location.pathname]);
+  useEffect(() => { setMoreOpen(false); }, [location.pathname]);
 
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-[env(safe-area-inset-bottom)]">
@@ -85,8 +77,7 @@ function LiquidGlassNav() {
           }}
         >
           {moreItems.map((item, i) => {
-            const isActive =
-              item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
+            const isActive = item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
             return (
               <NavLink
                 key={item.to}
@@ -95,9 +86,7 @@ function LiquidGlassNav() {
                 onClick={() => setMoreOpen(false)}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
-                  isActive
-                    ? "text-primary bg-primary/10"
-                    : "text-muted-foreground/80 active:bg-white/5"
+                  isActive ? "text-primary bg-primary/10" : "text-muted-foreground/80 active:bg-white/5"
                 )}
                 style={{
                   transition: `opacity 0.2s ease ${i * 0.06}s, transform 0.25s cubic-bezier(0.32, 0.72, 0, 1) ${i * 0.06}s`,
@@ -120,28 +109,25 @@ function LiquidGlassNav() {
             backdropFilter: "blur(24px) saturate(180%)",
             WebkitBackdropFilter: "blur(24px) saturate(180%)",
             border: "1px solid rgba(255, 255, 255, 0.08)",
-            boxShadow:
-              "0 8px 32px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.06)",
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.06)",
           }}
         >
-          {/* Animated highlight bubble */}
           {bubbleStyle !== null && (
-          <div
-            className="absolute top-1.5 bottom-1.5 rounded-[16px] pointer-events-none"
-            style={{
-              left: bubbleStyle.left,
-              width: bubbleStyle.width,
-              background: "rgba(52, 211, 153, 0.15)",
-              border: "1px solid rgba(52, 211, 153, 0.2)",
-              boxShadow: "0 0 12px rgba(52, 211, 153, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
-              transition: "left 0.4s cubic-bezier(0.32, 0.72, 0, 1), width 0.35s cubic-bezier(0.32, 0.72, 0, 1)",
-            }}
-          />
+            <div
+              className="absolute top-1.5 bottom-1.5 rounded-[16px] pointer-events-none"
+              style={{
+                left: bubbleStyle.left,
+                width: bubbleStyle.width,
+                background: "rgba(52, 211, 153, 0.15)",
+                border: "1px solid rgba(52, 211, 153, 0.2)",
+                boxShadow: "0 0 12px rgba(52, 211, 153, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
+                transition: "left 0.4s cubic-bezier(0.32, 0.72, 0, 1), width 0.35s cubic-bezier(0.32, 0.72, 0, 1)",
+              }}
+            />
           )}
 
           {mobileItems.map((item, i) => {
-            const isActive =
-              item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
+            const isActive = item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
             return (
               <NavLink
                 key={item.to}
@@ -150,50 +136,33 @@ function LiquidGlassNav() {
                 ref={(el) => { itemRefs.current[i] = el; }}
                 className={cn(
                   "relative z-10 flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-[16px] text-[10px] font-medium transition-all duration-300 min-w-[52px]",
-                  isActive
-                    ? "text-primary"
-                    : "text-muted-foreground/70 active:scale-95"
+                  isActive ? "text-primary" : "text-muted-foreground/70 active:scale-95"
                 )}
               >
                 <item.icon
-                  className={cn(
-                    "h-[22px] w-[22px] transition-all duration-300",
-                    isActive && "drop-shadow-[0_0_6px_rgba(52,211,153,0.4)]"
-                  )}
+                  className={cn("h-[22px] w-[22px] transition-all duration-300", isActive && "drop-shadow-[0_0_6px_rgba(52,211,153,0.4)]")}
                   strokeWidth={isActive ? 2.2 : 1.8}
                 />
-                <span className={cn(
-                  "transition-all duration-300",
-                  isActive ? "opacity-100" : "opacity-60"
-                )}>
+                <span className={cn("transition-all duration-300", isActive ? "opacity-100" : "opacity-60")}>
                   {item.mobileLabel}
                 </span>
               </NavLink>
             );
           })}
 
-          {/* More button */}
           <button
             ref={(el) => { itemRefs.current[MOBILE_NAV_COUNT] = el as any; }}
             onClick={() => setMoreOpen((v) => !v)}
             className={cn(
               "relative z-10 flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-[16px] text-[10px] font-medium transition-all duration-300 min-w-[52px]",
-              isMoreActive || moreOpen
-                ? "text-primary"
-                : "text-muted-foreground/70 active:scale-95"
+              isMoreActive || moreOpen ? "text-primary" : "text-muted-foreground/70 active:scale-95"
             )}
           >
             <MoreHorizontal
-              className={cn(
-                "h-[22px] w-[22px] transition-all duration-300",
-                (isMoreActive || moreOpen) && "drop-shadow-[0_0_6px_rgba(52,211,153,0.4)]"
-              )}
+              className={cn("h-[22px] w-[22px] transition-all duration-300", (isMoreActive || moreOpen) && "drop-shadow-[0_0_6px_rgba(52,211,153,0.4)]")}
               strokeWidth={isMoreActive || moreOpen ? 2.2 : 1.8}
             />
-            <span className={cn(
-              "transition-all duration-300",
-              isMoreActive || moreOpen ? "opacity-100" : "opacity-60"
-            )}>
+            <span className={cn("transition-all duration-300", isMoreActive || moreOpen ? "opacity-100" : "opacity-60")}>
               Mehr
             </span>
           </button>
@@ -209,46 +178,36 @@ export function AppLayout({ children }: AppLayoutProps) {
   const showUndoRedo = onUndo !== null && onRedo !== null;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+    <div className="min-h-[100dvh] flex flex-col relative">
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-12 lg:h-14 flex items-center justify-between gap-2">
+
+          {/* Left: Logo — Auf Mobile flexibel, auf Desktop fest */}
+          <div className="flex items-center gap-2 shrink-0 lg:w-[180px]">
             <img
               src="/pwa-192x192.png"
               alt="Rigflow Logo"
-              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover"
+              className="w-7 h-7 sm:w-7 sm:h-7 rounded-lg object-cover"
             />
-            <div>
-              <h1 className="text-sm sm:text-base font-semibold tracking-tight leading-tight">
-                Rigflow
-              </h1>
-              <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">Inventarverwaltung</p>
-            </div>
-            {/* Undo/Redo - mobile: compact next to logo */}
+            <span className="text-sm font-semibold tracking-tight xs:block">Rigflow</span>
+
+            {/* Undo/Redo: Kompakteres Layout für Mobile */}
             {showUndoRedo && isMobile && (
-              <UndoRedoButtons
-                canUndo={canUndo}
-                canRedo={canRedo}
-                onUndo={onUndo!}
-                onRedo={onRedo!}
-                isMobile
-              />
+              <div className="ml-1 scale-90 origin-left">
+                <UndoRedoButtons
+                  canUndo={canUndo}
+                  canRedo={canRedo}
+                  onUndo={onUndo!}
+                  onRedo={onRedo!}
+                  isMobile
+                />
+              </div>
             )}
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-1">
-            {/* Undo/Redo - desktop: in nav area */}
-            {showUndoRedo && (
-              <UndoRedoButtons
-                canUndo={canUndo}
-                canRedo={canRedo}
-                onUndo={onUndo!}
-                onRedo={onRedo!}
-              />
-            )}
-            <div className="w-px h-6 bg-border/50 mx-1" />
+          {/* Center: Desktop Navigation (bleibt unverändert) */}
+          <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -256,24 +215,39 @@ export function AppLayout({ children }: AppLayoutProps) {
                 end={item.to === "/"}
                 className={({ isActive }) =>
                   cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                    "relative flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors duration-200",
+                    "after:absolute after:bottom-0 after:left-3 after:right-3 after:h-px after:rounded-full after:transition-all after:duration-200",
                     isActive
-                      ? "bg-primary/20 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      ? "text-primary after:bg-primary"
+                      : "text-muted-foreground hover:text-foreground after:bg-transparent"
                   )
                 }
               >
-                <item.icon className="h-4 w-4" />
+                <item.icon className="h-3.5 w-3.5" />
                 {item.label}
               </NavLink>
             ))}
           </nav>
 
-          <UserMenu />
+          {/* Right: UserMenu — Auf Mobile shrink-0 */}
+          <div className="flex items-center justify-end gap-1 shrink-0 lg:w-[180px]">
+            {showUndoRedo && !isMobile && (
+              <>
+                <UndoRedoButtons
+                  canUndo={canUndo}
+                  canRedo={canRedo}
+                  onUndo={onUndo!}
+                  onRedo={onRedo!}
+                />
+                <div className="w-px h-4 bg-border/60 mx-1" />
+              </>
+            )}
+            <UserMenu />
+          </div>
         </div>
       </header>
 
-      {/* Liquid Glass Mobile Navigation */}
+      {/* Mobile Bottom Nav */}
       <LiquidGlassNav />
 
       {/* Main Content */}
@@ -281,7 +255,6 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="max-w-7xl mx-auto w-full">{children}</div>
       </main>
 
-      {/* Offline Indicator */}
       <OfflineIndicator />
     </div>
   );
