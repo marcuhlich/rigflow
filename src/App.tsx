@@ -231,28 +231,7 @@ function AppInitializer() {
 
     init();
 
-    // Offline / Online Notifications
-    let offlineNotified = false;
-
-    const handleOffline = () => {
-      if (offlineNotified) return;
-      offlineNotified = true;
-      PushService.showNotification("🔌 Offline", {
-        body: "Du bist offline. Änderungen werden synchronisiert, sobald du wieder online bist.",
-        tag: "network-offline",
-      });
-    };
-
-    const handleOnline = () => {
-      offlineNotified = false;
-      PushService.showNotification("🟢 Online", {
-        body: "Du bist wieder online. Synchronisierung läuft...",
-        tag: "network-online",
-      });
-    };
-
-    window.addEventListener("offline", handleOffline);
-    window.addEventListener("online", handleOnline);
+    // Offline / Online Notifications wurden entfernt, da sie oft mehr stören als nützen. Stattdessen setzen wir auf regelmäßige SW-Update-Checks, um die App aktuell zu halten.
 
     // SW Update Check bei Visibility Change
     const handleVisibilityChange = async () => {
@@ -271,8 +250,6 @@ function AppInitializer() {
     handleVisibilityChange();
 
     return () => {
-      window.removeEventListener("offline", handleOffline);
-      window.removeEventListener("online", handleOnline);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
