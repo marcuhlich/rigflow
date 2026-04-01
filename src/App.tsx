@@ -11,6 +11,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { PushService } from "@/lib/pushService";
 import { logger } from "@/lib/logger";
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import { Analytics } from "@vercel/analytics/react";
 import Landing from "./pages/Landing";
 import InstallPrompt from "./pages/InstallPrompt";
 import RegisterPage from '@/pages/RegisterPage';
@@ -280,6 +281,7 @@ const App = () => (
               <AppRoutes />
             </BrowserRouter>
             <SpeedInsights />
+            <Analytics />
           </TooltipProvider>
         </UndoRedoProvider>
       </AuthProvider>
