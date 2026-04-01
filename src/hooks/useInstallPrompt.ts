@@ -28,7 +28,7 @@ export function useInstallPrompt() {
       setDeferredPrompt(null);
     };
 
-    const isElectron = new URLSearchParams(window.location.search).get('source') === 'electron';
+    const isElectron = navigator.userAgent.includes('RigFlowDesktop');
     console.log('isElectron:', isElectron, 'search:', window.location.search);
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
