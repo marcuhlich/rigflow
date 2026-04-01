@@ -1,0 +1,837 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Eye, EyeOff, ChevronRight, Lock, Hash, Type, QrCode, Wifi, Package, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+type Phase = 'intro' | 'stories' | 'form' | 'finale';
+type FormStep = 'name' | 'email' | 'password' | 'warehouse';
+
+interface FormData {
+  name: string;
+  email: string;
+  password: string;
+  warehouse: string;
+}
+
+// ─── Story Slides ─────────────────────────────────────────────────────────────
+const STORIES = [
+  {
+    icon: Package,
+    eyebrow: 'Inventarverwaltung',
+    headline: 'Kein Case\ngeht verloren.',
+    sub: 'Von der ersten Probe bis zum Abbau: RigFlow weiß immer, wo dein Equipment steckt – Kabel, Strahler, Konsolen, alles.',
+    detail: '23 Artikel • 4 Kategorien • 1 Klick',
+    bg: 'radial-gradient(ellipse at 25% 60%, rgba(var(--primary-rgb, 0,229,255),0.13) 0%, transparent 65%)',
+  },
+  {
+    icon: QrCode,
+    eyebrow: 'QR-Scanning',
+    headline: 'Scan.\nFertig.\nWeiter.',
+    sub: 'Jeder Case, jede Box, jedes Kabel hat seinen Code. Auf der Bühne, im Dunkeln, ohne Netz – einfach draufhalten und loslegen.',
+    detail: 'Offline verfügbar • Automatisch generiert',
+    bg: 'radial-gradient(ellipse at 75% 35%, rgba(var(--primary-rgb, 0,229,255),0.10) 0%, transparent 60%)',
+  },
+  {
+    icon: Wifi,
+    eyebrow: 'Offline-First',
+    headline: 'Auch wenn\ndas Netz\nstreikt.',
+    sub: 'Kein WLAN in der Halle? Egal. RigFlow arbeitet komplett offline und synchronisiert alles sobald du wieder online bist.',
+    detail: 'Automatischer Sync • Keine Datenverluste',
+    bg: 'radial-gradient(ellipse at 50% 75%, rgba(var(--primary-rgb, 0,229,255),0.08) 0%, transparent 55%)',
+  },
+];
+
+const FORM_STEPS: FormStep[] = ['name', 'email', 'password', 'warehouse'];
+
+// ─── Haptic helper ────────────────────────────────────────────────────────────
+function hapticDouble() {
+  if ('vibrate' in navigator) {
+    navigator.vibrate([60, 80, 120]);
+  }
+}
+
+// ─── Canvas Ripple (Button → Fullscreen) ──────────────────────────────────────
+function RippleCanvas({
+  active,
+  originRef,
+  onComplete,
+}: {
+  active: boolean;
+  originRef: React.RefObject<HTMLButtonElement>;
+  onComplete: () => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!active) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const btn = originRef.current;
+    const rect = btn?.getBoundingClientRect();
+    const cx = rect ? rect.left + rect.width / 2 : canvas.width / 2;
+    const cy = rect ? rect.top + rect.height / 2 : canvas.height / 2;
+    const maxR = Math.hypot(
+      Math.max(cx, canvas.width - cx),
+      Math.max(cy, canvas.height - cy)
+    );
+
+    const start = performance.now();
+    const duration = 700;
+
+    function draw(now: number) {
+      const t = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - t, 3); // ease-out-cubic
+      const r = ease * maxR;
+
+      ctx!.clearRect(0, 0, canvas!.width, canvas!.height);
+      ctx!.beginPath();
+      ctx!.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx!.fillStyle = '#020408';
+      ctx!.fill();
+
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(draw);
+      } else {
+        onComplete();
+      }
+    }
+
+    rafRef.current = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [active]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="pointer-events-none fixed inset-0"
+      style={{ zIndex: 50, opacity: active ? 1 : 0 }}
+    />
+  );
+}
+
+// ─── QR Code (decorative) ─────────────────────────────────────────────────────
+function QrVisual({ name }: { name: string }) {
+  const seed = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const size = 9;
+  const cells = Array.from({ length: size * size }, (_, i) => {
+    const x = i % size;
+    const y = Math.floor(i / size);
+    const inFinder =
+      (x < 3 && y < 3) || (x >= size - 3 && y < 3) || (x < 3 && y >= size - 3);
+    if (inFinder) return true;
+    return ((seed * (i + 1) * 2654435761) >>> 0) % 3 !== 0;
+  });
+
+  return (
+    <motion.div
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+      style={{
+        width: 160,
+        height: 160,
+        background: 'rgba(var(--primary-rgb, 0,229,255),0.05)',
+        border: '1px solid hsl(var(--primary)/0.3)',
+        borderRadius: 16,
+        padding: 14,
+        margin: '0 auto',
+        boxShadow: '0 0 40px hsl(var(--primary)/0.15)',
+      }}
+    >
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${size}, 1fr)`,
+          gap: 2,
+          width: '100%',
+          height: '100%',
+        }}
+      >
+        {cells.map((filled, i) => (
+          <div
+            key={i}
+            style={{
+              background: filled ? 'hsl(var(--primary))' : 'transparent',
+              borderRadius: 1,
+              boxShadow: filled ? '0 0 3px hsl(var(--primary)/0.5)' : 'none',
+            }}
+          />
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Password strength checks ─────────────────────────────────────────────────
+function PasswordChecks({ password }: { password: string }) {
+  const checks = [
+    { icon: Hash,  label: 'Zahl',         ok: /\d/.test(password) },
+    { icon: Type,  label: 'Buchstaben',   ok: /[a-zA-Z]/.test(password) },
+    { icon: Lock,  label: '8+ Zeichen',   ok: password.length >= 8 },
+  ];
+  return (
+    <div className="flex gap-4 mt-3">
+      {checks.map(({ icon: Icon, label, ok }) => (
+        <div
+          key={label}
+          className="flex items-center gap-1.5 text-xs"
+          style={{
+            color: ok ? 'hsl(var(--primary))' : 'rgba(255,255,255,0.25)',
+            transition: 'color 0.4s',
+          }}
+        >
+          <Icon
+            size={11}
+            style={{
+              filter: ok ? 'drop-shadow(0 0 4px hsl(var(--primary)))' : 'none',
+              transition: 'filter 0.4s',
+            }}
+          />
+          <span>{label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── OAuth Buttons ────────────────────────────────────────────────────────────
+function OAuthButtons({ isLoading }: { isLoading: boolean }) {
+  const [oauthLoading, setOauthLoading] = useState(false);
+
+  const handleOAuth = async (provider: 'google' | 'apple') => {
+    setOauthLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+    } catch (err) {
+      console.error('OAuth error:', err);
+    } finally {
+      setOauthLoading(false);
+    }
+  };
+
+  return (
+    <div className="mt-6 space-y-3">
+      <div className="flex items-center gap-3">
+        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.1em' }}>ODER</span>
+        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
+      </div>
+
+      <button
+        onClick={() => handleOAuth('google')}
+        disabled={isLoading || oauthLoading}
+        style={{
+          width: '100%',
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          borderRadius: 12,
+          padding: '13px 20px',
+          fontSize: 14,
+          color: 'rgba(255,255,255,0.75)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 10,
+          transition: 'background 0.2s, border-color 0.2s',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+      >
+        {oauthLoading ? <Loader2 size={16} className="animate-spin" /> : (
+          <svg width="16" height="16" viewBox="0 0 24 24">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+        )}
+        Mit Google registrieren
+      </button>
+
+      <button
+        onClick={() => handleOAuth('apple')}
+        disabled={isLoading || oauthLoading}
+        style={{
+          width: '100%',
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          borderRadius: 12,
+          padding: '13px 20px',
+          fontSize: 14,
+          color: 'rgba(255,255,255,0.75)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 10,
+          transition: 'background 0.2s',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+      >
+        {oauthLoading ? <Loader2 size={16} className="animate-spin" /> : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+          </svg>
+        )}
+        Mit Apple registrieren
+      </button>
+    </div>
+  );
+}
+
+// ─── Keyboard height hook ─────────────────────────────────────────────────────
+function useKeyboardHeight() {
+  const [kbHeight, setKbHeight] = useState(0);
+  useEffect(() => {
+    const win = window as unknown as { visualViewport?: { height: number; addEventListener: Function; removeEventListener: Function } };
+    if (!win.visualViewport) return;
+    const update = () => {
+      const gap = window.innerHeight - win.visualViewport!.height;
+      setKbHeight(Math.max(0, gap));
+    };
+    win.visualViewport!.addEventListener('resize', update);
+    win.visualViewport!.addEventListener('scroll', update);
+    return () => {
+      win.visualViewport!.removeEventListener('resize', update);
+      win.visualViewport!.removeEventListener('scroll', update);
+    };
+  }, []);
+  return kbHeight;
+}
+export default function RegisterPage() {
+  const navigate = useNavigate();
+
+  const [phase, setPhase] = useState<Phase>('intro');
+  const [introStage, setIntroStage] = useState<'pulse' | 'slide'>('pulse');
+
+  const [storyIndex, setStoryIndex] = useState(0);
+  const [storyProgress, setStoryProgress] = useState(0);
+  const STORY_DURATION = 4500;
+
+  const [formStep, setFormStep] = useState<FormStep>('name');
+  const [formData, setFormData] = useState<FormData>({ name: '', email: '', password: '', warehouse: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Finale
+  const [rippleActive, setRippleActive] = useState(false);
+  const kbHeight = useKeyboardHeight();
+  const [showQr, setShowQr] = useState(false);
+  const ctaRef = useRef<HTMLButtonElement>(null);
+
+  const [slideIn, setSlideIn] = useState(false);
+
+  // ── Intro ─────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (phase !== 'intro') return;
+    const t1 = setTimeout(() => setIntroStage('slide'), 1600);
+    const t2 = setTimeout(() => { setPhase('stories'); setSlideIn(true); }, 2500);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [phase]);
+
+  // ── Stories ───────────────────────────────────────────────────────────────
+  const advanceStory = useCallback(() => {
+    setStoryProgress(0);
+    if (storyIndex < STORIES.length - 1) {
+      setStoryIndex(i => i + 1);
+    } else {
+      setPhase('form');
+    }
+  }, [storyIndex]);
+
+  useEffect(() => {
+    if (phase !== 'stories') return;
+    setStoryProgress(0);
+    const interval = setInterval(() => {
+      setStoryProgress(p => {
+        if (p >= 100) { advanceStory(); return 0; }
+        return p + (100 / (STORY_DURATION / 50));
+      });
+    }, 50);
+    return () => clearInterval(interval);
+  }, [phase, storyIndex, advanceStory]);
+
+  // ── Form ──────────────────────────────────────────────────────────────────
+  const stepIndex = FORM_STEPS.indexOf(formStep);
+
+  const formConfig: Record<FormStep, { question: string; placeholder: string; type: string; key: keyof FormData }> = {
+    name:      { question: 'Wie heißt du?',           placeholder: 'Dein Name',            type: 'text',     key: 'name' },
+    email:     { question: 'Deine E-Mail?',            placeholder: 'mail@example.com',     type: 'email',    key: 'email' },
+    password:  { question: 'Wähle ein Passwort.',      placeholder: 'Mindestens 8 Zeichen', type: 'password', key: 'password' },
+    warehouse: { question: 'Wie heißt dein\nLager?',  placeholder: 'z.B. Hauptlager',      type: 'text',     key: 'warehouse' },
+  };
+
+  const handleFormNext = async () => {
+    setError('');
+    if (!inputValue.trim()) { setError('Bitte fülle dieses Feld aus.'); return; }
+    if (formStep === 'email' && !/\S+@\S+\.\S+/.test(inputValue)) { setError('Keine gültige E-Mail.'); return; }
+    if (formStep === 'password' && inputValue.length < 8) { setError('Mindestens 8 Zeichen.'); return; }
+
+    const updated = { ...formData, [formConfig[formStep].key]: inputValue };
+    setFormData(updated);
+
+    if (formStep === 'warehouse') {
+      hapticDouble();
+      setRippleActive(true);
+    } else {
+      setFormStep(FORM_STEPS[FORM_STEPS.indexOf(formStep) + 1]);
+      setInputValue('');
+    }
+  };
+
+  const handleRippleComplete = async () => {
+    // Show QR briefly, then register + navigate
+    setPhase('finale');
+    setShowQr(true);
+
+    setLoading(true);
+    try {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.name,
+            warehouse_name: formData.warehouse,
+          },
+        },
+      });
+      if (signUpError) throw signUpError;
+      // Navigate with scan-reveal flag
+      setTimeout(() => {
+        navigate('/', { state: { scanReveal: true, userName: formData.name } });
+      }, 2200);
+    } catch (err: unknown) {
+      setRippleActive(false);
+      setPhase('form');
+      setError(err instanceof Error ? err.message : 'Registrierung fehlgeschlagen.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Progress bar ──────────────────────────────────────────────────────────
+  const totalSegments = STORIES.length + FORM_STEPS.length;
+  const completedSegments = phase === 'stories'
+    ? storyIndex
+    : phase === 'form'
+    ? STORIES.length + stepIndex
+    : totalSegments;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="fixed inset-0 flex items-center justify-center overflow-hidden"
+      style={{ background: '#020408', fontFamily: "'DM Sans', system-ui, sans-serif" }}
+    >
+      {/* Ambient grid */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage: `
+            linear-gradient(hsl(var(--primary)/0.025) 1px, transparent 1px),
+            linear-gradient(90deg, hsl(var(--primary)/0.025) 1px, transparent 1px)
+          `,
+          backgroundSize: '60px 60px',
+        }}
+      />
+
+      {/* Bottom glow */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ background: 'radial-gradient(ellipse 80% 45% at 50% 100%, hsl(var(--primary)/0.07) 0%, transparent 70%)' }}
+      />
+
+      {/* Ripple canvas */}
+      <RippleCanvas active={rippleActive} originRef={ctaRef} onComplete={handleRippleComplete} />
+
+      {/* ── STORY BAR ───────────────────────────────────────────────────── */}
+      {(phase === 'stories' || phase === 'form') && (
+        <div className="absolute top-0 left-0 right-0 flex gap-1 px-3 pt-3 z-30"
+          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
+          {Array.from({ length: totalSegments }).map((_, i) => {
+            const isCompleted = i < completedSegments;
+            const isCurrent = phase === 'stories' ? i === storyIndex : i === STORIES.length + stepIndex;
+            return (
+              <div key={i} className="flex-1 overflow-hidden" style={{ height: 2, borderRadius: 99, background: 'rgba(255,255,255,0.12)' }}>
+                <motion.div
+                  initial={false}
+                  animate={{
+                    width: isCompleted ? '100%' : isCurrent && phase === 'stories' ? `${storyProgress}%` : isCurrent ? '100%' : '0%',
+                  }}
+                  transition={
+                    isCurrent && phase === 'stories'
+                      ? { duration: 0 }
+                      : { duration: 0.35, ease: 'easeOut' }
+                  }
+                  style={{
+                    height: '100%',
+                    borderRadius: 99,
+                    background: 'hsl(var(--primary))',
+                    boxShadow: '0 0 6px hsl(var(--primary)/0.8)',
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── INTRO ───────────────────────────────────────────────────────── */}
+      {phase === 'intro' && (
+        <div className="flex flex-col items-center justify-center gap-3">
+          <div
+            style={{
+              transform: introStage === 'slide' ? 'translateY(-60px)' : 'translateY(0)',
+              opacity: introStage === 'slide' ? 0 : 1,
+              transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1)',
+            }}
+            className="flex flex-col items-center gap-3"
+          >
+            <div style={{
+              width: 96, height: 96, borderRadius: 24,
+              background: 'linear-gradient(135deg, hsl(var(--primary)/0.15), hsl(var(--primary)/0.05))',
+              border: '1px solid hsl(var(--primary)/0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              animation: 'pulse-glow 1.6s ease-in-out infinite',
+              boxShadow: '0 0 40px hsl(var(--primary)/0.2)',
+            }}>
+              <img src="/logo-transparent.png" alt="RigFlow" style={{ width: 64, height: 64, filter: 'drop-shadow(0 0 8px hsl(var(--primary)))' }} />
+            </div>
+            <span style={{ fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em' }}>RigFlow</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── STORIES ─────────────────────────────────────────────────────── */}
+      {phase === 'stories' && (() => {
+        const story = STORIES[storyIndex];
+        const Icon = story.icon;
+        return (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={storyIndex}
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -30 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="w-full max-w-sm mx-auto px-6 flex flex-col items-start justify-center absolute inset-0"
+              style={{ paddingTop: 72, paddingBottom: 48 }}
+            >
+              {/* Tap zones */}
+              <div className="absolute inset-0 flex z-20">
+                <div className="flex-1 cursor-pointer" onClick={() => { if (storyIndex > 0) { setStoryIndex(i => i - 1); setStoryProgress(0); } }} />
+                <div className="flex-1 cursor-pointer" onClick={advanceStory} />
+              </div>
+
+              <div style={{ position: 'relative', zIndex: 25, pointerEvents: 'none', width: '100%' }}>
+                {/* Eyebrow */}
+                <div style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase',
+                  color: 'hsl(var(--primary))', opacity: 0.65, marginBottom: 20,
+                }}>
+                  {story.eyebrow}
+                </div>
+
+                {/* Icon */}
+                <div style={{
+                  width: 52, height: 52, borderRadius: 14,
+                  background: 'hsl(var(--primary)/0.1)',
+                  border: '1px solid hsl(var(--primary)/0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginBottom: 28, boxShadow: '0 0 20px hsl(var(--primary)/0.1)',
+                }}>
+                  <Icon size={22} style={{ color: 'hsl(var(--primary))' }} />
+                </div>
+
+                {/* Headline – multi-line via whitespace-pre */}
+                <h2 style={{
+                  fontSize: 'clamp(2.1rem, 9vw, 3.2rem)',
+                  fontWeight: 900,
+                  color: '#fff',
+                  lineHeight: 1.08,
+                  letterSpacing: '-0.035em',
+                  marginBottom: 20,
+                  whiteSpace: 'pre-line',
+                }}>
+                  {story.headline}
+                </h2>
+
+                <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.42)', lineHeight: 1.65, maxWidth: 300 }}>
+                  {story.sub}
+                </p>
+
+                {/* Detail chip */}
+                <div style={{
+                  marginTop: 20, display: 'inline-flex', alignItems: 'center', gap: 6,
+                  background: 'hsl(var(--primary)/0.07)',
+                  border: '1px solid hsl(var(--primary)/0.15)',
+                  borderRadius: 8, padding: '6px 12px',
+                  fontSize: 11, color: 'hsl(var(--primary))', opacity: 0.7,
+                }}>
+                  {story.detail}
+                </div>
+
+                {/* CTA on last slide */}
+                {storyIndex === STORIES.length - 1 && (
+                  <button
+                    className="mt-10 flex items-center gap-2"
+                    style={{
+                      color: 'hsl(var(--primary))', background: 'hsl(var(--primary)/0.1)',
+                      border: '1px solid hsl(var(--primary)/0.25)', borderRadius: 12,
+                      padding: '11px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 600,
+                      pointerEvents: 'all',
+                    }}
+                    onClick={() => setPhase('form')}
+                  >
+                    Jetzt registrieren <ChevronRight size={15} />
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        );
+      })()}
+
+      {/* ── FORM ────────────────────────────────────────────────────────── */}
+      {phase === 'form' && (() => {
+        const config = formConfig[formStep];
+        return (
+          <div
+            className="w-full max-w-sm mx-auto px-6 flex flex-col justify-center"
+            style={{
+              minHeight: '100dvh',
+              paddingTop: 72,
+              paddingBottom: Math.max(48, kbHeight + 16),
+              transition: 'padding-bottom 0.2s ease',
+            }}
+          >
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={formStep}
+                initial={{ opacity: 0, y: 22 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {/* Step label */}
+                <div style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
+                  color: 'hsl(var(--primary))', marginBottom: 14, opacity: 0.65,
+                }}>
+                  Schritt {stepIndex + 1} von {FORM_STEPS.length}
+                </div>
+
+                {/* Question */}
+                <h2 style={{
+                  fontSize: 'clamp(1.8rem, 7vw, 2.6rem)', fontWeight: 900,
+                  color: '#fff', letterSpacing: '-0.03em', lineHeight: 1.1,
+                  marginBottom: 36, whiteSpace: 'pre-line',
+                }}>
+                  {config.question}
+                </h2>
+
+                {/* "Hallo [Name]!" greeting (name step only, fades in as you type) */}
+                {formStep === 'name' && (
+                  <AnimatePresence>
+                    {inputValue.trim() && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+                        style={{
+                          marginBottom: 20,
+                          fontSize: 15,
+                          color: 'hsl(var(--primary))',
+                          fontWeight: 600,
+                          letterSpacing: '-0.01em',
+                          opacity: 0.75,
+                        }}
+                      >
+                        Hallo, {inputValue.trim().split(' ')[0]}! 👋
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                )}
+
+                {/* Input */}
+                <div className="relative">
+                  <input
+                    autoFocus
+                    type={formStep === 'password' && !showPassword ? 'password' : config.type === 'password' ? 'text' : config.type}
+                    value={inputValue}
+                    placeholder={config.placeholder}
+                    onChange={e => setInputValue(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleFormNext(); }}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid hsl(var(--primary)/0.2)',
+                      borderRadius: 14,
+                      padding: '16px 20px',
+                      paddingRight: formStep === 'password' ? 52 : 20,
+                      fontSize: 16,
+                      color: '#fff',
+                      outline: 'none',
+                      backdropFilter: 'blur(12px)',
+                      transition: 'border-color 0.2s, box-shadow 0.2s',
+                    }}
+                    onFocus={e => {
+                      e.target.style.borderColor = 'hsl(var(--primary)/0.6)';
+                      e.target.style.boxShadow = '0 0 20px hsl(var(--primary)/0.1)';
+                    }}
+                    onBlur={e => {
+                      e.target.style.borderColor = 'hsl(var(--primary)/0.2)';
+                      e.target.style.boxShadow = 'none';
+                    }}
+                  />
+                  {formStep === 'password' && (
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(v => !v)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2"
+                      style={{ color: 'rgba(255,255,255,0.3)', cursor: 'pointer', background: 'none', border: 'none' }}
+                    >
+                      {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                    </button>
+                  )}
+                </div>
+
+                {formStep === 'password' && <PasswordChecks password={inputValue} />}
+
+                {error && (
+                  <motion.p
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    style={{ color: '#ff4d6d', fontSize: 13, marginTop: 10 }}
+                  >
+                    {error}
+                  </motion.p>
+                )}
+
+                {/* CTA */}
+                <button
+                  ref={ctaRef}
+                  onClick={handleFormNext}
+                  disabled={loading || rippleActive}
+                  style={{
+                    marginTop: 28,
+                    width: '100%',
+                    background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary)/0.7))',
+                    border: 'none',
+                    borderRadius: 14,
+                    padding: '16px 24px',
+                    fontSize: 15,
+                    fontWeight: 700,
+                    color: 'hsl(var(--primary-foreground, 0 0% 0%))',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    boxShadow: '0 4px 24px hsl(var(--primary)/0.25)',
+                    opacity: loading ? 0.6 : 1,
+                    transition: 'opacity 0.2s, transform 0.1s',
+                  }}
+                  onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+                  onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                >
+                  {loading
+                    ? <><Loader2 size={16} className="animate-spin" /> Wird erstellt…</>
+                    : formStep === 'warehouse'
+                    ? 'System initialisieren'
+                    : <>'Weiter' <ChevronRight size={15} /></>
+                  }
+                  {!loading && formStep !== 'warehouse' && <ChevronRight size={15} />}
+                </button>
+
+                {/* OAuth (name step only) */}
+                {formStep === 'name' && <OAuthButtons isLoading={loading} />}
+
+                {/* Login link */}
+                {formStep === 'name' && (
+                  <p style={{ textAlign: 'center', marginTop: 16, fontSize: 13, color: 'rgba(255,255,255,0.28)' }}>
+                    Schon dabei?{' '}
+                    <button
+                      onClick={() => navigate('/auth')}
+                      style={{ color: 'hsl(var(--primary))', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13 }}
+                    >
+                      Einloggen
+                    </button>
+                  </p>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        );
+      })()}
+
+      {/* ── FINALE ──────────────────────────────────────────────────────── */}
+      {phase === 'finale' && (
+        <div
+          className="flex flex-col items-center justify-center gap-8 px-6 text-center"
+          style={{ zIndex: 20, position: 'relative' }}
+        >
+          <AnimatePresence>
+            {showQr && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.85, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 180, damping: 18 }}
+                className="flex flex-col items-center gap-6"
+              >
+                <div style={{
+                  fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase',
+                  color: 'hsl(var(--primary))', opacity: 0.55,
+                }}>
+                  System initialisiert
+                </div>
+                <QrVisual name={formData.name || 'RigFlow'} />
+                <div>
+                  <h2 style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                    Bereit,<br />
+                    <span style={{ color: 'hsl(var(--primary))' }}>{formData.name}</span>.
+                  </h2>
+                  <p style={{ marginTop: 8, color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>
+                    Lager <strong style={{ color: 'rgba(255,255,255,0.55)' }}>{formData.warehouse}</strong> wird eingerichtet…
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes pulse-glow {
+          0%, 100% { box-shadow: 0 0 20px hsl(var(--primary)/0.15), 0 0 40px hsl(var(--primary)/0.05); }
+          50%       { box-shadow: 0 0 35px hsl(var(--primary)/0.35), 0 0 70px hsl(var(--primary)/0.12); }
+        }
+        input::placeholder { color: rgba(255,255,255,0.18); }
+      `}</style>
+    </motion.div>
+  );
+}

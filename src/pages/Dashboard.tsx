@@ -3,17 +3,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ScanRevealOverlay } from '@/components/ScanRevealOverlay';
 import {
   Package, CheckCircle, ArrowRightLeft, AlertTriangle, Zap, Clock, Activity,
   CheckSquare, ArrowRight, TrendingUp, CalendarDays, Star, MapPin, DollarSign,
   RotateCcw, Bell,
+  Trash,
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from "recharts";
 import { StatCard } from "@/components/StatCard";
-import { AppOnboardingTour } from "@/components/AppOnboardingTour";
 import { useInventory } from "@/hooks/useInventory";
 import { useEventChecklists } from "@/hooks/useEventChecklists";
 import { useEventSets } from "@/hooks/useEventSets";
@@ -358,8 +359,8 @@ const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
           }}
           onClick={() => { close(); onRemind?.(item.id); }}
         >
-          <Bell style={{ width: "16px", height: "16px" }} />
-          Mahnen
+          <Trash style={{ width: "16px", height: "16px" }} />
+          Löschen
         </button>
       </div>
     </div>
@@ -372,7 +373,8 @@ export default function Dashboard() {
   const { checklists } = useEventChecklists();
   const { sets } = useEventSets();
   const { user } = useAuth();
-  const { activeLoans, completedLoans } = useLendingHistory();
+  const { refetch: refetchInventory } = useInventory();
+  const { activeLoans, completedLoans, markReturned, deleteRecord } = useLendingHistory();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [chartsVisible, setChartsVisible] = useState(false);
   const [pieActiveIndex] = useState(-1);
@@ -427,17 +429,27 @@ export default function Dashboard() {
       .slice(0, 5);
   }, [sets]);
 
-  const lentItems = useMemo(() => {
-    const now = new Date();
-    return allItems
-      .filter((i) => i.condition === "verliehen")
-      .map((i) => ({ ...i, isOverdue: i.lent_until ? new Date(i.lent_until) < now : false }))
-      .sort((a, b) => {
-        if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
-        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-      })
-      .slice(0, 5);
-  }, [allItems]);
+const lentItems = useMemo(() => {
+  const now = new Date();
+
+  return activeLoans
+    .map((loan) => ({
+      id: loan.id,
+      itemId: loan.item_id,
+      name: loan.item_name,
+      lent_to: loan.lent_to,
+      lent_until: loan.due_date,
+      updated_at: loan.created_at,
+      isOverdue: loan.due_date
+        ? new Date(loan.due_date) < now
+        : false,
+    }))
+    .sort((a, b) => {
+      if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    })
+    .slice(0, 5);
+}, [activeLoans]);
 
   const defectItems = useMemo(() => allItems.filter((i) => i.condition === "defekt").slice(0, 5), [allItems]);
 
@@ -472,6 +484,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5 sm:space-y-8 pb-24">
+      <ScanRevealOverlay />
       <style>{`
         @keyframes fadeIn      { from { opacity: 0 } to { opacity: 0.25 } }
         @keyframes chartFadeIn { from { opacity: 0 } to { opacity: 1 } }
@@ -569,8 +582,6 @@ export default function Dashboard() {
           .desktop-only { display: none !important; }
         }
       `}</style>
-
-      {showOnboarding && <AppOnboardingTour onComplete={handleOnboardingComplete} />}
 
       <div>
         <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Dashboard</h2>
@@ -751,8 +762,14 @@ export default function Dashboard() {
             <SwipeLentItem
               key={item.id}
               item={item}
-              onReturn={(id) => console.log("return", id)}  // eigenen Handler einsetzen
-              onRemind={(id) => console.log("remind", id)}
+              onReturn={async (id) => {
+                await markReturned(id);
+                refetchInventory();
+              }}
+              onRemind={async (id) => {
+                await deleteRecord(id);
+                refetchInventory();
+              }}
             />
           ))}
           <Link to="/lending" className="flex items-center gap-1 mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
@@ -849,7 +866,7 @@ export default function Dashboard() {
               })}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground py-4 text-center">Keine Standorte vorhanden.</p>
+              <p className="h-[160px] flex items-center justify-center text-muted-foreground text-sm">Keine Standorte vorhanden.</p>
           )}
         </div>
 

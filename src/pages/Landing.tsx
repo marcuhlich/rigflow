@@ -186,7 +186,7 @@ export default function Landing() {
               <Button variant="outline" size="sm" onClick={() => navigate('/auth?step=login')} className="hidden sm:inline-flex">
                 Anmelden
               </Button>
-              <Button size="sm" onClick={() => navigate('/auth?step=register')}>
+              <Button size="sm" onClick={() => navigate('/register')}>
                 <span className="hidden sm:inline">Registrieren</span>
                 <span className="sm:hidden">Start</span>
               </Button>
@@ -394,7 +394,7 @@ export default function Landing() {
               <p className="text-lg text-muted-foreground">
                 Bereit, dein Inventar zu revolutionieren?
               </p>
-              <Button size="lg" onClick={() => navigate('/auth?step=register')} className="gap-2">
+              <Button size="lg" onClick={() => navigate('/register')} className="gap-2">
                 Konto erstellen & loslegen
                 <ArrowRight className="h-4 w-4" />
               </Button>

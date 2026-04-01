@@ -69,34 +69,50 @@ export default function AccountSettings() {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (deleteConfirmEmail !== user?.email) {
-      toast({
-        title: "E-Mail stimmt nicht überein",
-        description: "Bitte gib deine korrekte E-Mail-Adresse ein.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setIsDeleting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("delete-account");
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      toast({ title: "Konto gelöscht", description: "Dein Konto wurde permanent gelöscht." });
-      navigate("/auth");
-    } catch (error) {
-      toast({
-        title: "Fehler",
-        description: error instanceof Error ? error.message : "Konto konnte nicht gelöscht werden",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-      setDeleteConfirmEmail("");
-    }
-  };
+const handleDeleteAccount = async () => {
+  if (deleteConfirmEmail !== user?.email) {
+    toast({
+      title: "E-Mail stimmt nicht überein",
+      description: "Bitte gib deine korrekte E-Mail-Adresse ein.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  setIsDeleting(true);
+
+  try {
+    const { data, error } = await supabase.functions.invoke("delete-account");
+
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+
+    // Sofortiger Logout nach erfolgreicher Löschung
+    await signOut();
+
+    toast({
+      title: "Konto gelöscht",
+      description: "Dein Konto wurde permanent gelöscht.",
+    });
+
+    // replace verhindert "zurück"-Navigation
+    navigate("/auth", { replace: true });
+
+  } catch (error) {
+    toast({
+      title: "Fehler",
+      description:
+        error instanceof Error
+          ? error.message
+          : "Konto konnte nicht gelöscht werden",
+      variant: "destructive",
+    });
+  } finally {
+    setIsDeleting(false);
+    setShowDeleteDialog(false);
+    setDeleteConfirmEmail("");
+  }
+};
 
   return (
     <div className="space-y-4 pb-20">

@@ -12,6 +12,7 @@ import { PushService } from "@/lib/pushService";
 import { logger } from "@/lib/logger";
 import Landing from "./pages/Landing";
 import InstallPrompt from "./pages/InstallPrompt";
+import RegisterPage from '@/pages/RegisterPage';
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import ItemDetail from "./pages/ItemDetail";
@@ -26,6 +27,7 @@ import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 import { useOverdueReminder } from "@/hooks/useOverdueReminder";
+import AuthCallback from "./pages/AuthCallback";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +71,12 @@ function AppRoutes() {
 
       {/* PWA Install Guide */}
       <Route path="/install" element={<Install />} />
+
+      {/* Registration */}
+      <Route path="/register" element={<RegisterPage />} />
+
+      {/* Auth Callback */}
+      <Route path="/auth/callback" element={<AuthCallback />} />
 
       {/* Protected Routes */}
       <Route
