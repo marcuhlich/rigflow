@@ -7,6 +7,9 @@ import { UndoRedoButtons } from "@/components/UndoRedoButtons";
 import { useUndoRedoContext } from "@/contexts/UndoRedoContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { injectSpeedInsights } from '@vercel/speed-insights';
+
+injectSpeedInsights();
 
 interface AppLayoutProps {
   children: ReactNode;
