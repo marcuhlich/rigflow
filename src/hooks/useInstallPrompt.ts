@@ -28,10 +28,11 @@ export function useInstallPrompt() {
       setDeferredPrompt(null);
     };
 
-    // Auch navigator.standalone für iOS prüfen
+    const isElectron = new URLSearchParams(window.location.search).get('source') === 'electron';
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
-      (navigator as Navigator & { standalone?: boolean }).standalone === true;
+      (navigator as Navigator & { standalone?: boolean }).standalone === true ||
+      isElectron;
 
     if (isStandalone) setIsInstalled(true);
 
