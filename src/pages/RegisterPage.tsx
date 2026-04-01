@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable/index';
 import { Eye, EyeOff, ChevronRight, Lock, Hash, Type, QrCode, Wifi, Package, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -88,9 +89,19 @@ function RippleCanvas({
     const duration = 700;
 
     function draw(now: number) {
-      const t = Math.min((now - start) / duration, 1);
-      const ease = 1 - Math.pow(1 - t, 3); // ease-out-cubic
-      const r = ease * maxR;
+      const tRaw = (now - start) / duration;
+      const t = Math.min(Math.max(tRaw, 0), 1);
+
+      const ease = 1 - Math.pow(1 - t, 3);
+
+      const safeMaxR = Math.max(0, maxR);
+      const r = Math.max(0, ease * safeMaxR);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = '#020408';
+      ctx.fill();
 
       ctx!.clearRect(0, 0, canvas!.width, canvas!.height);
       ctx!.beginPath();
@@ -210,15 +221,9 @@ function OAuthButtons({ isLoading }: { isLoading: boolean }) {
   const handleOAuth = async (provider: 'google' | 'apple') => {
     setOauthLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
+      await lovable.auth.signInWithOAuth(provider, {
+        redirect_uri: `${window.location.origin}/auth/callback`,
       });
-      if (error) throw error;
-    } catch (err) {
-      console.error('OAuth error:', err);
     } finally {
       setOauthLoading(false);
     }
@@ -296,25 +301,7 @@ function OAuthButtons({ isLoading }: { isLoading: boolean }) {
   );
 }
 
-// ─── Keyboard height hook ─────────────────────────────────────────────────────
-function useKeyboardHeight() {
-  const [kbHeight, setKbHeight] = useState(0);
-  useEffect(() => {
-    const win = window as unknown as { visualViewport?: { height: number; addEventListener: Function; removeEventListener: Function } };
-    if (!win.visualViewport) return;
-    const update = () => {
-      const gap = window.innerHeight - win.visualViewport!.height;
-      setKbHeight(Math.max(0, gap));
-    };
-    win.visualViewport!.addEventListener('resize', update);
-    win.visualViewport!.addEventListener('scroll', update);
-    return () => {
-      win.visualViewport!.removeEventListener('resize', update);
-      win.visualViewport!.removeEventListener('scroll', update);
-    };
-  }, []);
-  return kbHeight;
-}
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function RegisterPage() {
   const navigate = useNavigate();
 
@@ -334,7 +321,6 @@ export default function RegisterPage() {
 
   // Finale
   const [rippleActive, setRippleActive] = useState(false);
-  const kbHeight = useKeyboardHeight();
   const [showQr, setShowQr] = useState(false);
   const ctaRef = useRef<HTMLButtonElement>(null);
 
@@ -381,6 +367,7 @@ export default function RegisterPage() {
   };
 
   const handleFormNext = async () => {
+    console.log("CLICK", { formStep, inputValue });
     setError('');
     if (!inputValue.trim()) { setError('Bitte fülle dieses Feld aus.'); return; }
     if (formStep === 'email' && !/\S+@\S+\.\S+/.test(inputValue)) { setError('Keine gültige E-Mail.'); return; }
@@ -439,10 +426,7 @@ export default function RegisterPage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+    <div
       className="fixed inset-0 flex items-center justify-center overflow-hidden"
       style={{ background: '#020408', fontFamily: "'DM Sans', system-ui, sans-serif" }}
     >
@@ -476,20 +460,13 @@ export default function RegisterPage() {
             const isCurrent = phase === 'stories' ? i === storyIndex : i === STORIES.length + stepIndex;
             return (
               <div key={i} className="flex-1 overflow-hidden" style={{ height: 2, borderRadius: 99, background: 'rgba(255,255,255,0.12)' }}>
-                <motion.div
-                  initial={false}
-                  animate={{
-                    width: isCompleted ? '100%' : isCurrent && phase === 'stories' ? `${storyProgress}%` : isCurrent ? '100%' : '0%',
-                  }}
-                  transition={
-                    isCurrent && phase === 'stories'
-                      ? { duration: 0 }
-                      : { duration: 0.35, ease: 'easeOut' }
-                  }
+                <div
                   style={{
                     height: '100%',
                     borderRadius: 99,
                     background: 'hsl(var(--primary))',
+                    width: isCompleted ? '100%' : isCurrent && phase === 'stories' ? `${storyProgress}%` : isCurrent ? '100%' : '0%',
+                    transition: isCurrent && phase === 'stories' ? 'none' : 'width 0.3s ease',
                     boxShadow: '0 0 6px hsl(var(--primary)/0.8)',
                   }}
                 />
@@ -541,9 +518,9 @@ export default function RegisterPage() {
               style={{ paddingTop: 72, paddingBottom: 48 }}
             >
               {/* Tap zones */}
-              <div className="absolute inset-0 flex z-20">
-                <div className="flex-1 cursor-pointer" onClick={() => { if (storyIndex > 0) { setStoryIndex(i => i - 1); setStoryProgress(0); } }} />
-                <div className="flex-1 cursor-pointer" onClick={advanceStory} />
+              <div className="absolute inset-0 flex z-20 pointer-events-none">
+                <div className="flex-1 cursor-pointer pointer-events-auto" onClick={() => { if (storyIndex > 0) { setStoryIndex(i => i - 1); setStoryProgress(0); } }} />
+                <div className="flex-1 cursor-pointer pointer-events-auto" onClick={advanceStory} />
               </div>
 
               <div style={{ position: 'relative', zIndex: 25, pointerEvents: 'none', width: '100%' }}>
@@ -621,12 +598,7 @@ export default function RegisterPage() {
         return (
           <div
             className="w-full max-w-sm mx-auto px-6 flex flex-col justify-center"
-            style={{
-              minHeight: '100dvh',
-              paddingTop: 72,
-              paddingBottom: Math.max(48, kbHeight + 16),
-              transition: 'padding-bottom 0.2s ease',
-            }}
+            style={{ minHeight: '100dvh', paddingTop: 72, paddingBottom: 48 }}
           >
             <AnimatePresence mode="wait">
               <motion.div
@@ -671,7 +643,7 @@ export default function RegisterPage() {
                           opacity: 0.75,
                         }}
                       >
-                        Hallo, {inputValue.trim().split(' ')[0]}! 👋
+                        Hallo, {inputValue.trim().split(' ')[0]}!
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -763,7 +735,7 @@ export default function RegisterPage() {
                     ? <><Loader2 size={16} className="animate-spin" /> Wird erstellt…</>
                     : formStep === 'warehouse'
                     ? 'System initialisieren'
-                    : <>'Weiter' <ChevronRight size={15} /></>
+                    : <>Weiter</>
                   }
                   {!loading && formStep !== 'warehouse' && <ChevronRight size={15} />}
                 </button>
@@ -832,6 +804,6 @@ export default function RegisterPage() {
         }
         input::placeholder { color: rgba(255,255,255,0.18); }
       `}</style>
-    </motion.div>
+    </div>
   );
 }
