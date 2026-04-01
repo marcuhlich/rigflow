@@ -88,19 +88,9 @@ function RippleCanvas({
     const duration = 700;
 
     function draw(now: number) {
-      const tRaw = (now - start) / duration;
-      const t = Math.min(Math.max(tRaw, 0), 1);
-
+      const t = Math.min(Math.max((now - start) / duration, 0), 1);
       const ease = 1 - Math.pow(1 - t, 3);
-
-      const safeMaxR = Math.max(0, maxR);
-      const r = Math.max(0, ease * safeMaxR);
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fillStyle = '#020408';
-      ctx.fill();
+      const r = Math.max(0, ease * Math.max(0, maxR));
 
       ctx!.clearRect(0, 0, canvas!.width, canvas!.height);
       ctx!.beginPath();
@@ -147,34 +137,20 @@ function QrVisual({ name }: { name: string }) {
       animate={{ scale: 1, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 200, damping: 20 }}
       style={{
-        width: 160,
-        height: 160,
+        width: 160, height: 160,
         background: 'rgba(var(--primary-rgb, 0,229,255),0.05)',
         border: '1px solid hsl(var(--primary)/0.3)',
-        borderRadius: 16,
-        padding: 14,
-        margin: '0 auto',
+        borderRadius: 16, padding: 14, margin: '0 auto',
         boxShadow: '0 0 40px hsl(var(--primary)/0.15)',
       }}
     >
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${size}, 1fr)`,
-          gap: 2,
-          width: '100%',
-          height: '100%',
-        }}
-      >
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${size}, 1fr)`, gap: 2, width: '100%', height: '100%' }}>
         {cells.map((filled, i) => (
-          <div
-            key={i}
-            style={{
-              background: filled ? 'hsl(var(--primary))' : 'transparent',
-              borderRadius: 1,
-              boxShadow: filled ? '0 0 3px hsl(var(--primary)/0.5)' : 'none',
-            }}
-          />
+          <div key={i} style={{
+            background: filled ? 'hsl(var(--primary))' : 'transparent',
+            borderRadius: 1,
+            boxShadow: filled ? '0 0 3px hsl(var(--primary)/0.5)' : 'none',
+          }} />
         ))}
       </div>
     </motion.div>
@@ -184,33 +160,35 @@ function QrVisual({ name }: { name: string }) {
 // ─── Password strength checks ─────────────────────────────────────────────────
 function PasswordChecks({ password }: { password: string }) {
   const checks = [
-    { icon: Hash,  label: 'Zahl',         ok: /\d/.test(password) },
-    { icon: Type,  label: 'Buchstaben',   ok: /[a-zA-Z]/.test(password) },
-    { icon: Lock,  label: '8+ Zeichen',   ok: password.length >= 8 },
+    { icon: Hash, label: 'Zahl',       ok: /\d/.test(password) },
+    { icon: Type, label: 'Buchstaben', ok: /[a-zA-Z]/.test(password) },
+    { icon: Lock, label: '8+ Zeichen', ok: password.length >= 8 },
   ];
   return (
     <div className="flex gap-4 mt-3">
       {checks.map(({ icon: Icon, label, ok }) => (
-        <div
-          key={label}
-          className="flex items-center gap-1.5 text-xs"
-          style={{
-            color: ok ? 'hsl(var(--primary))' : 'rgba(255,255,255,0.25)',
-            transition: 'color 0.4s',
-          }}
-        >
-          <Icon
-            size={11}
-            style={{
-              filter: ok ? 'drop-shadow(0 0 4px hsl(var(--primary)))' : 'none',
-              transition: 'filter 0.4s',
-            }}
-          />
+        <div key={label} className="flex items-center gap-1.5 text-xs"
+          style={{ color: ok ? 'hsl(var(--primary))' : 'rgba(255,255,255,0.25)', transition: 'color 0.4s' }}>
+          <Icon size={11} style={{ filter: ok ? 'drop-shadow(0 0 4px hsl(var(--primary)))' : 'none', transition: 'filter 0.4s' }} />
           <span>{label}</span>
         </div>
       ))}
     </div>
   );
+}
+
+// ─── Keyboard height hook ─────────────────────────────────────────────────────
+function useKeyboardHeight() {
+  const [kbHeight, setKbHeight] = useState(0);
+  useEffect(() => {
+    const vv = (window as any).visualViewport;
+    if (!vv) return;
+    const update = () => setKbHeight(Math.max(0, window.innerHeight - vv.height));
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => { vv.removeEventListener('resize', update); vv.removeEventListener('scroll', update); };
+  }, []);
+  return kbHeight;
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -231,18 +209,16 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Finale
   const [rippleActive, setRippleActive] = useState(false);
   const [showQr, setShowQr] = useState(false);
   const ctaRef = useRef<HTMLButtonElement>(null);
-
-  const [slideIn, setSlideIn] = useState(false);
+  const kbHeight = useKeyboardHeight();
 
   // ── Intro ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (phase !== 'intro') return;
     const t1 = setTimeout(() => setIntroStage('slide'), 1600);
-    const t2 = setTimeout(() => { setPhase('stories'); setSlideIn(true); }, 2500);
+    const t2 = setTimeout(() => setPhase('stories'), 2500);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [phase]);
 
@@ -272,14 +248,13 @@ export default function RegisterPage() {
   const stepIndex = FORM_STEPS.indexOf(formStep);
 
   const formConfig: Record<FormStep, { question: string; placeholder: string; type: string; key: keyof FormData }> = {
-    name:      { question: 'Wie heißt du?',           placeholder: 'Dein Name',            type: 'text',     key: 'name' },
-    email:     { question: 'Deine E-Mail?',            placeholder: 'mail@example.com',     type: 'email',    key: 'email' },
-    password:  { question: 'Wähle ein Passwort.',      placeholder: 'Mindestens 8 Zeichen', type: 'password', key: 'password' },
-    warehouse: { question: 'Wie heißt dein\nLager?',  placeholder: 'z.B. Hauptlager',      type: 'text',     key: 'warehouse' },
+    name:      { question: 'Wie heißt du?',          placeholder: 'Dein Name',            type: 'text',     key: 'name' },
+    email:     { question: 'Deine E-Mail?',           placeholder: 'mail@example.com',     type: 'email',    key: 'email' },
+    password:  { question: 'Wähle ein Passwort.',     placeholder: 'Mindestens 8 Zeichen', type: 'password', key: 'password' },
+    warehouse: { question: 'Wie heißt dein\nLager?', placeholder: 'z.B. Hauptlager',      type: 'text',     key: 'warehouse' },
   };
 
   const handleFormNext = async () => {
-    console.log("CLICK", { formStep, inputValue });
     setError('');
     if (!inputValue.trim()) { setError('Bitte fülle dieses Feld aus.'); return; }
     if (formStep === 'email' && !/\S+@\S+\.\S+/.test(inputValue)) { setError('Keine gültige E-Mail.'); return; }
@@ -298,27 +273,17 @@ export default function RegisterPage() {
   };
 
   const handleRippleComplete = async () => {
-    // Show QR briefly, then register + navigate
     setPhase('finale');
     setShowQr(true);
-
     setLoading(true);
     try {
       const { error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
-        options: {
-          data: {
-            full_name: formData.name,
-            warehouse_name: formData.warehouse,
-          },
-        },
+        options: { data: { full_name: formData.name, warehouse_name: formData.warehouse } },
       });
       if (signUpError) throw signUpError;
-      // Navigate with scan-reveal flag
-      setTimeout(() => {
-        navigate('/', { state: { scanReveal: true, userName: formData.name } });
-      }, 2200);
+      setTimeout(() => navigate('/', { state: { scanReveal: true, userName: formData.name } }), 2200);
     } catch (err: unknown) {
       setRippleActive(false);
       setPhase('form');
@@ -338,49 +303,47 @@ export default function RegisterPage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       className="fixed inset-0 flex items-center justify-center overflow-hidden"
       style={{ background: '#020408', fontFamily: "'DM Sans', system-ui, sans-serif" }}
     >
       {/* Ambient grid */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          backgroundImage: `
-            linear-gradient(hsl(var(--primary)/0.025) 1px, transparent 1px),
-            linear-gradient(90deg, hsl(var(--primary)/0.025) 1px, transparent 1px)
-          `,
-          backgroundSize: '60px 60px',
-        }}
-      />
+      <div className="pointer-events-none absolute inset-0" style={{
+        backgroundImage: `
+          linear-gradient(hsl(var(--primary)/0.025) 1px, transparent 1px),
+          linear-gradient(90deg, hsl(var(--primary)/0.025) 1px, transparent 1px)
+        `,
+        backgroundSize: '60px 60px',
+      }} />
 
       {/* Bottom glow */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{ background: 'radial-gradient(ellipse 80% 45% at 50% 100%, hsl(var(--primary)/0.07) 0%, transparent 70%)' }}
-      />
+      <div className="pointer-events-none absolute inset-0" style={{
+        background: 'radial-gradient(ellipse 80% 45% at 50% 100%, hsl(var(--primary)/0.07) 0%, transparent 70%)',
+      }} />
 
       {/* Ripple canvas */}
       <RippleCanvas active={rippleActive} originRef={ctaRef} onComplete={handleRippleComplete} />
 
       {/* ── STORY BAR ───────────────────────────────────────────────────── */}
       {(phase === 'stories' || phase === 'form') && (
-        <div className="absolute top-0 left-0 right-0 flex gap-1 px-3 pt-3 z-30"
+        <div className="absolute top-0 left-0 right-0 flex gap-1 px-3 z-30"
           style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
           {Array.from({ length: totalSegments }).map((_, i) => {
             const isCompleted = i < completedSegments;
             const isCurrent = phase === 'stories' ? i === storyIndex : i === STORIES.length + stepIndex;
             return (
-              <div key={i} className="flex-1 overflow-hidden" style={{ height: 2, borderRadius: 99, background: 'rgba(255,255,255,0.12)' }}>
-                <div
-                  style={{
-                    height: '100%',
-                    borderRadius: 99,
-                    background: 'hsl(var(--primary))',
+              <div key={i} className="flex-1 overflow-hidden"
+                style={{ height: 2, borderRadius: 99, background: 'rgba(255,255,255,0.12)' }}>
+                <motion.div
+                  initial={false}
+                  animate={{
                     width: isCompleted ? '100%' : isCurrent && phase === 'stories' ? `${storyProgress}%` : isCurrent ? '100%' : '0%',
-                    transition: isCurrent && phase === 'stories' ? 'none' : 'width 0.3s ease',
-                    boxShadow: '0 0 6px hsl(var(--primary)/0.8)',
                   }}
+                  transition={isCurrent && phase === 'stories' ? { duration: 0 } : { duration: 0.35, ease: 'easeOut' }}
+                  style={{ height: '100%', borderRadius: 99, background: 'hsl(var(--primary))', boxShadow: '0 0 6px hsl(var(--primary)/0.8)' }}
                 />
               </div>
             );
@@ -407,7 +370,8 @@ export default function RegisterPage() {
               animation: 'pulse-glow 1.6s ease-in-out infinite',
               boxShadow: '0 0 40px hsl(var(--primary)/0.2)',
             }}>
-              <img src="/logo-transparent.png" alt="RigFlow" style={{ width: 64, height: 64, filter: 'drop-shadow(0 0 8px hsl(var(--primary)))' }} />
+              <img src="/logo-transparent.png" alt="RigFlow"
+                style={{ width: 64, height: 64, filter: 'drop-shadow(0 0 8px hsl(var(--primary)))' }} />
             </div>
             <span style={{ fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em' }}>RigFlow</span>
           </div>
@@ -429,70 +393,32 @@ export default function RegisterPage() {
               className="w-full max-w-sm mx-auto px-6 flex flex-col items-start justify-center absolute inset-0"
               style={{ paddingTop: 72, paddingBottom: 48 }}
             >
-              {/* Tap zones */}
               <div className="absolute inset-0 flex z-20 pointer-events-none">
-                <div className="flex-1 cursor-pointer pointer-events-auto" onClick={() => { if (storyIndex > 0) { setStoryIndex(i => i - 1); setStoryProgress(0); } }} />
+                <div className="flex-1 cursor-pointer pointer-events-auto"
+                  onClick={() => { if (storyIndex > 0) { setStoryIndex(i => i - 1); setStoryProgress(0); } }} />
                 <div className="flex-1 cursor-pointer pointer-events-auto" onClick={advanceStory} />
               </div>
 
               <div style={{ position: 'relative', zIndex: 25, pointerEvents: 'none', width: '100%' }}>
-                {/* Eyebrow */}
-                <div style={{
-                  fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase',
-                  color: 'hsl(var(--primary))', opacity: 0.65, marginBottom: 20,
-                }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'hsl(var(--primary))', opacity: 0.65, marginBottom: 20 }}>
                   {story.eyebrow}
                 </div>
-
-                {/* Icon */}
-                <div style={{
-                  width: 52, height: 52, borderRadius: 14,
-                  background: 'hsl(var(--primary)/0.1)',
-                  border: '1px solid hsl(var(--primary)/0.2)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: 28, boxShadow: '0 0 20px hsl(var(--primary)/0.1)',
-                }}>
+                <div style={{ width: 52, height: 52, borderRadius: 14, background: 'hsl(var(--primary)/0.1)', border: '1px solid hsl(var(--primary)/0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 28, boxShadow: '0 0 20px hsl(var(--primary)/0.1)' }}>
                   <Icon size={22} style={{ color: 'hsl(var(--primary))' }} />
                 </div>
-
-                {/* Headline – multi-line via whitespace-pre */}
-                <h2 style={{
-                  fontSize: 'clamp(2.1rem, 9vw, 3.2rem)',
-                  fontWeight: 900,
-                  color: '#fff',
-                  lineHeight: 1.08,
-                  letterSpacing: '-0.035em',
-                  marginBottom: 20,
-                  whiteSpace: 'pre-line',
-                }}>
+                <h2 style={{ fontSize: 'clamp(2.1rem, 9vw, 3.2rem)', fontWeight: 900, color: '#fff', lineHeight: 1.08, letterSpacing: '-0.035em', marginBottom: 20, whiteSpace: 'pre-line' }}>
                   {story.headline}
                 </h2>
-
                 <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.42)', lineHeight: 1.65, maxWidth: 300 }}>
                   {story.sub}
                 </p>
-
-                {/* Detail chip */}
-                <div style={{
-                  marginTop: 20, display: 'inline-flex', alignItems: 'center', gap: 6,
-                  background: 'hsl(var(--primary)/0.07)',
-                  border: '1px solid hsl(var(--primary)/0.15)',
-                  borderRadius: 8, padding: '6px 12px',
-                  fontSize: 11, color: 'hsl(var(--primary))', opacity: 0.7,
-                }}>
+                <div style={{ marginTop: 20, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary)/0.07)', border: '1px solid hsl(var(--primary)/0.15)', borderRadius: 8, padding: '6px 12px', fontSize: 11, color: 'hsl(var(--primary))', opacity: 0.7 }}>
                   {story.detail}
                 </div>
-
-                {/* CTA on last slide */}
                 {storyIndex === STORIES.length - 1 && (
                   <button
                     className="mt-10 flex items-center gap-2"
-                    style={{
-                      color: 'hsl(var(--primary))', background: 'hsl(var(--primary)/0.1)',
-                      border: '1px solid hsl(var(--primary)/0.25)', borderRadius: 12,
-                      padding: '11px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 600,
-                      pointerEvents: 'all',
-                    }}
+                    style={{ color: 'hsl(var(--primary))', background: 'hsl(var(--primary)/0.1)', border: '1px solid hsl(var(--primary)/0.25)', borderRadius: 12, padding: '11px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 600, pointerEvents: 'all' }}
                     onClick={() => setPhase('form')}
                   >
                     Jetzt registrieren <ChevronRight size={15} />
@@ -510,7 +436,11 @@ export default function RegisterPage() {
         return (
           <div
             className="w-full max-w-sm mx-auto px-6 flex flex-col justify-center"
-            style={{ minHeight: '100dvh', paddingTop: 72, paddingBottom: 48 }}
+            style={{
+              minHeight: '100dvh', paddingTop: 72,
+              paddingBottom: Math.max(48, kbHeight + 16),
+              transition: 'padding-bottom 0.2s ease',
+            }}
           >
             <AnimatePresence mode="wait">
               <motion.div
@@ -520,24 +450,14 @@ export default function RegisterPage() {
                 exit={{ opacity: 0, y: -16 }}
                 transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
               >
-                {/* Step label */}
-                <div style={{
-                  fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
-                  color: 'hsl(var(--primary))', marginBottom: 14, opacity: 0.65,
-                }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'hsl(var(--primary))', marginBottom: 14, opacity: 0.65 }}>
                   Schritt {stepIndex + 1} von {FORM_STEPS.length}
                 </div>
 
-                {/* Question */}
-                <h2 style={{
-                  fontSize: 'clamp(1.8rem, 7vw, 2.6rem)', fontWeight: 900,
-                  color: '#fff', letterSpacing: '-0.03em', lineHeight: 1.1,
-                  marginBottom: 36, whiteSpace: 'pre-line',
-                }}>
+                <h2 style={{ fontSize: 'clamp(1.8rem, 7vw, 2.6rem)', fontWeight: 900, color: '#fff', letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 36, whiteSpace: 'pre-line' }}>
                   {config.question}
                 </h2>
 
-                {/* "Hallo [Name]!" greeting (name step only, fades in as you type) */}
                 {formStep === 'name' && (
                   <AnimatePresence>
                     {inputValue.trim() && (
@@ -546,22 +466,14 @@ export default function RegisterPage() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 4, scale: 0.97 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-                        style={{
-                          marginBottom: 20,
-                          fontSize: 15,
-                          color: 'hsl(var(--primary))',
-                          fontWeight: 600,
-                          letterSpacing: '-0.01em',
-                          opacity: 0.75,
-                        }}
+                        style={{ marginBottom: 20, fontSize: 15, color: 'hsl(var(--primary))', fontWeight: 600, letterSpacing: '-0.01em', opacity: 0.75 }}
                       >
-                        Hallo, {inputValue.trim().split(' ')[0]}!
+                        Hallo, {inputValue.trim().split(' ')[0]}! 👋
                       </motion.div>
                     )}
                   </AnimatePresence>
                 )}
 
-                {/* Input */}
                 <div className="relative">
                   <input
                     autoFocus
@@ -571,34 +483,19 @@ export default function RegisterPage() {
                     onChange={e => setInputValue(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') handleFormNext(); }}
                     style={{
-                      width: '100%',
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid hsl(var(--primary)/0.2)',
-                      borderRadius: 14,
-                      padding: '16px 20px',
-                      paddingRight: formStep === 'password' ? 52 : 20,
-                      fontSize: 16,
-                      color: '#fff',
-                      outline: 'none',
-                      backdropFilter: 'blur(12px)',
-                      transition: 'border-color 0.2s, box-shadow 0.2s',
+                      width: '100%', background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid hsl(var(--primary)/0.2)', borderRadius: 14,
+                      padding: '16px 20px', paddingRight: formStep === 'password' ? 52 : 20,
+                      fontSize: 16, color: '#fff', outline: 'none',
+                      backdropFilter: 'blur(12px)', transition: 'border-color 0.2s, box-shadow 0.2s',
                     }}
-                    onFocus={e => {
-                      e.target.style.borderColor = 'hsl(var(--primary)/0.6)';
-                      e.target.style.boxShadow = '0 0 20px hsl(var(--primary)/0.1)';
-                    }}
-                    onBlur={e => {
-                      e.target.style.borderColor = 'hsl(var(--primary)/0.2)';
-                      e.target.style.boxShadow = 'none';
-                    }}
+                    onFocus={e => { e.target.style.borderColor = 'hsl(var(--primary)/0.6)'; e.target.style.boxShadow = '0 0 20px hsl(var(--primary)/0.1)'; }}
+                    onBlur={e => { e.target.style.borderColor = 'hsl(var(--primary)/0.2)'; e.target.style.boxShadow = 'none'; }}
                   />
                   {formStep === 'password' && (
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(v => !v)}
+                    <button type="button" onClick={() => setShowPassword(v => !v)}
                       className="absolute right-4 top-1/2 -translate-y-1/2"
-                      style={{ color: 'rgba(255,255,255,0.3)', cursor: 'pointer', background: 'none', border: 'none' }}
-                    >
+                      style={{ color: 'rgba(255,255,255,0.3)', cursor: 'pointer', background: 'none', border: 'none' }}>
                       {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                     </button>
                   )}
@@ -607,38 +504,26 @@ export default function RegisterPage() {
                 {formStep === 'password' && <PasswordChecks password={inputValue} />}
 
                 {error && (
-                  <motion.p
-                    initial={{ opacity: 0, x: -6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    style={{ color: '#ff4d6d', fontSize: 13, marginTop: 10 }}
-                  >
+                  <motion.p initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
+                    style={{ color: '#ff4d6d', fontSize: 13, marginTop: 10 }}>
                     {error}
                   </motion.p>
                 )}
 
-                {/* CTA */}
                 <button
                   ref={ctaRef}
                   onClick={handleFormNext}
                   disabled={loading || rippleActive}
                   style={{
-                    marginTop: 28,
-                    width: '100%',
+                    marginTop: 28, width: '100%',
                     background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary)/0.7))',
-                    border: 'none',
-                    borderRadius: 14,
-                    padding: '16px 24px',
-                    fontSize: 15,
-                    fontWeight: 700,
+                    border: 'none', borderRadius: 14, padding: '16px 24px',
+                    fontSize: 15, fontWeight: 700,
                     color: 'hsl(var(--primary-foreground, 0 0% 0%))',
                     cursor: loading ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     boxShadow: '0 4px 24px hsl(var(--primary)/0.25)',
-                    opacity: loading ? 0.6 : 1,
-                    transition: 'opacity 0.2s, transform 0.1s',
+                    opacity: loading ? 0.6 : 1, transition: 'opacity 0.2s, transform 0.1s',
                   }}
                   onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.98)'; }}
                   onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
@@ -647,10 +532,19 @@ export default function RegisterPage() {
                     ? <><Loader2 size={16} className="animate-spin" /> Wird erstellt…</>
                     : formStep === 'warehouse'
                     ? 'System initialisieren'
-                    : <>Weiter</>
+                    : <>Weiter <ChevronRight size={15} /></>
                   }
-                  {!loading && formStep !== 'warehouse' && <ChevronRight size={15} />}
                 </button>
+
+                {formStep === 'name' && (
+                  <p style={{ textAlign: 'center', marginTop: 16, fontSize: 13, color: 'rgba(255,255,255,0.28)' }}>
+                    Schon dabei?{' '}
+                    <button onClick={() => navigate('/auth')}
+                      style={{ color: 'hsl(var(--primary))', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13 }}>
+                      Einloggen
+                    </button>
+                  </p>
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -659,10 +553,8 @@ export default function RegisterPage() {
 
       {/* ── FINALE ──────────────────────────────────────────────────────── */}
       {phase === 'finale' && (
-        <div
-          className="flex flex-col items-center justify-center gap-8 px-6 text-center"
-          style={{ zIndex: 20, position: 'relative' }}
-        >
+        <div className="flex flex-col items-center justify-center gap-8 px-6 text-center"
+          style={{ zIndex: 20, position: 'relative' }}>
           <AnimatePresence>
             {showQr && (
               <motion.div
@@ -671,10 +563,7 @@ export default function RegisterPage() {
                 transition={{ type: 'spring', stiffness: 180, damping: 18 }}
                 className="flex flex-col items-center gap-6"
               >
-                <div style={{
-                  fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase',
-                  color: 'hsl(var(--primary))', opacity: 0.55,
-                }}>
+                <div style={{ fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'hsl(var(--primary))', opacity: 0.55 }}>
                   System initialisiert
                 </div>
                 <QrVisual name={formData.name || 'RigFlow'} />
@@ -700,6 +589,6 @@ export default function RegisterPage() {
         }
         input::placeholder { color: rgba(255,255,255,0.18); }
       `}</style>
-    </div>
+    </motion.div>
   );
 }
