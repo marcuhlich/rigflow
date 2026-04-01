@@ -10,6 +10,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PushService } from "@/lib/pushService";
 import { logger } from "@/lib/logger";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import Landing from "./pages/Landing";
 import InstallPrompt from "./pages/InstallPrompt";
 import RegisterPage from '@/pages/RegisterPage';
@@ -278,6 +279,7 @@ const App = () => (
               <OverdueReminderInit />
               <AppRoutes />
             </BrowserRouter>
+            <SpeedInsights />
           </TooltipProvider>
         </UndoRedoProvider>
       </AuthProvider>
