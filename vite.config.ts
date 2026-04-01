@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => ({
     proxy: {
       // Proxy API requests to Lovable Cloud during local development
       "/api": {
-        target: "https://rigflow.lovable.app",
+        target: "https://rigflow-web.vercel.app",
         changeOrigin: true,
         secure: true,
       },

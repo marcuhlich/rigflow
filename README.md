@@ -4,7 +4,7 @@
 
 Rigflow ist eine moderne Web-App zur Verwaltung von Event-Equipment – mit QR-Code-Integration, DMX-Patchplanung, Verleihverwaltung und Event-Sets. Optimiert für kleine bis mittelgroße Technik-Sammlungen.
 
-[![Live Demo](https://img.shields.io/badge/Live-rigflow.lovable.app-blue?style=flat-square)](https://rigflow.lovable.app)
+[![Live Demo](https://img.shields.io/badge/Live-rigflow--web.vercel.app-blue?style=flat-square)](https://rigflow-web.vercel.app)
 [![Built with React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)](https://typescriptlang.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-06B6D4?style=flat-square&logo=tailwindcss)](https://tailwindcss.com)
@@ -14,7 +14,7 @@ Rigflow ist eine moderne Web-App zur Verwaltung von Event-Equipment – mit QR-C
 ## Demo
 
 Zum Testen der App kann folgender Demo-Account verwendet werden:
-1. https://rigflow.lovable.app aufrufen
+1. https://rigflow-web.vercel.app aufrufen
 2. Folgende Credentials eingeben:
     - E-Mail: demo@rigflow.app
     - Passwort: demo1234
@@ -39,7 +39,7 @@ RigFlow kann auf **mehreren Wegen verwendet werden**.
 
     ➡️ **RigFlow öffnen**
 
-    https://rigflow.lovable.app
+    https://rigflow-web.vercel.app
 
     Keine Installation erforderlich – einfach anmelden und starten.
 
@@ -113,7 +113,7 @@ RigFlow kann auf **mehreren Wegen verwendet werden**.
 Repository klonen:
 
 ```bash
-git clone https://github.com/<username>/rigflow.git
+git clone https://github.com/marcuhlich/rigflow.git
 cd rigflow
 ```
 
@@ -127,20 +127,9 @@ npm run dev
 ```
 Die App läuft anschließend unter:
 ```
-http://localhost:5173
+http://localhost:8080
 ```
 
-### Environment Variablen
-RigFlow benötigt eine Supabase Instanz.
-
-Erstelle eine `.env` Datei:
-
-```
-VITE_SUPABASE_URL=your_project_url
-VITE_SUPABASE_PUBLISHABLE_KEY=your_anon_key
-```
-
-Bei Deployments über Lovable Cloud werden diese Variablen automatisch gesetzt.
 
 ## Projektstruktur
 ```
