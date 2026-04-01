@@ -30,6 +30,8 @@ import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 import { useOverdueReminder } from "@/hooks/useOverdueReminder";
 import AuthCallback from "./pages/AuthCallback";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -79,6 +81,10 @@ function AppRoutes() {
 
       {/* Auth Callback */}
       <Route path="/auth/callback" element={<AuthCallback />} />
+
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Protected Routes */}
       <Route
