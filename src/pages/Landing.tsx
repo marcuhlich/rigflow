@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 
+
 // ---------------------------------------------------------------------------
 // Scroll-reveal hook: fires once when element enters the viewport
 // ---------------------------------------------------------------------------
@@ -123,18 +124,32 @@ const ANIM_CSS = `
 // ---------------------------------------------------------------------------
 export default function Landing() {
   const navigate = useNavigate();
-  const { canInstall, isInstalled, install } = useInstallPrompt();
+  const { canInstall, isInstalled, install, deviceType } = useInstallPrompt();
   const featuresRef = useRef<HTMLDivElement>(null);          // scroll-to target
-
   const [qrRef,   qrVisible]   = useScrollReveal();
   const [invRef,  invVisible]  = useScrollReveal();
   const [featRef, featVisible] = useScrollReveal();
   const [ctaRef,  ctaVisible]  = useScrollReveal();
 
   const handleInstallApp = async () => {
-    if (canInstall) await install();
-    else navigate('/install');
+    // Desktop → immer zum Windows-Installer
+    if (deviceType === "desktop") {
+      navigate("/install");
+      return;
+    }
+
+    // Android mit nativem Prompt → direkt installieren
+    if (deviceType === "android" && canInstall) {
+      const accepted = await install();
+      if (!accepted) navigate("/install"); // User hat abgelehnt → Anleitung zeigen
+      return;
+    }
+
+    // iOS oder Android ohne Prompt → Installationsanleitung
+    navigate("/install");
   };
+
+  const [debugInfo, setDebugInfo] = useState<string>("waiting...");
 
   const scrollToFeatures = () => {
     featuresRef.current?.scrollIntoView({ behavior: 'smooth' });

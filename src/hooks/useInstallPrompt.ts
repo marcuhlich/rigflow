@@ -5,6 +5,14 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+// Gerät-Erkennung
+export function getDeviceType(): "ios" | "android" | "desktop" {
+  const ua = navigator.userAgent;
+  if (/iphone|ipad|ipod/i.test(ua)) return "ios";
+  if (/android/i.test(ua)) return "android";
+  return "desktop";
+}
+
 export function useInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -20,9 +28,12 @@ export function useInstallPrompt() {
       setDeferredPrompt(null);
     };
 
-    if (window.matchMedia("(display-mode: standalone)").matches) {
-      setIsInstalled(true);
-    }
+    // Auch navigator.standalone für iOS prüfen
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+    if (isStandalone) setIsInstalled(true);
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleAppInstalled);
@@ -37,12 +48,15 @@ export function useInstallPrompt() {
     if (!deferredPrompt) return false;
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") {
-      setIsInstalled(true);
-    }
+    if (outcome === "accepted") setIsInstalled(true);
     setDeferredPrompt(null);
     return outcome === "accepted";
   };
 
-  return { canInstall: !!deferredPrompt, isInstalled, install };
+  return {
+    canInstall: !!deferredPrompt,
+    isInstalled,
+    install,
+    deviceType: getDeviceType(),
+  };
 }
