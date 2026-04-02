@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useNotifications } from '@/hooks/useNotifications';
 import { logger } from '@/lib/logger';
 
 const CHECK_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours
@@ -13,7 +13,7 @@ const STORAGE_KEY = 'rigflow_last_overdue_check';
  */
 export function useOverdueReminder() {
   const { user } = useAuth();
-  const { permission, sendNotification } = usePushNotifications();
+  const { permission, notifyLoanReminder, notifyLoanReminderMultiple } = useNotifications();
   const checkingRef = useRef(false);
 
   const checkOverdue = useCallback(async () => {
@@ -43,22 +43,13 @@ export function useOverdueReminder() {
 
         if (count === 1) {
           const item = data[0];
+          // Fix: append time to avoid timezone-off-by-one
           const daysOverdue = Math.floor(
-            (new Date(today).getTime() - new Date(item.due_date!).getTime()) / 86400000
+            (Date.now() - new Date(item.due_date + 'T00:00:00').getTime()) / 86400000
           );
-          await sendNotification({
-            title: '⚠️ Überfällige Rückgabe',
-            body: `"${item.item_name}" an ${item.lent_to} ist seit ${daysOverdue} Tag(en) überfällig.`,
-            tag: 'overdue-reminder',
-            requireInteraction: true,
-          });
+          await notifyLoanReminder(item.item_name, daysOverdue);
         } else {
-          await sendNotification({
-            title: `⚠️ ${count} überfällige Rückgaben`,
-            body: `${data.map(d => d.item_name).slice(0, 3).join(', ')}${count > 3 ? ` und ${count - 3} weitere` : ''} – bitte Rückgabe prüfen.`,
-            tag: 'overdue-reminder',
-            requireInteraction: true,
-          });
+          await notifyLoanReminderMultiple(data.map(d => d.item_name));
         }
 
         logger.info('OverdueReminder', `Sent notification for ${count} overdue item(s)`);
@@ -70,7 +61,7 @@ export function useOverdueReminder() {
     } finally {
       checkingRef.current = false;
     }
-  }, [user, permission, sendNotification]);
+  }, [user, permission, notifyLoanReminder, notifyLoanReminderMultiple]);
 
   useEffect(() => {
     if (!user || permission !== 'granted') return;

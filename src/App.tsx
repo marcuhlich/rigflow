@@ -32,6 +32,11 @@ import { useOverdueReminder } from "@/hooks/useOverdueReminder";
 import AuthCallback from "./pages/AuthCallback";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import AccountInfo from "./pages/settings/AccountInfo";
+import Notifications from "./pages/settings/Notifications";
+import NotificationTest from "./pages/dev/NotificationTest";
+import PrivacySecurity from "./pages/settings/PrivacySecurity";
+import CheckoutReturn from "./pages/CheckoutReturn";
 
 const queryClient = new QueryClient();
 
@@ -82,9 +87,19 @@ function AppRoutes() {
       {/* Auth Callback */}
       <Route path="/auth/callback" element={<AuthCallback />} />
 
+      {/* Password Reset */}
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
+      {/* Reset Password */}
       <Route path="/reset-password" element={<ResetPassword />} />
+
+      { /* Weitere Settings-Seiten (/settings/...) */}
+      <Route path="/settings/notifications" element={<Notifications />} />
+      <Route path="/settings/account-info" element={<AccountInfo />} />
+      <Route path="/settings/privacy-security" element={<PrivacySecurity />} />
+
+      { /* Dev/Test Pages */}
+      <Route path="/dev/notifications" element={<NotificationTest />} />
 
       {/* Protected Routes */}
       <Route
@@ -140,6 +155,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Lending />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/checkout-return"
+        element={
+          <ProtectedRoute>
+            <CheckoutReturn />
           </ProtectedRoute>
         }
       />

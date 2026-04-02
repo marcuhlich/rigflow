@@ -7,7 +7,7 @@ import { logger } from '@/lib/logger';
 import { Json } from '@/integrations/supabase/types';
 import { offlineQueue } from '@/lib/offlineQueue';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const ITEMS_CACHE_KEY = 'inventory_items';
 
@@ -24,7 +24,7 @@ export function useInventory() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isOnline } = useOnlineStatus();
-  const { notifySync, notifyError, notifyOffline, notifyOnline } = usePushNotifications();
+  const { notifySync, notifyError, notifyOffline, notifyOnline } = useNotifications();
 
   // Audit log helper
   const logAudit = async (

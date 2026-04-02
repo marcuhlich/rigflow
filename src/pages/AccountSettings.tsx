@@ -34,6 +34,7 @@ import {
   Sun,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useLocation } from "react-router-dom";
 
 export default function AccountSettings() {
   const { user, signOut } = useAuth();
@@ -68,6 +69,14 @@ export default function AccountSettings() {
       setIsLoggingOut(false);
     }
   };
+
+const location = useLocation();
+
+useEffect(() => {
+  if (location.state?.openDeleteDialog) {
+    setShowDeleteDialog(true);
+  }
+}, [location.state]);
 
 const handleDeleteAccount = async () => {
   if (deleteConfirmEmail !== user?.email) {
@@ -137,9 +146,9 @@ const handleDeleteAccount = async () => {
       {/* ── Nav Menu Items ── */}
       <Card className="glass-card overflow-hidden p-0">
         {[
-          { icon: Settings, label: "Kontoinformationen", to: null },
-          { icon: Bell, label: "Benachrichtigungen", to: null },
-          { icon: Shield, label: "Datenschutz & Sicherheit", to: null },
+          { icon: Settings, label: "Kontoinformationen", to: "/settings/account-info" },
+          { icon: Bell, label: "Benachrichtigungen", to: "/settings/notifications" },
+          { icon: Shield, label: "Datenschutz & Sicherheit", to: "/settings/privacy-security" },
           {
             icon: Palette,
             label: "Erscheinungsbild",
@@ -152,25 +161,31 @@ const handleDeleteAccount = async () => {
             ),
           },
         ].map((item, idx, arr) => (
-          <div key={item.label}>
-            <button
-              className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors text-left"
-              onClick={() =>
-                toast({
-                  title: item.label,
-                  description: "Diese Funktion kommt bald.",
-                })
-              }
-            >
-              <item.icon className="h-5 w-5 text-primary shrink-0" />
-              <span className="flex-1 text-sm font-medium">{item.label}</span>
-              {item.trailing ?? <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-            </button>
-            {idx < arr.length - 1 && (
-              <div className="h-px bg-border/50 mx-4" />
-            )}
-          </div>
-        ))}
+            <div key={item.label}>
+              {item.to ? (
+                <Link
+                  to={item.to}
+                  className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors"
+                >
+                  <item.icon className="h-5 w-5 text-primary shrink-0" />
+                  <span className="flex-1 text-sm font-medium">{item.label}</span>
+                  {item.trailing ?? <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                </Link>
+              ) : (
+                <button
+                  className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors text-left"
+                  onClick={() =>
+                    toast({ title: item.label, description: "Diese Funktion kommt bald." })
+                  }
+                >
+                  <item.icon className="h-5 w-5 text-primary shrink-0" />
+                  <span className="flex-1 text-sm font-medium">{item.label}</span>
+                  {item.trailing ?? <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                </button>
+              )}
+              {idx < arr.length - 1 && <div className="h-px bg-border/50 mx-4" />}
+            </div>
+          ))}
       </Card>
 
       {/* ── General Settings Info Box ── */}

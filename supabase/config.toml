@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.latestRelease]
 verify_jwt = false
+
+[functions.global-signout]
+verify_jwt = false
+
+[functions.mfa-recovery-codes]
+verify_jwt = true

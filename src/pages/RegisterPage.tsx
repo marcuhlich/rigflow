@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, EyeOff, ChevronRight, Lock, Hash, Type, QrCode, Wifi, Package, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, ChevronRight, ChevronLeft, Lock, Hash, Type, QrCode, Wifi, Package, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -429,6 +429,37 @@ export default function RegisterPage() {
           </AnimatePresence>
         );
       })()}
+
+      {phase !== 'finale' && phase !== 'intro' && (
+      <motion.button
+        onClick={() => navigate(-1)}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ scale: 1.05, boxShadow: '0 0 12px hsl(var(--primary)/0.5)' }}
+        whileTap={{ scale: 0.92, boxShadow: '0 0 6px hsl(var(--primary)/0.7)' }}
+        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+        style={{
+          position: 'absolute',
+          top: `calc(env(safe-area-inset-top, 0px) + 38px + ${kbHeight}px)`,
+          left: 12,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          background: 'hsl(var(--primary)/0.1)',
+          border: '1px solid hsl(var(--primary)/0.25)',
+          borderRadius: 12,
+          padding: '6px 10px',
+          color: 'hsl(var(--primary))',
+          fontWeight: 600,
+          fontSize: 13,
+          cursor: 'pointer',
+          zIndex: 40,
+        }}
+      >
+        <ChevronLeft size={16} />
+        Zurück
+      </motion.button>
+    )}
 
       {/* ── FORM ────────────────────────────────────────────────────────── */}
       {phase === 'form' && (() => {
