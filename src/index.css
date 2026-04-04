@@ -6,7 +6,8 @@
 
 @layer base {
   :root {
-    /* Primary & Background Colors */
+    color-scheme: dark;
+    /* Primary & Background Colors - DARK MODE (default) */
     --background: 215 28% 17%;
     --foreground: 210 40% 96%;
 
@@ -66,6 +67,177 @@
     --sidebar-accent-foreground: 210 40% 92%;
     --sidebar-border: 217 22% 26%;
     --sidebar-ring: 162 84% 54%;
+  }
+
+  /* LIGHT MODE - Applied when `.dark` class is removed */
+  :root:not(.dark) {
+    color-scheme: light;
+    /* Primary & Background Colors - LIGHT MODE */
+    --background: 0 0% 100%;
+    --foreground: 215 28% 17%;
+
+    --card: 0 0% 96%;
+    --card-foreground: 215 28% 17%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 28% 17%;
+
+    /* Brand Colors */
+    --primary: 162 84% 54%;          /* Same mint for consistency */
+    --primary-foreground: 215 28% 10%;
+
+    --secondary: 217 33% 95%;         /* Light mode variant */
+    --secondary-foreground: 215 28% 17%;
+
+    --accent: 38 92% 50%;             /* Same amber for consistency */
+    --accent-foreground: 215 28% 10%;
+
+    /* Utility Colors */
+    --muted: 217 22% 70%;
+    --muted-foreground: 217 15% 30%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 162 84% 54%;
+    --success-foreground: 215 28% 10%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 215 28% 10%;
+
+    --border: 217 22% 80%;
+    --input: 217 22% 90%;
+    --ring: 162 84% 54%;
+
+    /* Glassmorphism - Light mode */
+    --glass-bg: 217 22% 95% / 0.75;
+    --glass-border: 217 22% 80% / 0.4;
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    --glass-blur: 16px;
+
+    /* Gradients - Light mode */
+    --gradient-bg: linear-gradient(135deg, hsl(0 0% 98%) 0%, hsl(0 0% 100%) 50%, hsl(0 0% 97%) 100%);
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100% / 0.85) 0%, hsl(0 0% 95% / 0.65) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(162 84% 48%) 0%, hsl(168 80% 58%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(38 92% 48%) 0%, hsl(44 88% 58%) 100%);
+
+    /* Sidebar - Light mode */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 215 28% 17%;
+    --sidebar-primary: 162 84% 54%;
+    --sidebar-primary-foreground: 215 28% 10%;
+    --sidebar-accent: 217 22% 80%;
+    --sidebar-accent-foreground: 215 28% 17%;
+    --sidebar-border: 217 22% 80%;
+    --sidebar-ring: 162 84% 54%;
+  }
+}
+
+/* ─── Accent Color Variants ──────────────────────────────────────────── */
+@layer base {
+  :root {
+    --color-accent: 162 84% 54%;
+  }
+
+  /* Dark Mode - Default (bright, saturated colors) */
+  :root.dark.accent-mint,
+  .dark.accent-mint {
+    --primary: 162 84% 54%;
+    --ring: 162 84% 54%;
+    --color-accent: 162 84% 54%;
+  }
+
+  :root.dark.accent-amber,
+  .dark.accent-amber {
+    --primary: 38 92% 50%;
+    --ring: 38 92% 50%;
+    --color-accent: 38 92% 50%;
+  }
+
+  :root.dark.accent-sky,
+  .dark.accent-sky {
+    --primary: 197 100% 48%;
+    --ring: 197 100% 48%;
+    --color-accent: 197 100% 48%;
+  }
+
+  :root.dark.accent-violet,
+  .dark.accent-violet {
+    --primary: 280 74% 67%;
+    --ring: 280 74% 67%;
+    --color-accent: 280 74% 67%;
+  }
+
+  :root.dark.accent-rose,
+  .dark.accent-rose {
+    --primary: 0 100% 71%;
+    --ring: 0 100% 71%;
+    --color-accent: 0 100% 71%;
+  }
+
+  /* Light Mode - Adjusted for better contrast on light backgrounds (darker, less saturated) */
+  :root:not(.dark).accent-mint,
+  :not(.dark).accent-mint {
+    --primary: 162 72% 32%;
+    --ring: 162 72% 32%;
+    --color-accent: 162 72% 32%;
+  }
+
+  :root:not(.dark).accent-amber,
+  :not(.dark).accent-amber {
+    --primary: 38 92% 42%;
+    --ring: 38 92% 42%;
+    --color-accent: 38 92% 42%;
+  }
+
+  :root:not(.dark).accent-sky,
+  :not(.dark).accent-sky {
+    --primary: 202 97% 40%;
+    --ring: 202 97% 40%;
+    --color-accent: 202 97% 40%;
+  }
+
+  :root:not(.dark).accent-violet,
+  :not(.dark).accent-violet {
+    --primary: 280 85% 44%;
+    --ring: 280 85% 44%;
+    --color-accent: 280 85% 44%;
+  }
+
+  :root:not(.dark).accent-rose,
+  :not(.dark).accent-rose {
+    --primary: 0 86% 45%;
+    --ring: 0 86% 45%;
+    --color-accent: 0 86% 45%;
+  }
+
+  /* High Contrast Mode - Dark */
+  :root.dark.high-contrast {
+    --background: 210 50% 10%;
+    --foreground: 0 0% 100%;
+    --muted-foreground: 0 0% 85%;
+    --border: 210 50% 50%;
+  }
+
+  /* High Contrast Mode - Light */
+  :root:not(.dark).high-contrast {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 10%;
+    --muted-foreground: 0 0% 30%;
+    --border: 0 0% 60%;
+  }
+
+  /* Colorblind Filters */
+  html[data-color-blind="deuteranopia"] {
+    filter: hue-rotate(15deg) saturate(0.8);
+  }
+
+  html[data-color-blind="protanopia"] {
+    filter: hue-rotate(25deg) saturate(0.7);
+  }
+
+  html[data-color-blind="tritanopia"] {
+    filter: hue-rotate(30deg) saturate(0.85);
   }
 }
 

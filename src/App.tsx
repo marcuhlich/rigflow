@@ -39,6 +39,7 @@ import NotificationTest from "./pages/dev/NotificationTest";
 import PrivacySecurity from "./pages/settings/PrivacySecurity";
 import CheckoutReturn from "./pages/CheckoutReturn";
 import { EmailVerifiedListener } from '@/components/EmailVerifiedListener';
+import Appearance from "./pages/settings/Appearance";
 
 const queryClient = new QueryClient();
 
@@ -99,6 +100,7 @@ function AppRoutes() {
       <Route path="/settings/notifications" element={<Notifications />} />
       <Route path="/settings/account-info" element={<AccountInfo />} />
       <Route path="/settings/privacy-security" element={<PrivacySecurity />} />
+      <Route path="/settings/appearance" element={<Appearance />} />
 
       { /* Dev/Test Pages */}
       <Route path="/dev/notifications" element={<NotificationTest />} />

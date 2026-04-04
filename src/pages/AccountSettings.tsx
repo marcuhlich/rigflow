@@ -152,7 +152,7 @@ const handleDeleteAccount = async () => {
           {
             icon: Palette,
             label: "Erscheinungsbild",
-            to: null,
+            to: "/settings/appearance",
             trailing: (
               <span className="flex items-center gap-1 text-muted-foreground">
                 <Moon className="h-3.5 w-3.5" />
