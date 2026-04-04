@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, Loader2, Download, ChevronLeft, KeyRound, ShieldCheck } from "lucide-react";
+import { Mail, Lock, Loader2, Download, ChevronLeft, KeyRound, ShieldCheck, LifeBuoy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -89,7 +89,6 @@ const LoginStep = ({ onMfaRequired, onSuccess }: LoginStepProps) => {
         });
         return;
       }
-      // Check if MFA step is required
       const { data: factors } = await supabase.auth.mfa.listFactors();
       const has2FA = (factors?.totp?.length ?? 0) > 0;
 
@@ -98,7 +97,8 @@ const LoginStep = ({ onMfaRequired, onSuccess }: LoginStepProps) => {
       } else {
         toast({ title: "Willkommen zurück!", description: "Du wurdest erfolgreich angemeldet." });
         onSuccess();
-      } } finally {
+      }
+    } finally {
       setIsLoading(false);
     }
   };
@@ -201,10 +201,10 @@ const LoginStep = ({ onMfaRequired, onSuccess }: LoginStepProps) => {
   );
 };
 
-// ─── Step 2: TOTP ─────────────────────────────────────────────────────────────
+// ─── Step 2: TOTP + Recovery ──────────────────────────────────────────────────
 
 interface MfaStepProps {
-  onSuccess: () => void;
+  onSuccess: (method: "totp" | "recovery") => void;
   onBack: () => void;
 }
 
@@ -212,6 +212,7 @@ const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [useRecovery, setUseRecovery] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -219,40 +220,85 @@ const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
     setTimeout(() => inputRef.current?.focus(), 100);
   }, []);
 
-  // Auto-submit on 6 digits
+  // Auto-submit nur bei TOTP
   useEffect(() => {
-    if (code.length === 6) handleVerify();
+    if (!useRecovery && code.length === 6) handleVerify();
   }, [code]);
 
+  const switchMode = (recovery: boolean) => {
+    setUseRecovery(recovery);
+    setCode("");
+    setError(null);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
   const handleVerify = async () => {
-    if (code.length !== 6 || isLoading) return;
+    if (isLoading) return;
+    if (!useRecovery && code.length !== 6) return;
+    if (useRecovery && code.length < 11) return;
+
     setIsLoading(true);
     setError(null);
+
     try {
-      const { data: factors } = await supabase.auth.mfa.listFactors();
-      const totpFactor = factors?.totp?.[0];
-      if (!totpFactor) {
-        setError("Kein 2FA-Faktor gefunden.");
-        return;
-      }
-      const { data: challenge, error: challengeError } =
-        await supabase.auth.mfa.challenge({ factorId: totpFactor.id });
-      if (challengeError || !challenge) {
-        setError("Challenge fehlgeschlagen. Bitte erneut versuchen.");
-        return;
-      }
-      const { error: verifyError } = await supabase.auth.mfa.verify({
-        factorId: totpFactor.id,
-        challengeId: challenge.id,
-        code,
-      });
-      if (verifyError) {
-        setError("Falscher Code. Bitte erneut versuchen.");
-        setCode("");
-        inputRef.current?.focus();
+      if (useRecovery) {
+        // ── Recovery Code Flow ────────────────────────────────────────────
+        const { data: { session } } = await supabase.auth.getSession();
+        const supabaseUrl = (supabase as any).supabaseUrl as string;
+        const supabaseKey = (supabase as any).supabaseKey as string;
+
+        const res = await fetch(`${supabaseUrl}/functions/v1/mfa-recovery-codes`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": supabaseKey,
+            "Authorization": `Bearer ${session?.access_token ?? ""}`,
+          },
+          body: JSON.stringify({ action: "verify", code }),
+        });
+
+        const data = await res.json();
+
+        if (!data.valid) {
+          setError("Ungültiger oder bereits verwendeter Code.");
+          setCode("");
+          inputRef.current?.focus();
+          return;
+        }
+
+        toast({
+          title: "Recovery-Code akzeptiert",
+          description: "Bitte richte 2FA neu ein um dein Konto zu schützen.",
+        });
+        onSuccess("recovery");
+
       } else {
-        toast({ title: "Willkommen zurück!", description: "Du wurdest erfolgreich angemeldet." });
-        onSuccess();
+        // ── TOTP Flow ─────────────────────────────────────────────────────
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const totpFactor = factors?.totp?.[0];
+        if (!totpFactor) {
+          setError("Kein 2FA-Faktor gefunden.");
+          return;
+        }
+        const { data: challenge, error: challengeError } =
+          await supabase.auth.mfa.challenge({ factorId: totpFactor.id });
+        if (challengeError || !challenge) {
+          setError("Challenge fehlgeschlagen. Bitte erneut versuchen.");
+          return;
+        }
+        const { error: verifyError } = await supabase.auth.mfa.verify({
+          factorId: totpFactor.id,
+          challengeId: challenge.id,
+          code,
+        });
+        if (verifyError) {
+          setError("Falscher Code. Bitte erneut versuchen.");
+          setCode("");
+          inputRef.current?.focus();
+        } else {
+          toast({ title: "Willkommen zurück!", description: "Du wurdest erfolgreich angemeldet." });
+          onSuccess("totp");
+        }
       }
     } finally {
       setIsLoading(false);
@@ -262,14 +308,21 @@ const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
   return (
     <>
       <div className="flex justify-center mb-6">
-        <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20">
-          <ShieldCheck className="h-8 w-8 text-primary" />
+        <div className={`p-4 rounded-2xl border ${useRecovery ? "bg-amber-500/10 border-amber-500/20" : "bg-primary/10 border-primary/20"}`}>
+          {useRecovery
+            ? <LifeBuoy className="h-8 w-8 text-amber-500" />
+            : <ShieldCheck className="h-8 w-8 text-primary" />
+          }
         </div>
       </div>
 
-      <h2 className="text-xl font-semibold text-center mb-2">Zwei-Faktor-Code</h2>
+      <h2 className="text-xl font-semibold text-center mb-2">
+        {useRecovery ? "Recovery-Code" : "Zwei-Faktor-Code"}
+      </h2>
       <p className="text-sm text-muted-foreground text-center mb-8">
-        Gib den 6-stelligen Code aus deiner Authenticator-App ein.
+        {useRecovery
+          ? "Gib einen deiner gespeicherten Recovery-Codes ein. Er wird danach ungültig."
+          : "Gib den 6-stelligen Code aus deiner Authenticator-App ein."}
       </p>
 
       <div className="space-y-4">
@@ -278,29 +331,60 @@ const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
           <Input
             ref={inputRef}
             type="text"
-            inputMode="numeric"
-            maxLength={6}
-            placeholder="000000"
+            inputMode={useRecovery ? "text" : "numeric"}
+            maxLength={useRecovery ? 11 : 6}
+            placeholder={useRecovery ? "XXXXX-XXXXX" : "000000"}
             value={code}
             onChange={(e) => {
               setError(null);
-              setCode(e.target.value.replace(/\D/g, ""));
+              if (useRecovery) {
+                let val = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "");
+                // Dash nach 5 Zeichen automatisch einfügen
+                if (val.length === 5 && !val.includes("-") && e.target.value.length > code.length) {
+                  val += "-";
+                }
+                setCode(val.slice(0, 11));
+              } else {
+                setCode(e.target.value.replace(/\D/g, ""));
+              }
             }}
-            className="pl-10 glass-input text-center tracking-[0.5em] font-mono text-lg"
+            className={`pl-10 glass-input text-center font-mono text-lg ${
+              useRecovery ? "tracking-widest uppercase" : "tracking-[0.5em]"
+            }`}
           />
         </div>
 
-        {error && <p className="text-sm text-destructive text-center">{error}</p>}
+        {error && (
+          <p className="text-sm text-destructive text-center">{error}</p>
+        )}
 
-        <Button className="w-full" onClick={handleVerify} disabled={isLoading || code.length !== 6}>
+        <Button
+          className="w-full"
+          onClick={handleVerify}
+          disabled={
+            isLoading ||
+            (!useRecovery && code.length !== 6) ||
+            (useRecovery && code.length < 11)
+          }
+        >
           {isLoading ? (
             <><Loader2 className="h-4 w-4 animate-spin mr-2" />Wird geprüft...</>
           ) : "Bestätigen"}
         </Button>
 
+        {/* Toggle TOTP ↔ Recovery */}
+        <button
+          onClick={() => switchMode(!useRecovery)}
+          className="w-full text-sm text-primary hover:opacity-70 transition-opacity text-center pt-1"
+        >
+          {useRecovery
+            ? "← Zurück zum Authenticator-Code"
+            : "Keinen Zugriff auf die App? Recovery-Code verwenden"}
+        </button>
+
         <button
           onClick={onBack}
-          className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors text-center pt-1"
+          className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors text-center"
         >
           ← Zurück zum Login
         </button>
@@ -320,13 +404,11 @@ const Auth = () => {
     const checkAuth = async () => {
       if (!loading && user) {
         const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-
         if (data?.currentLevel === "aal2") {
           navigate("/install-prompt");
         }
       }
     };
-
     checkAuth();
   }, [user, loading, navigate]);
 
@@ -354,7 +436,14 @@ const Auth = () => {
             />
           ) : (
             <MfaStep
-              onSuccess={() => navigate("/install-prompt")}
+              onSuccess={(method) => {
+                if (method === "recovery") {
+                  // Nach Recovery-Code-Login direkt zu 2FA-Einstellungen
+                  navigate("/settings/privacy-security");
+                } else {
+                  navigate("/install-prompt");
+                }
+              }}
               onBack={() => setStep("login")}
             />
           )}

@@ -28,8 +28,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { toast, useToast } from "@/hooks/use-toast";
 import QRCode from "qrcode";
+import { createPortal } from "react-dom";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -109,9 +110,10 @@ function RecoveryCodesOverlay({ codes, onClose, isRegeneration = false }: Recove
     setTimeout(() => setCopied(false), 2000);
   };
 
-  return (
+  return createPortal(
+    (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/90 backdrop-blur-md">
-      <div className="glass-card w-full max-w-sm p-6 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+      <div className="glass-card w-full max-w-sm p-6 space-y-5 animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
 
         {/* Header */}
         <div className="space-y-1.5">
@@ -209,6 +211,8 @@ function RecoveryCodesOverlay({ codes, onClose, isRegeneration = false }: Recove
         </Button>
       </div>
     </div>
+  ),
+    document.body!
   );
 }
 
@@ -269,34 +273,51 @@ function TwoFactorSection({ onStatusChange }: { onStatusChange: (v: boolean) => 
   }, []);
 
   // ── Recovery codes helpers ────────────────────────────────────────────────
-  const fetchCodeCount = useCallback(async () => {
-    const { data, error } = await supabase.functions.invoke("mfa-recovery-codes", {
-      body: { action: "count" },
-    });
-    if (!error && data?.count !== undefined) {
-      setUnusedCount(data.count as number);
-    }
-  }, []);
+  // Direkt fetch statt supabase.functions.invoke – umgeht SDK-Header-Probleme
+    const invokeWithAuth = useCallback(async (action: string, extra?: object) => {
+    const { data: { session } } = await supabase.auth.getSession();
 
-  const generateCodes = useCallback(async (isRegen = false) => {
-    setGeneratingCodes(true);
-    const { data, error } = await supabase.functions.invoke("mfa-recovery-codes", {
-      body: { action: "generate" },
+    // Key direkt aus dem Client holen – funktioniert immer, egal welche Env-Vars gesetzt sind
+    const supabaseUrl = (supabase as any).supabaseUrl as string;
+    const supabaseKey = (supabase as any).supabaseKey as string;
+
+    const res = await fetch(`${supabaseUrl}/functions/v1/mfa-recovery-codes`, {
+        method: "POST",
+        headers: {
+        "Content-Type": "application/json",
+        "apikey": supabaseKey,
+        "Authorization": `Bearer ${session?.access_token ?? ""}`,
+        },
+        body: JSON.stringify({ action, ...extra }),
     });
-    setGeneratingCodes(false);
-    if (error || !data?.codes) {
-      toast({
-        title: "Fehler beim Generieren",
-        description: "Codes konnten nicht erstellt werden.",
-        variant: "destructive",
-      });
-      return;
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+    }, []);
+
+    const fetchCodeCount = useCallback(async () => {
+    try {
+        const data = await invokeWithAuth("count");
+        if (data?.count !== undefined) setUnusedCount(data.count as number);
+    } catch (e) {
+        console.error("fetchCodeCount:", e);
     }
-    const codes = data.codes as string[];
-    setUnusedCount(codes.length);
-    setOverlayData({ codes, isRegen });
-    setConfirmRegen(false);
-  }, [toast]);
+    }, [invokeWithAuth]);
+
+    const generateCodes = useCallback(async (isRegen = false) => {
+    setGeneratingCodes(true);
+    try {
+        const data = await invokeWithAuth("generate");
+        if (!data?.codes) throw new Error("Keine Codes erhalten");
+        setUnusedCount(data.codes.length);
+        setOverlayData({ codes: data.codes as string[], isRegen });
+        setConfirmRegen(false);
+    } catch (e) {
+        toast({ title: "Fehler beim Generieren", description: "Codes konnten nicht erstellt werden.", variant: "destructive" });
+    } finally {
+        setGeneratingCodes(false);
+    }
+    }, [invokeWithAuth, toast]);
 
   // ── Enroll 2FA ────────────────────────────────────────────────────────────
   const startEnroll = async () => {
@@ -343,18 +364,42 @@ function TwoFactorSection({ onStatusChange }: { onStatusChange: (v: boolean) => 
   const disable = async () => {
     if (!factorId) return;
     setDisabling(true);
-    const { error } = await supabase.auth.mfa.unenroll({ factorId });
-    setDisabling(false);
-    if (error) {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+    
+    // Prüfen ob wir AAL2 haben
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    
+    if (aal?.currentLevel === "aal2") {
+        // Normal unenroll
+        const { error } = await supabase.auth.mfa.unenroll({ factorId });
+        setDisabling(false);
+        if (error) {
+        toast({ title: "Fehler", description: error.message, variant: "destructive" });
+        } else {
+        setFactorId(null);
+        setStatus("disabled");
+        setUnusedCount(null);
+        onStatusChange(false);
+        toast({ title: "2FA deaktiviert" });
+        }
     } else {
-      setFactorId(null);
-      setStatus("disabled");
-      setUnusedCount(null);
-      onStatusChange(false);
-      toast({ title: "2FA deaktiviert" });
+        // AAL1 (nach Recovery-Login) → über Edge Function
+        try {
+        const currentFactorId = factorId;
+        const data = await invokeWithAuth("unenroll", { factorId: currentFactorId });
+        setDisabling(false);
+        if (data?.success) {
+            setFactorId(null);
+            setStatus("disabled");
+            setUnusedCount(null);
+            onStatusChange(false);
+            toast({ title: "2FA deaktiviert", description: "Du kannst 2FA jetzt neu einrichten." });
+        }
+        } catch {
+        setDisabling(false);
+        toast({ title: "Fehler", description: "Deaktivierung fehlgeschlagen.", variant: "destructive" });
+        }
     }
-  };
+    };
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (status === "loading") {
@@ -603,6 +648,94 @@ function PermissionsDashboard() {
     return { text: "Nicht verfügbar", color: "text-muted-foreground" };
   };
 
+  const openPermissionSettings = () => {
+    const ua = navigator.userAgent;
+
+    const isElectron  = ua.includes("Electron");
+    const isIOS       = /iPhone|iPad|iPod/.test(ua);
+    const isAndroid   = /Android/.test(ua);
+    const isMac       = /Macintosh|MacIntel/.test(ua);
+    const isWindows   = /Win/.test(ua);
+
+    // PWA-Modus (kein Browser-Chrome → keine Adressleiste)
+    const isPWA =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (navigator as any).standalone === true;
+
+    if (isElectron) {
+        // ── Electron Desktop App ──────────────────────────────────────────────
+        if (isWindows) {
+        // Windows: Datenschutz-Einstellungen (Kamera / Mikro / Standort)
+        window.open("ms-settings:privacy-webcam");
+        } else if (isMac) {
+        // macOS: Systemeinstellungen → Datenschutz & Sicherheit
+        window.open(
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera"
+        );
+        } else {
+        // Linux: kein Standard-URI-Schema vorhanden
+        toast({
+            title: "Berechtigungen verwalten",
+            description:
+            "Öffne deine Systemeinstellungen und suche nach 'Datenschutz' oder 'Anwendungsberechtigungen'.",
+        });
+        }
+        return;
+    }
+
+    if (isAndroid) {
+        if (isPWA) {
+        // ── Android, installierte PWA ───────────────────────────────────────
+        toast({
+            title: "Berechtigungen verwalten",
+            description:
+            "Öffne Einstellungen → Apps → RigFlow → Berechtigungen.",
+            duration: 6000,
+        });
+        } else {
+        // ── Android Browser ─────────────────────────────────────────────────
+        toast({
+            title: "Berechtigungen verwalten",
+            description:
+            "Tippe auf das Schloss-Symbol in der Adressleiste → Website-Einstellungen.",
+            duration: 6000,
+        });
+        }
+        return;
+    }
+
+    if (isIOS) {
+        if (isPWA) {
+        // ── iOS, installierte PWA ───────────────────────────────────────────
+        // iOS erlaubt keinen direkten Link zu Einstellungen aus PWAs heraus
+        toast({
+            title: "Berechtigungen verwalten",
+            description:
+            "Öffne Einstellungen → Datenschutz & Sicherheit und wähle die gewünschte Berechtigung.",
+            duration: 6000,
+        });
+        } else {
+        // ── iOS Safari / Browser ─────────────────────────────────────────────
+        toast({
+            title: "Berechtigungen verwalten",
+            description:
+            "Tippe auf das AA-Symbol links in der Adressleiste → Website-Einstellungen.",
+            duration: 6000,
+        });
+        }
+        return;
+    }
+
+    // ── Desktop Browser (Chrome, Firefox, Edge, Safari) ─────────────────────
+    toast({
+        title: "Berechtigungen verwalten",
+        description:
+        "Klicke auf das Schloss-Symbol links in der Adressleiste, um Berechtigungen für RigFlow zu verwalten.",
+        duration: 6000,
+    });
+    };
+
+
   return (
     <div className="divide-y divide-border/50">
       {perms.map((p) => {
@@ -622,17 +755,11 @@ function PermissionsDashboard() {
       })}
       <div className="pt-3">
         <button
-          onClick={() => {
-            if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-              window.open("app-settings:", "_blank");
-            } else {
-              window.open("about:preferences#privacy", "_blank");
-            }
-          }}
-          className="flex items-center gap-1.5 text-xs text-primary hover:underline"
-        >
-          <ExternalLink className="h-3 w-3" />
-          Systemeinstellungen öffnen
+            onClick={openPermissionSettings}
+            className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+            >
+            <ExternalLink className="h-3 w-3" />
+            Systemeinstellungen öffnen
         </button>
       </div>
     </div>
