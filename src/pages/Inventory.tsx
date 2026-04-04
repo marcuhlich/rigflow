@@ -104,6 +104,25 @@ export default function Inventory() {
     setLocationFilter(searchParams.get("location") || "all");
   }, [searchParams, setSearchQuery, setCategoryFilter, setConditionFilter, setLocationFilter]);
 
+  // Führe Aktionen aus, die von der CommandPalette via URL-Parameter signalisiert werden
+  useEffect(() => {
+    const action = searchParams.get("action");
+    if (!action) return;
+
+    if (action === "open-scanner") {
+      setIsScannerOpen(true);
+    } else if (action === "toggle-view") {
+      setViewMode(prev => prev === "grid" ? "table" : "grid");
+    } else if (action === "toggle-selection") {
+      setSelectionMode(prev => !prev);
+    }
+
+    // Entferne den action-Parameter aus der URL, um zu verhindern, dass die Aktion mehrfach ausgeführt wird
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete("action");
+    navigate({ search: newParams.toString() }, { replace: true });
+  }, [searchParams, navigate]);
+
     const filteredItems = allItems.filter(item => {
     return (
       (conditionFilter === "all" || item.condition === conditionFilter) &&

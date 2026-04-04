@@ -1,0 +1,40 @@
+@keyframes commandPaletteScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes commandPaletteBackdropFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+}
+
+.commandPaletteContent {
+  animation: commandPaletteScaleIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.commandPaletteBackdrop {
+  animation: commandPaletteBackdropFadeIn 0.15s ease-out forwards;
+}
+
+/* Override cmdk default hover color */
+.commandPalette [cmdk-item]:hover {
+  background-color: hsl(var(--primary) / 0.08);
+  color: inherit; /* Preserve text color on hover */
+}
+
+.commandPalette [cmdk-item][data-selected="true"] {
+  background-color: hsl(var(--primary) / 0.12);
+  color: inherit; /* Preserve text color when selected */
+}

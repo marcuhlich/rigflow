@@ -113,7 +113,7 @@ function RippleCanvas({
     <canvas
       ref={canvasRef}
       className="pointer-events-none fixed inset-0"
-      style={{ zIndex: 50, opacity: active ? 1 : 0 }}
+      style={{ zIndex: 50, opacity: active ? 1 : 0, transition: 'opacity 0.5s ease-in-out' }}
     />
   );
 }
@@ -214,6 +214,10 @@ export default function RegisterPage() {
   const ctaRef = useRef<HTMLButtonElement>(null);
   const kbHeight = useKeyboardHeight();
 
+  const [finaleState, setFinaleState] = useState<'processing' | 'check-email'>('processing');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendDone, setResendDone] = useState(false);
+
   // ── Intro ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (phase !== 'intro') return;
@@ -280,10 +284,16 @@ export default function RegisterPage() {
       const { error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
-        options: { data: { full_name: formData.name, warehouse_name: formData.warehouse } },
+        options: {
+          data: { full_name: formData.name, warehouse_name: formData.warehouse },
+        },
       });
       if (signUpError) throw signUpError;
-      setTimeout(() => navigate('/', { state: { scanReveal: true, userName: formData.name } }), 2200);
+
+      setRippleActive(false);
+      setTimeout(() => {
+        setFinaleState('check-email');
+      }, 1400);
     } catch (err: unknown) {
       setRippleActive(false);
       setPhase('form');
@@ -291,6 +301,14 @@ export default function RegisterPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResend = async () => {
+    setResendLoading(true);
+    await supabase.auth.resend({ type: 'signup', email: formData.email });
+    setResendLoading(false);
+    setResendDone(true);
+    setTimeout(() => setResendDone(false), 4000);
   };
 
   // ── Progress bar ──────────────────────────────────────────────────────────
@@ -584,13 +602,19 @@ export default function RegisterPage() {
 
       {/* ── FINALE ──────────────────────────────────────────────────────── */}
       {phase === 'finale' && (
-        <div className="flex flex-col items-center justify-center gap-8 px-6 text-center"
-          style={{ zIndex: 20, position: 'relative' }}>
-          <AnimatePresence>
-            {showQr && (
+        <div
+          className="flex flex-col items-center justify-center gap-8 px-6 text-center"
+          style={{ zIndex: 20, position: 'relative' }}
+        >
+          <AnimatePresence mode="wait">
+
+            {/* QR / Processing */}
+            {finaleState === 'processing' && showQr && (
               <motion.div
+                key="processing"
                 initial={{ opacity: 0, scale: 0.85, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: -10 }}
                 transition={{ type: 'spring', stiffness: 180, damping: 18 }}
                 className="flex flex-col items-center gap-6"
               >
@@ -607,8 +631,114 @@ export default function RegisterPage() {
                     Lager <strong style={{ color: 'rgba(255,255,255,0.55)' }}>{formData.warehouse}</strong> wird eingerichtet…
                   </p>
                 </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                <div style={{
+                  width: 28, height: 28,
+                  border: '2px solid hsl(var(--primary)/0.15)',
+                  borderTop: '2px solid hsl(var(--primary))',
+                  borderRadius: '50%',
+                  animation: 'spin 0.9s linear infinite',
+                }} />
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.05em' }}>
+                  Konto wird angelegt…
+                </span>
+              </div>
               </motion.div>
             )}
+
+            {/* E-Mail bestätigen */}
+            {finaleState === 'check-email' && (
+              <motion.div
+                key="check-email"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 160, damping: 20 }}
+                className="flex flex-col items-center gap-5 max-w-xs"
+              >
+                <div style={{
+                  width: 72, height: 72, borderRadius: 20,
+                  background: 'hsl(var(--primary)/0.1)',
+                  border: '1px solid hsl(var(--primary)/0.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 0 40px hsl(var(--primary)/0.15)',
+                }}>
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none"
+                    stroke="hsl(var(--primary))" strokeWidth="1.8"
+                    strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="4" width="20" height="16" rx="3" />
+                    <polyline points="2,4 12,13 22,4" />
+                  </svg>
+                </div>
+
+                <div>
+                  <h2 style={{ fontSize: 26, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                    Fast geschafft.
+                  </h2>
+                  <p style={{ marginTop: 10, color: 'rgba(255,255,255,0.38)', fontSize: 14, lineHeight: 1.65 }}>
+                    Wir haben eine Bestätigungs-E-Mail an
+                  </p>
+                  <p style={{ marginTop: 6, fontSize: 14, fontWeight: 600, color: 'hsl(var(--primary))', letterSpacing: '-0.01em' }}>
+                    {formData.email}
+                  </p>
+                  <p style={{ marginTop: 8, color: 'rgba(255,255,255,0.38)', fontSize: 14, lineHeight: 1.65 }}>
+                    gesendet. Klick auf den Link darin – danach kannst du dich einloggen und loslegen.
+                  </p>
+                </div>
+
+                {/* Schritt-Hinweise */}
+                <div style={{
+                  width: '100%', background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: 14, padding: '16px 18px', textAlign: 'left',
+                }}>
+                  {[
+                    { n: '1', text: 'E-Mail öffnen & Link klicken' },
+                    { n: '2', text: 'Du landest automatisch in RigFlow' },
+                    { n: '3', text: 'Loslegen!' },
+                  ].map(({ n, text }) => (
+                    <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: n !== '3' ? 12 : 0 }}>
+                      <div style={{
+                        width: 22, height: 22, borderRadius: 99,
+                        background: 'hsl(var(--primary)/0.15)',
+                        border: '1px solid hsl(var(--primary)/0.3)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 11, fontWeight: 700, color: 'hsl(var(--primary))', flexShrink: 0,
+                      }}>
+                        {n}
+                      </div>
+                      <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{text}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleResend}
+                  disabled={resendLoading || resendDone}
+                  style={{
+                    marginTop: 4, background: 'none', border: 'none',
+                    cursor: resendDone ? 'default' : 'pointer',
+                    fontSize: 13,
+                    color: resendDone ? 'hsl(var(--primary))' : 'rgba(255,255,255,0.28)',
+                    transition: 'color 0.3s',
+                  }}
+                >
+                  {resendLoading ? 'Wird gesendet…' : resendDone ? '✓ E-Mail erneut gesendet' : 'Keine E-Mail erhalten? Erneut senden'}
+                </button>
+
+                <button
+                  onClick={() => navigate('/auth')}
+                  style={{
+                    width: '100%', background: 'hsl(var(--primary)/0.1)',
+                    border: '1px solid hsl(var(--primary)/0.25)', borderRadius: 14,
+                    padding: '14px 24px', fontSize: 14, fontWeight: 600,
+                    color: 'hsl(var(--primary))', cursor: 'pointer',
+                  }}
+                >
+                  Zum Login
+                </button>
+              </motion.div>
+            )}
+
           </AnimatePresence>
         </div>
       )}
@@ -617,6 +747,9 @@ export default function RegisterPage() {
         @keyframes pulse-glow {
           0%, 100% { box-shadow: 0 0 20px hsl(var(--primary)/0.15), 0 0 40px hsl(var(--primary)/0.05); }
           50%       { box-shadow: 0 0 35px hsl(var(--primary)/0.35), 0 0 70px hsl(var(--primary)/0.12); }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
         input::placeholder { color: rgba(255,255,255,0.18); }
       `}</style>

@@ -29,15 +29,27 @@ export function QRCodeDisplay({
 }: QRCodeDisplayProps) {
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(window.innerWidth);
   const { toast } = useToast();
 
-  const sizeMap = {
+  const baseMap = {
     sm: 200,
     md: 300,
     lg: 400,
   };
 
-  const sizePixels = sizeMap[size];
+  const baseSize = baseMap[size];
+  // Auf dem Handy: maximal 80% der verfügbaren Breite minus Padding
+  // Auf Desktop: die normale Größe
+  const sizePixels = Math.min(baseSize, (containerWidth - 48) * 0.85);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setContainerWidth(window.innerWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -118,24 +130,30 @@ export function QRCodeDisplay({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="glass-card border-border/50 w-[95vw] sm:max-w-[500px]">
+      <DialogContent className="glass-card border-border/50 w-[95vw] max-w-[95vw] sm:max-w-[500px] p-4 sm:p-6 overflow-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>QR-Code: {itemName}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 w-full overflow-hidden">
           {/* QR-Code Anzeige */}
-          <div className="flex justify-center">
+          <div className="flex justify-center w-full overflow-hidden">
             {loading ? (
               <div className="flex items-center justify-center" style={{ width: sizePixels, height: sizePixels }}>
                 <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
               </div>
             ) : qrCodeUrl ? (
-              <div className="border-2 border-border rounded-lg p-2 bg-white">
+              <div className="border-2 border-border rounded-lg p-2 bg-white flex items-center justify-center" style={{ width: sizePixels + 16, height: sizePixels + 16 }}>
                 <img
                   src={qrCodeUrl}
                   alt={`QR-Code für ${itemName}`}
-                  style={{ width: sizePixels, height: sizePixels }}
+                  style={{ 
+                    width: sizePixels, 
+                    height: sizePixels,
+                    display: 'block',
+                    aspectRatio: '1 / 1',
+                    objectFit: 'contain'
+                  }}
                   className="rounded"
                 />
               </div>
@@ -145,22 +163,22 @@ export function QRCodeDisplay({
           </div>
 
           {/* Item-Informationen */}
-          <div className="bg-muted/40 rounded-lg p-3 space-y-2">
-            <div className="text-sm">
-              <div className="flex justify-between">
+          <div className="bg-muted/40 rounded-lg p-3 space-y-2 overflow-hidden">
+            <div className="text-sm overflow-hidden">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-1 sm:gap-0">
                 <span className="text-muted-foreground">Item-Name:</span>
-                <span className="font-medium">{itemName}</span>
+                <span className="font-medium truncate">{itemName}</span>
               </div>
-              <div className="flex justify-between items-start mt-2">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-start mt-2 gap-1 sm:gap-0">
                 <span className="text-muted-foreground">Item-ID:</span>
-                <div className="flex items-center gap-1">
-                  <code className="text-xs bg-background px-2 py-1 rounded font-mono">
+                <div className="flex items-center gap-1 overflow-hidden">
+                  <code className="text-xs bg-background px-2 py-1 rounded font-mono truncate">
                     {itemId.slice(0, 8)}...{itemId.slice(-8)}
                   </code>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 w-6 p-0"
+                    className="h-6 w-6 p-0 shrink-0"
                     onClick={handleCopyItemId}
                     aria-label="Item-ID kopieren"
                   >
@@ -170,47 +188,45 @@ export function QRCodeDisplay({
               </div>
 
               {itemDetails?.category && (
-                <div className="flex justify-between mt-2">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center mt-2 gap-1 sm:gap-0">
                   <span className="text-muted-foreground">Kategorie:</span>
-                  <span className="font-medium">{itemDetails.category}</span>
+                  <span className="font-medium truncate">{itemDetails.category}</span>
                 </div>
               )}
               {itemDetails?.quantity && (
-                <div className="flex justify-between mt-2">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center mt-2 gap-1 sm:gap-0">
                   <span className="text-muted-foreground">Menge:</span>
                   <span className="font-medium">{itemDetails.quantity}</span>
                 </div>
               )}
               {itemDetails?.location && (
-                <div className="flex justify-between mt-2">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center mt-2 gap-1 sm:gap-0">
                   <span className="text-muted-foreground">Standort:</span>
-                  <span className="font-medium">{itemDetails.location}</span>
+                  <span className="font-medium truncate">{itemDetails.location}</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Aktions-Buttons */}
-          <div className="flex gap-2 pt-2">
+          <div className="flex flex-col sm:flex-row gap-2 pt-2 w-full overflow-hidden">
             <Button
               variant="outline"
-              size="sm"
               onClick={handleDownload}
-              className="flex-1 gap-2"
+              className="flex-1 gap-2 truncate py-4 px-4"
               disabled={loading || !qrCodeUrl}
             >
-              <Download className="h-4 w-4" />
-              Herunterladen
+              <Download className="h-4 w-4 shrink-0" />
+              <span className="truncate">Herunterladen</span>
             </Button>
             <Button
               variant="outline"
-              size="sm"
               onClick={handlePrint}
-              className="flex-1 gap-2"
+              className="flex-1 gap-2 truncate py-4 px-4"
               disabled={loading || !qrCodeUrl}
             >
-              <Printer className="h-4 w-4" />
-              Drucken
+              <Printer className="h-4 w-4 shrink-0" />
+              <span className="truncate">Drucken</span>
             </Button>
           </div>
 

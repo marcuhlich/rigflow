@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.mfa-recovery-codes]
 verify_jwt = false
+
+[functions.export-user-data]
+verify_jwt = false

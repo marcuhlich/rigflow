@@ -31,6 +31,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast, useToast } from "@/hooks/use-toast";
 import QRCode from "qrcode";
 import { createPortal } from "react-dom";
+import { useExportUserData } from "@/hooks/useExportUserData";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -773,8 +774,8 @@ export default function PrivacySecurity() {
   const navigate = useNavigate();
   const [hasMfa, setHasMfa] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [exportLoading, setExportLoading] = useState(false);
   const { score, checks } = useSecurityScore(hasMfa);
+  const { exportData, isExporting } = useExportUserData();
 
   const handleRemoteLogout = async () => {
     setLoggingOut(true);
@@ -786,15 +787,6 @@ export default function PrivacySecurity() {
       toast({ title: "Überall abgemeldet" });
       navigate("/auth", { replace: true });
     }
-  };
-
-  const handleExport = async () => {
-    setExportLoading(true);
-    toast({
-      title: "Export angefordert",
-      description: "Diese Funktion wird bald verfügbar sein.",
-    });
-    setExportLoading(false);
   };
 
   return (
@@ -889,16 +881,21 @@ export default function PrivacySecurity() {
             Meine Daten
           </p>
           <button
-            onClick={handleExport}
-            disabled={exportLoading}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors text-left"
+            onClick={exportData}
+            disabled={isExporting}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Download className="h-4 w-4 text-primary shrink-0" />
+            {isExporting
+              ? <Loader2 className="h-4 w-4 text-primary shrink-0 animate-spin" />
+              : <Download className="h-4 w-4 text-primary shrink-0" />
+            }
             <div className="flex-1">
               <p className="text-sm font-medium">Daten exportieren</p>
-              <p className="text-xs text-muted-foreground">Inventar, Events und Logs als JSON-Datei</p>
+              <p className="text-xs text-muted-foreground">
+                {isExporting ? "Wird vorbereitet…" : "Inventar, Events und Logs als JSON-Datei"}
+              </p>
             </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            {!isExporting && <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
           </button>
 
           <Link

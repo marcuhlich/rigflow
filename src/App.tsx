@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { CommandPalette } from "@/components/CommandPalette";
 import { PushService } from "@/lib/pushService";
 import { logger } from "@/lib/logger";
 import { SpeedInsights } from "@vercel/speed-insights/react";
@@ -37,6 +38,7 @@ import Notifications from "./pages/settings/Notifications";
 import NotificationTest from "./pages/dev/NotificationTest";
 import PrivacySecurity from "./pages/settings/PrivacySecurity";
 import CheckoutReturn from "./pages/CheckoutReturn";
+import { EmailVerifiedListener } from '@/components/EmailVerifiedListener';
 
 const queryClient = new QueryClient();
 
@@ -306,7 +308,9 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <AppInitializer />
+              <EmailVerifiedListener />
               <OverdueReminderInit />
+              <CommandPalette />
               <AppRoutes />
             </BrowserRouter>
             <SpeedInsights />
