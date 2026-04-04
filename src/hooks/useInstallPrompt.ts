@@ -13,9 +13,29 @@ export function getDeviceType(): "ios" | "android" | "desktop" {
   return "desktop";
 }
 
+// Prüfe ob App bereits installiert ist (PWA, Electron, etc.)
+export function isAppInstalled(): boolean {
+  // PWA - Standalone Mode
+  if (window.matchMedia("(display-mode: standalone)").matches) return true;
+  
+  // iOS Safari PWA
+  if ((navigator as Navigator & { standalone?: boolean }).standalone === true) return true;
+  
+  // Electron App - mehrere Erkennungsmethoden
+  const ua = navigator.userAgent;
+  if (ua.includes('RigFlowDesktop')) return true;
+  if (ua.includes('Electron')) return true;
+  
+  // Custom window properties (falls Electron Config setzt)
+  if ((window as any).isElectron || (window as any).__electron__ || (window as any).__ELECTRON__) return true;
+  if (typeof (window as any).electronAPI !== 'undefined') return true;
+  
+  return false;
+}
+
 export function useInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(() => isAppInstalled());
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -28,14 +48,11 @@ export function useInstallPrompt() {
       setDeferredPrompt(null);
     };
 
-    const isElectron = navigator.userAgent.includes('RigFlowDesktop');
-    console.log('isElectron:', isElectron, 'search:', window.location.search);
-    const isStandalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (navigator as Navigator & { standalone?: boolean }).standalone === true ||
-      isElectron;
-
-    if (isStandalone) setIsInstalled(true);
+    // Prüfe beim Mount, ob App bereits installiert ist
+    if (isAppInstalled()) {
+      setIsInstalled(true);
+      return;
+    }
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleAppInstalled);

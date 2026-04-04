@@ -33,13 +33,58 @@ const ACTION_LABELS: Record<string, string> = {
   batch_delete: "Batch-Löschen",
 };
 
+const FIELD_LABELS: Record<string, string> = {
+  name: "Name",
+  description: "Beschreibung",
+  category: "Kategorie",
+  location: "Ort",
+  quantity: "Menge",
+  unit: "Einheit",
+  unit_price: "Stückpreis",
+  purchase_date: "Kaufdatum",
+  serial_number: "Seriennummer",
+  condition: "Zustand",
+  status: "Status",
+  dmx_start_adress: "DMX Start-Adresse",
+  dmx_start_address: "DMX Start-Adresse",
+  dmx_address: "DMX Adresse",
+  dmx_channels: "DMX Kanäle",
+  checked_out_by: "Ausgecheckt von",
+  checked_out_at: "Ausgecheckt am",
+  last_maintenance: "Letzte Wartung",
+  maintenance_notes: "Wartungsnotizen",
+  owner: "Besitzer",
+  value: "Wert",
+  total_value: "Gesamtwert",
+  notes: "Notizen",
+  created_at: "Erstellt am",
+  updated_at: "Aktualisiert am",
+};
+
+function formatFieldName(fieldName: string): string {
+  return FIELD_LABELS[fieldName] || fieldName;
+}
+
 function formatChanges(changes: AuditLogEntry['changes']): string {
   if (!changes) return "";
   
   const parts = Object.entries(changes).map(([key, val]) => {
+    // Special handling for image_url
+    if (key === "image_url") {
+      if (val.old === null && val.new !== null) {
+        return "Bild hinzugefügt";
+      } else if (val.old !== null && val.new === null) {
+        return "Bild gelöscht";
+      } else if (val.old !== null && val.new !== null) {
+        return "Bild geändert";
+      }
+      return "Bild aktualisiert";
+    }
+    
     const oldVal = val.old ?? "-";
     const newVal = val.new ?? "-";
-    return `${key}: ${oldVal} → ${newVal}`;
+    const displayName = formatFieldName(key);
+    return `${displayName}: ${oldVal} → ${newVal}`;
   });
   
   return parts.join(", ");

@@ -16,6 +16,7 @@ import {
   MoreVertical,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -68,6 +69,8 @@ export default function InstallPrompt() {
   const [isInstalled, setIsInstalled] = useState(false);
   const [step, setStep] = useState<'intro' | 'complete'>('intro');
   const navigate = useNavigate();
+  const { isMobile, os } = useDeviceDetection();
+  const isAndroid = isMobile && os === 'android';
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -91,6 +94,16 @@ export default function InstallPrompt() {
       setStep('complete');
     }
     setDeferredPrompt(null);
+  };
+
+  const handleAndroidInstall = () => {
+    // Try to trigger install prompt on Android
+    if (deferredPrompt) {
+      handleInstall();
+    } else {
+      // Fallback: Show detailed instructions
+      alert('Tippe auf das Menü (⋮) → "Zum Startbildschirm hinzufügen" um die App zu installieren');
+    }
   };
 
   return (
@@ -127,8 +140,8 @@ export default function InstallPrompt() {
           </Card>
 
           {/* Install Button or Manual Instructions */}
-          {deferredPrompt ? (
-            <Button onClick={handleInstall} size="lg" className="w-full gap-2">
+          {deferredPrompt || isAndroid ? (
+            <Button onClick={isAndroid ? handleAndroidInstall : handleInstall} size="lg" className="w-full gap-2">
               <Download className="h-4 w-4" />
               Jetzt installieren
             </Button>
