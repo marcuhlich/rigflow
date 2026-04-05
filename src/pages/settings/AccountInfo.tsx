@@ -497,7 +497,7 @@ const AccountInfo = () => {
             hint={emailHint}
           />
 
-          <InlineField
+          {/* <InlineField
             label="Telefonnummer"
             value={phone}
             icon={<Phone className="h-3.5 w-3.5" />}
@@ -507,7 +507,7 @@ const AccountInfo = () => {
                 : "Ungültige Telefonnummer"
             }
             onSave={savePhone}
-          />
+          /> */}
         </div>
 
         {/* Password Section */}

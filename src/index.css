@@ -46,7 +46,7 @@
 
     /* Glassmorphism — Dark Mode */
     --glass-bg:     217 33% 16% / 0.65;
-    --glass-bg-end: 217 28% 12% / 0.50;   /* zweiter Gradient-Stop, war vorher hardcoded */
+    --glass-bg-end: 217 28% 12% / 0.50;
     --glass-border: 217 22% 28% / 0.35;
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     --glass-blur:   16px;
@@ -66,6 +66,24 @@
     --sidebar-accent-foreground: 210 40% 92%;
     --sidebar-border:            217 22% 26%;
     --sidebar-ring:              162 84% 54%;
+
+    /* ── Mobile component tokens (Dark defaults) ── */
+    --mob-hero-label:     rgba(255,255,255,0.4);
+    --mob-hero-pct:       #ffffff;
+    --mob-hero-pct-sub:   rgba(255,255,255,0.45);
+    --mob-hero-legend:    rgba(255,255,255,0.45);
+    --mob-hero-legend-val:rgba(255,255,255,0.7);
+    --mob-card-bg:        rgba(255,255,255,0.04);
+    --mob-card-border:    rgba(255,255,255,0.07);
+    --mob-card-text:      #ffffff;
+    --mob-card-subtext:   rgba(255,255,255,0.45);
+    --mob-section-color:  rgba(255,255,255,0.35);
+    --mob-nav-bg:         rgba(15, 23, 42, 0.55);
+    --mob-nav-border:     rgba(255, 255, 255, 0.08);
+    --mob-nav-shadow:     0 8px 32px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06);
+    --mob-more-bg:        rgba(15, 23, 42, 0.85);
+    --mob-more-border:    rgba(255, 255, 255, 0.1);
+    --mob-more-shadow:    0 8px 32px rgba(0,0,0,0.4);
   }
 
   /* ── Light Mode ─────────────────────────────────────────────────────────── */
@@ -81,13 +99,13 @@
     --popover: 0 0% 100%;
     --popover-foreground: 215 30% 15%;
 
-    --primary: 162 72% 32%;           /* Dunkler Mint für Kontrast auf Weiß */
+    --primary: 162 72% 32%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 15% 93%;
     --secondary-foreground: 215 30% 20%;
 
-    --accent: 38 85% 42%;             /* Dunkleres Amber */
+    --accent: 38 85% 42%;
     --accent-foreground: 0 0% 100%;
 
     --muted: 220 15% 91%;
@@ -106,12 +124,12 @@
     --input: 220 15% 88%;
     --ring: 162 72% 32%;
 
-    /* Glassmorphism — Light Mode: kein Backdrop-Blur, solide Karte */
+    /* Glassmorphism — Light Mode */
     --glass-bg:     0 0% 100% / 0.95;
     --glass-bg-end: 220 20% 97% / 0.95;
     --glass-border: 220 15% 82% / 0.8;
     --glass-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 4px 20px rgba(0, 0, 0, 0.07);
-    --glass-blur:   0px;               /* Kein Blur in Light Mode → kein Flackern */
+    --glass-blur:   0px;
 
     /* Gradients — Light Mode */
     --gradient-bg:      linear-gradient(135deg, hsl(220 20% 96%) 0%, hsl(220 20% 98%) 100%);
@@ -128,6 +146,24 @@
     --sidebar-accent-foreground: 215 30% 20%;
     --sidebar-border:            220 15% 85%;
     --sidebar-ring:              162 72% 32%;
+
+    /* ── Mobile component tokens (Light overrides) ── */
+    --mob-hero-label:     rgba(0,0,0,0.4);
+    --mob-hero-pct:       hsl(215 30% 15%);
+    --mob-hero-pct-sub:   rgba(0,0,0,0.35);
+    --mob-hero-legend:    rgba(0,0,0,0.45);
+    --mob-hero-legend-val:rgba(0,0,0,0.65);
+    --mob-card-bg:        #ffffff;
+    --mob-card-border:    rgba(0,0,0,0.08);
+    --mob-card-text:      hsl(215 30% 15%);
+    --mob-card-subtext:   rgba(0,0,0,0.45);
+    --mob-section-color:  rgba(0,0,0,0.35);
+    --mob-nav-bg:         rgba(255, 255, 255, 0.88);
+    --mob-nav-border:     rgba(0, 0, 0, 0.08);
+    --mob-nav-shadow:     0 4px 20px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9);
+    --mob-more-bg:        rgba(255, 255, 255, 0.97);
+    --mob-more-border:    rgba(0, 0, 0, 0.10);
+    --mob-more-shadow:    0 8px 32px rgba(0,0,0,0.12);
   }
 }
 
@@ -141,7 +177,7 @@
   :root.dark.accent-violet, .dark.accent-violet { --primary: 280 74% 67%; --ring: 280 74% 67%; }
   :root.dark.accent-rose,   .dark.accent-rose   { --primary: 0 100% 71%;  --ring: 0 100% 71%;  }
 
-  /* Light Mode Accents — dunkler für Lesbarkeit auf hellem Hintergrund */
+  /* Light Mode Accents */
   :root:not(.dark).accent-mint,   :not(.dark).accent-mint   { --primary: 162 72% 30%; --ring: 162 72% 30%; }
   :root:not(.dark).accent-amber,  :not(.dark).accent-amber  { --primary: 38 85% 38%;  --ring: 38 85% 38%;  }
   :root:not(.dark).accent-sky,    :not(.dark).accent-sky    { --primary: 202 90% 38%; --ring: 202 90% 38%; }
@@ -168,16 +204,14 @@
   html[data-color-blind="tritanopia"]   { filter: hue-rotate(30deg) saturate(0.85); }
 }
 
-/* Tooltip Text Color Fix - Must be OUTSIDE @layer to override */
+/* Tooltip Text Color Fix */
 .dark [role="tooltip"] {
   color: hsl(210 40% 96%) !important;
 }
-
 :root:not(.dark) [role="tooltip"] {
   color: hsl(215 30% 15%) !important;
 }
 
-/* Radix Portal Tooltips */
 [data-radix-popper-content-wrapper] {
   color: inherit;
 }
@@ -212,25 +246,22 @@
     background: linear-gradient(
       135deg,
       hsl(var(--glass-bg)) 0%,
-      hsl(var(--glass-bg-end)) 100%    /* kein hardcoded Wert mehr */
+      hsl(var(--glass-bg-end)) 100%
     );
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
     border: 1px solid hsl(var(--glass-border));
     box-shadow: var(--glass-shadow);
-    /* GPU-Layer erzwingen → verhindert Flackern beim Scrollen in Dark Mode */
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
   }
 
-  /* Subtiler Shimmer nur im Dark Mode sinnvoll */
   .dark .glass-card::before {
     content: '';
     @apply absolute inset-0 rounded-xl pointer-events-none;
     background: linear-gradient(135deg, hsl(210 40% 96% / 0.05) 0%, transparent 50%);
   }
 
-  /* Light Mode: kein Pseudo-Element, kein Blur — saubere weiße Karte */
   :root:not(.dark) .glass-card::before {
     display: none;
   }
@@ -304,3 +335,41 @@
 .pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
 
 .pt-safe { padding-top: env(safe-area-inset-top); }
+
+/* ─── Light Mode: Mobile Component Overrides ──────────────────────────────── */
+
+/* Hero donut card: white instead of dark gradient */
+:root:not(.dark) .mobile-hero-card {
+  background: #ffffff !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 6px rgba(0,0,0,0.04) !important;
+}
+/* Hide animated mesh overlay — doesn't make sense on white */
+:root:not(.dark) .mobile-hero-mesh {
+  display: none !important;
+}
+
+/* Stat tiles: solid accent color fill with white text */
+:root:not(.dark) .mobile-stat-tile {
+  background: var(--tile-accent) !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
+}
+/* Hide the top accent line — whole tile is already the accent color */
+:root:not(.dark) .mobile-stat-tile::before {
+  display: none !important;
+}
+/* Force white text/icons on solid-colored tiles */
+:root:not(.dark) .mobile-tile-value {
+  color: #ffffff !important;
+}
+:root:not(.dark) .mobile-tile-label {
+  color: rgba(255,255,255,0.85) !important;
+}
+:root:not(.dark) .mobile-tile-icon {
+  color: rgba(255,255,255,0.92) !important;
+}
+
+/* Section header labels */
+:root:not(.dark) .mobile-section-title {
+  color: rgba(0,0,0,0.35) !important;
+}

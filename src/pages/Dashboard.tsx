@@ -54,7 +54,7 @@ const PieTooltip = (props: any) => {
   const smoothPos = useSmoothTooltipPosition(active && payload?.length ? coordinate : null);
   const isDark = typeof window !== "undefined" && document.documentElement.classList.contains("dark");
   const textColor = isDark ? "#ffffff" : "#1f2937";
-  
+
   if (active && payload && payload.length) {
     return (
       <div style={{
@@ -83,7 +83,7 @@ const BarTooltip = (props: any) => {
   const { active, payload } = props;
   const isDark = typeof window !== "undefined" && document.documentElement.classList.contains("dark");
   const textColor = isDark ? "#ffffff" : "#1f2937";
-  
+
   if (active && payload && payload.length) {
     return (
       <div style={{
@@ -157,7 +157,8 @@ const MobileBentoStats = ({ stats, totalValue, activeLoansCount }: MobileBentoSt
       >
         <div className="mobile-hero-mesh" />
         <div style={{ position: "relative", zIndex: 10, padding: "14px", height: "100%", display: "flex", flexDirection: "column" }}>
-          <p style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", margin: "0 0 6px 0" }}>
+          {/* ↓ color uses CSS variable — adapts to dark/light */}
+          <p style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--mob-hero-label)", margin: "0 0 6px 0" }}>
             Wo ist mein Zeug?
           </p>
 
@@ -183,8 +184,8 @@ const MobileBentoStats = ({ stats, totalValue, activeLoansCount }: MobileBentoSt
             </div>
             {/* Center % */}
             <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", pointerEvents: "none" }}>
-              <p style={{ fontSize: "22px", fontWeight: 800, color: "#fff", lineHeight: 1, margin: 0 }}>{availPct}%</p>
-              <p style={{ fontSize: "9px", color: "rgba(255,255,255,0.45)", margin: "2px 0 0 0" }}>frei</p>
+              <p style={{ fontSize: "22px", fontWeight: 800, color: "var(--mob-hero-pct)", lineHeight: 1, margin: 0 }}>{availPct}%</p>
+              <p style={{ fontSize: "9px", color: "var(--mob-hero-pct-sub)", margin: "2px 0 0 0" }}>frei</p>
             </div>
           </div>
 
@@ -193,8 +194,8 @@ const MobileBentoStats = ({ stats, totalValue, activeLoansCount }: MobileBentoSt
             {donutData.map(d => (
               <div key={d.name} style={{ display: "flex", alignItems: "center", gap: "3px" }}>
                 <div style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: d.color, flexShrink: 0 }} />
-                <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.45)" }}>{d.name}</span>
-                <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.7)", fontWeight: 700 }}>{d.value}</span>
+                <span style={{ fontSize: "9px", color: "var(--mob-hero-legend)" }}>{d.name}</span>
+                <span style={{ fontSize: "9px", color: "var(--mob-hero-legend-val)", fontWeight: 700 }}>{d.value}</span>
               </div>
             ))}
           </div>
@@ -222,11 +223,6 @@ const MobileBentoStats = ({ stats, totalValue, activeLoansCount }: MobileBentoSt
 };
 
 // ─── Mobile: Swipeable Lent Item ─────────────────────────────────────────────
-// Korrekte "Freilegungs"-Mechanik:
-//   Karte + Buttons leben im selben horizontalen Track.
-//   Der Track ist (100% + ACTION_WIDTH) breit und startet bündig links.
-//   Beim Swipen verschiebt sich der gesamte Track nach links →
-//   die Karte schiebt sich weg und gibt die rechts danebenliegenden Buttons frei.
 interface SwipeLentItemProps {
   item: any;
   onReturn?: (id: string) => void;
@@ -276,10 +272,7 @@ const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
   const urgencyPulse = item.isOverdue || soonThreshold;
 
   return (
-    /* Clip container – hides the buttons until revealed */
     <div style={{ position: "relative", overflow: "hidden", borderRadius: "12px", marginBottom: "8px" }}>
-
-      {/* Sliding track: [card][btn-return][btn-remind] */}
       <div
         style={{
           display: "flex",
@@ -292,21 +285,21 @@ const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* ── Card ── */}
+        {/* ── Card — background and border use CSS variables ── */}
         <div style={{ flex: `0 0 calc(100% - ${ACTION_WIDTH}px)`, minWidth: 0 }}>
           <Link
             to={`/inventory/${item.id}`}
             onClick={(e) => { if (revealed) e.preventDefault(); }}
             style={{
               display: "block",
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.07)",
+              background: "var(--mob-card-bg)",
+              border: "1px solid var(--mob-card-border)",
               backdropFilter: "blur(10px)",
               WebkitBackdropFilter: "blur(10px)",
               borderRadius: "12px",
               textDecoration: "none",
               overflow: "hidden",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 12px 10px" }}>
@@ -316,10 +309,10 @@ const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
                 boxShadow: urgencyPulse ? `0 0 8px ${urgencyColor}` : "none",
               }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: "13px", fontWeight: 600, margin: 0, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <p style={{ fontSize: "13px", fontWeight: 600, margin: 0, color: "var(--mob-card-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {item.name}
                 </p>
-                <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.45)", margin: "2px 0 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <p style={{ fontSize: "11px", color: "var(--mob-card-subtext)", margin: "2px 0 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   an {item.lent_to || "–"}
                   {item.lent_until && ` · bis ${format(new Date(item.lent_until), "dd.MM.yy")}`}
                 </p>
@@ -435,27 +428,24 @@ export default function Dashboard() {
       .slice(0, 5);
   }, [sets]);
 
-const lentItems = useMemo(() => {
-  const now = new Date();
-
-  return activeLoans
-    .map((loan) => ({
-      id: loan.id,
-      itemId: loan.item_id,
-      name: loan.item_name,
-      lent_to: loan.lent_to,
-      lent_until: loan.due_date,
-      updated_at: loan.created_at,
-      isOverdue: loan.due_date
-        ? new Date(loan.due_date) < now
-        : false,
-    }))
-    .sort((a, b) => {
-      if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
-      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-    })
-    .slice(0, 5);
-}, [activeLoans]);
+  const lentItems = useMemo(() => {
+    const now = new Date();
+    return activeLoans
+      .map((loan) => ({
+        id: loan.id,
+        itemId: loan.item_id,
+        name: loan.item_name,
+        lent_to: loan.lent_to,
+        lent_until: loan.due_date,
+        updated_at: loan.created_at,
+        isOverdue: loan.due_date ? new Date(loan.due_date) < now : false,
+      }))
+      .sort((a, b) => {
+        if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
+        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      })
+      .slice(0, 5);
+  }, [activeLoans]);
 
   const defectItems = useMemo(() => allItems.filter((i) => i.condition === "defekt").slice(0, 5), [allItems]);
 
@@ -625,7 +615,8 @@ const lentItems = useMemo(() => {
       {defectItems.length > 0 && (
         <div className="mobile-only">
           <div className="mobile-section-header">
-            <AlertTriangle className="h-3.5 w-3.5" style={{ color: "rgba(255,255,255,.35)" }} />
+            {/* icon color uses CSS variable — adapts to dark/light */}
+            <AlertTriangle className="h-3.5 w-3.5" style={{ color: "var(--mob-section-color)" }} />
             <span className="mobile-section-title">Defekt · {stats.defect} Artikel</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -637,10 +628,10 @@ const lentItems = useMemo(() => {
                 backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
               }}>
                 <div style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#ef4444", flexShrink: 0, boxShadow: "0 0 6px #ef4444" }} />
-                <p style={{ fontSize: "13px", fontWeight: 600, color: "#fff", margin: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--mob-card-text)", margin: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {item.name}
                 </p>
-                <span style={{ fontSize: "10px", color: "rgba(255,255,255,.4)", flexShrink: 0 }}>{item.category}</span>
+                <span style={{ fontSize: "10px", color: "var(--mob-card-subtext)", flexShrink: 0 }}>{item.category}</span>
               </Link>
             ))}
           </div>
@@ -761,7 +752,7 @@ const lentItems = useMemo(() => {
       {lentItems.length > 0 && (
         <div className="mobile-only">
           <div className="mobile-section-header">
-            <ArrowRightLeft className="h-3.5 w-3.5" style={{ color: "rgba(255,255,255,.35)" }} />
+            <ArrowRightLeft className="h-3.5 w-3.5" style={{ color: "var(--mob-section-color)" }} />
             <span className="mobile-section-title">Verliehen · Links wischen</span>
           </div>
           {lentItems.map((item) => (
@@ -872,7 +863,7 @@ const lentItems = useMemo(() => {
               })}
             </div>
           ) : (
-              <p className="h-[160px] flex items-center justify-center text-muted-foreground text-sm">Keine Standorte vorhanden.</p>
+            <p className="h-[160px] flex items-center justify-center text-muted-foreground text-sm">Keine Standorte vorhanden.</p>
           )}
         </div>
 

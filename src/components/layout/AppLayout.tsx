@@ -68,11 +68,11 @@ function LiquidGlassNav() {
         <div
           className="absolute bottom-full mb-2 right-3 rounded-2xl p-2 min-w-[160px] space-y-0.5 overflow-hidden"
           style={{
-            background: "rgba(15, 23, 42, 0.85)",
+            background: "var(--mob-more-bg)",
             backdropFilter: "blur(24px) saturate(180%)",
             WebkitBackdropFilter: "blur(24px) saturate(180%)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+            border: "1px solid var(--mob-more-border)",
+            boxShadow: "var(--mob-more-shadow)",
             transition: "opacity 0.25s ease, transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
             opacity: moreOpen ? 1 : 0,
             transform: moreOpen ? "translateY(0)" : "translateY(12px)",
@@ -89,7 +89,7 @@ function LiquidGlassNav() {
                 onClick={() => setMoreOpen(false)}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
-                  isActive ? "text-primary bg-primary/10" : "text-muted-foreground/80 active:bg-white/5"
+                  isActive ? "text-primary bg-primary/10" : "text-muted-foreground/80 active:bg-muted/30"
                 )}
                 style={{
                   transition: `opacity 0.2s ease ${i * 0.06}s, transform 0.25s cubic-bezier(0.32, 0.72, 0, 1) ${i * 0.06}s`,
@@ -108,11 +108,11 @@ function LiquidGlassNav() {
           ref={navRef}
           className="relative flex items-center gap-0.5 px-2 py-2 rounded-[22px]"
           style={{
-            background: "rgba(15, 23, 42, 0.55)",
+            background: "var(--mob-nav-bg)",
             backdropFilter: "blur(24px) saturate(180%)",
             WebkitBackdropFilter: "blur(24px) saturate(180%)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
-            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.06)",
+            border: "1px solid var(--mob-nav-border)",
+            boxShadow: "var(--mob-nav-shadow)",
           }}
         >
           {bubbleStyle !== null && (
@@ -121,9 +121,9 @@ function LiquidGlassNav() {
               style={{
                 left: bubbleStyle.left,
                 width: bubbleStyle.width,
-                background: "rgba(52, 211, 153, 0.15)",
-                border: "1px solid rgba(52, 211, 153, 0.2)",
-                boxShadow: "0 0 12px rgba(52, 211, 153, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
+                background: "hsl(var(--primary) / 0.15)",
+                border: "1px solid hsl(var(--primary) / 0.25)",
+                boxShadow: "0 0 12px hsl(var(--primary) / 0.12), inset 0 1px 0 rgba(255,255,255,0.05)",
                 transition: "left 0.4s cubic-bezier(0.32, 0.72, 0, 1), width 0.35s cubic-bezier(0.32, 0.72, 0, 1)",
               }}
             />
@@ -143,7 +143,7 @@ function LiquidGlassNav() {
                 )}
               >
                 <item.icon
-                  className={cn("h-[22px] w-[22px] transition-all duration-300", isActive && "drop-shadow-[0_0_6px_rgba(52,211,153,0.4)]")}
+                  className={cn("h-[22px] w-[22px] transition-all duration-300", isActive && "drop-shadow-[0_0_6px_hsl(var(--primary)/0.4)]")}
                   strokeWidth={isActive ? 2.2 : 1.8}
                 />
                 <span className={cn("transition-all duration-300", isActive ? "opacity-100" : "opacity-60")}>
@@ -162,7 +162,7 @@ function LiquidGlassNav() {
             )}
           >
             <MoreHorizontal
-              className={cn("h-[22px] w-[22px] transition-all duration-300", (isMoreActive || moreOpen) && "drop-shadow-[0_0_6px_rgba(52,211,153,0.4)]")}
+              className={cn("h-[22px] w-[22px] transition-all duration-300", (isMoreActive || moreOpen) && "drop-shadow-[0_0_6px_hsl(var(--primary)/0.4)]")}
               strokeWidth={isMoreActive || moreOpen ? 2.2 : 1.8}
             />
             <span className={cn("transition-all duration-300", isMoreActive || moreOpen ? "opacity-100" : "opacity-60")}>
@@ -186,7 +186,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <header className="shrink-0 top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40 pt-[env(safe-area-inset-top)]">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 h-12 lg:h-14 flex items-center justify-between gap-2">
 
-          {/* Left: Logo — Auf Mobile flexibel, auf Desktop fest */}
+          {/* Left: Logo */}
           <div className="flex items-center gap-2 shrink-0 lg:w-[180px]">
             <img
               src="/pwa-192x192.png"
@@ -195,7 +195,6 @@ export function AppLayout({ children }: AppLayoutProps) {
             />
             <span className="text-sm font-semibold tracking-tight xs:block">Rigflow</span>
 
-            {/* Undo/Redo: Kompakteres Layout für Mobile */}
             {showUndoRedo && isMobile && (
               <div className="ml-1 scale-90 origin-left">
                 <UndoRedoButtons
@@ -209,7 +208,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             )}
           </div>
 
-          {/* Center: Desktop Navigation (bleibt unverändert) */}
+          {/* Center: Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
             {navItems.map((item) => (
               <NavLink
@@ -232,7 +231,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             ))}
           </nav>
 
-          {/* Right: UserMenu — Auf Mobile shrink-0 */}
+          {/* Right: UserMenu */}
           <div className="flex items-center justify-end gap-1 shrink-0 lg:w-[180px]">
             {showUndoRedo && !isMobile && (
               <>

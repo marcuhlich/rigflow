@@ -41,6 +41,7 @@ import CheckoutReturn from "./pages/CheckoutReturn";
 import { EmailVerifiedListener } from '@/components/EmailVerifiedListener';
 import Appearance from "./pages/settings/Appearance";
 import { applyStoredAppearance } from "@/lib/appearanceUtils";
+import SettingsGuard from "@/components/SettingsGuard";
 
 const queryClient = new QueryClient();
 
@@ -100,10 +101,14 @@ function AppRoutes() {
       <Route path="/reset-password" element={<ResetPassword />} />
 
       { /* Weitere Settings-Seiten (/settings/...) */}
-      <Route path="/settings/notifications" element={<Notifications />} />
-      <Route path="/settings/account-info" element={<AccountInfo />} />
-      <Route path="/settings/privacy-security" element={<PrivacySecurity />} />
-      <Route path="/settings/appearance" element={<Appearance />} />
+      {/* Weitere Settings-Seiten (/settings/...) */}
+      <Route element={<ProtectedRoute><SettingsGuard /></ProtectedRoute>}>
+        <Route path="/settings" element={<AccountSettings />} />
+        <Route path="/settings/account-info" element={<AccountInfo />} />
+        <Route path="/settings/notifications" element={<Notifications />} />
+        <Route path="/settings/privacy-security" element={<PrivacySecurity />} />
+        <Route path="/settings/appearance" element={<Appearance />} />
+      </Route>
 
       { /* Dev/Test Pages */}
       <Route path="/dev/notifications" element={<NotificationTest />} />
@@ -173,14 +178,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/settings"
-        element={
-          <ProtectedRoute>
-            <AccountSettings />
-          </ProtectedRoute>
-        }
-      />
+
       <Route
         path="/help"
         element={

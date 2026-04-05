@@ -602,14 +602,14 @@ function PermissionsDashboard() {
       settingsHint: "Einstellungen → Benachrichtigungen",
       state: "unsupported",
     },
-    {
+/*     {
       key: "geolocation",
       label: "Standort",
       description: "Nicht aktiv genutzt",
       icon: <MapPin className="h-4 w-4" />,
       settingsHint: "Einstellungen → Datenschutz → Standort",
       state: "unsupported",
-    },
+    }, */
   ]);
 
   useEffect(() => {

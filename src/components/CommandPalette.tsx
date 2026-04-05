@@ -30,7 +30,6 @@ import {
   LayoutGrid,
   CheckSquare,
 } from 'lucide-react';
-import { useTheme } from 'next-themes';
 import { useAuth } from '@/hooks/useAuth';
 import { useRecentItems } from '@/hooks/useRecentItems';
 import { useToast } from '@/hooks/use-toast';
@@ -54,11 +53,25 @@ interface CommandGroup {
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const [isDarkMode, setIsDarkMode] = useState(
+    () => document.documentElement.classList.contains('dark')
+  );
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { recentItems, addItem } = useRecentItems();
   const { toast } = useToast();
+
+  // Listen to dark mode changes
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'));
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+    return () => observer.disconnect();
+  }, []);
 
   // Keyboard Listener für Shortcuts
   useEffect(() => {
@@ -316,18 +329,26 @@ export function CommandPalette() {
       items: [
         {
           id: 'toggle-theme',
-          title: theme === 'dark' ? 'Hell-Modus' : 'Dunkel-Modus',
-          description: `Schalte auf ${theme === 'dark' ? 'Hellmodus' : 'Dunkelmodus'} um`,
+          title: isDarkMode ? 'Hell-Modus' : 'Dunkel-Modus',
+          description: `Schalte auf ${isDarkMode ? 'Hellmodus' : 'Dunkelmodus'} um`,
           icon:
-            theme === 'dark' ? (
+            isDarkMode ? (
               <Sun className="h-4 w-4" />
             ) : (
               <Moon className="h-4 w-4" />
             ),
           action: () => {
-            setTheme(theme === 'dark' ? 'light' : 'dark');
+            const root = document.documentElement;
+            const newTheme = isDarkMode ? 'hell' : 'dunkel';
+            localStorage.setItem('rigflow:theme', newTheme);
+            if (newTheme === 'dunkel') {
+              root.classList.add('dark');
+            } else {
+              root.classList.remove('dark');
+            }
+            setIsDarkMode(!isDarkMode);
             toast({
-              title: `${theme === 'dark' ? 'Hellmodus' : 'Dunkelmodus'} aktiviert`,
+              title: `${isDarkMode ? 'Hellmodus' : 'Dunkelmodus'} aktiviert`,
             });
           },
         },
