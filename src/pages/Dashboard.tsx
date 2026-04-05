@@ -52,16 +52,19 @@ const useSmoothTooltipPosition = (coordinate: any) => {
 const PieTooltip = (props: any) => {
   const { active, payload, coordinate } = props;
   const smoothPos = useSmoothTooltipPosition(active && payload?.length ? coordinate : null);
+  const isDark = typeof window !== "undefined" && document.documentElement.classList.contains("dark");
+  const textColor = isDark ? "#ffffff" : "#1f2937";
+  
   if (active && payload && payload.length) {
     return (
       <div style={{
         position: "fixed", left: `${smoothPos.x + 10}px`, top: `${smoothPos.y - 10}px`,
         pointerEvents: "none", zIndex: 1000, backgroundColor: "hsl(var(--popover))",
         border: "1px solid hsl(var(--border))", borderRadius: "8px", padding: "8px 12px",
-        fontSize: "12px", color: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.15)", willChange: "transform",
+        fontSize: "12px", color: textColor, boxShadow: "0 2px 8px rgba(0,0,0,0.15)", willChange: "transform",
       }}>
-        <p style={{ color: "#ffffff", margin: "0 0 4px 0" }}><strong>{payload[0].name}</strong></p>
-        <p style={{ color: "#ffffff", margin: "0" }}>{payload[0].value} Stück</p>
+        <p style={{ color: textColor, margin: "0 0 4px 0" }}><strong>{payload[0].name}</strong></p>
+        <p style={{ color: textColor, margin: "0" }}>{payload[0].value} Stück</p>
       </div>
     );
   }
@@ -78,13 +81,16 @@ const BarLabel = (props: any) => {
 
 const BarTooltip = (props: any) => {
   const { active, payload } = props;
+  const isDark = typeof window !== "undefined" && document.documentElement.classList.contains("dark");
+  const textColor = isDark ? "#ffffff" : "#1f2937";
+  
   if (active && payload && payload.length) {
     return (
       <div style={{
         backgroundColor: "hsl(var(--popover))", border: "1px solid hsl(var(--border))",
-        borderRadius: "8px", padding: "8px 12px", fontSize: "12px", color: "#ffffff",
+        borderRadius: "8px", padding: "8px 12px", fontSize: "12px", color: textColor,
       }}>
-        <p style={{ color: "#ffffff", margin: "0" }}>{payload[0].value} Stück</p>
+        <p style={{ color: textColor, margin: "0" }}>{payload[0].value} Stück</p>
       </div>
     );
   }

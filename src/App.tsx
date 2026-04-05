@@ -40,8 +40,11 @@ import PrivacySecurity from "./pages/settings/PrivacySecurity";
 import CheckoutReturn from "./pages/CheckoutReturn";
 import { EmailVerifiedListener } from '@/components/EmailVerifiedListener';
 import Appearance from "./pages/settings/Appearance";
+import { applyStoredAppearance } from "@/lib/appearanceUtils";
 
 const queryClient = new QueryClient();
+
+applyStoredAppearance();
 
 function OverdueReminderInit() {
   useOverdueReminder();
