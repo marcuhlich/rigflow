@@ -8,6 +8,8 @@ import { useUndoRedoContext } from "@/contexts/UndoRedoContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { injectSpeedInsights } from '@vercel/speed-insights';
+import { ScanLine } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 injectSpeedInsights();
 
@@ -176,6 +178,7 @@ function LiquidGlassNav() {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const navigate = useNavigate();
   const { canUndo, canRedo, onUndo, onRedo } = useUndoRedoContext();
   const isMobile = useIsMobile();
   const showUndoRedo = onUndo !== null && onRedo !== null;
@@ -258,6 +261,14 @@ export function AppLayout({ children }: AppLayoutProps) {
       </main>
 
       <OfflineIndicator />
+
+      <button
+        onClick={() => navigate("/scanner")}
+        className="fixed bottom-20 right-4 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:bg-primary/90 active:scale-95 transition-all"
+        aria-label="Scanner öffnen"
+      >
+        <ScanLine className="h-6 w-6" />
+      </button>
     </div>
   );
 }

@@ -37,7 +37,7 @@ import AccountInfo from "./pages/settings/AccountInfo";
 import Notifications from "./pages/settings/Notifications";
 import NotificationTest from "./pages/dev/NotificationTest";
 import PrivacySecurity from "./pages/settings/PrivacySecurity";
-import CheckoutReturn from "./pages/CheckoutReturn";
+import Scanner from "./pages/Scanner";
 import { EmailVerifiedListener } from '@/components/EmailVerifiedListener';
 import Appearance from "./pages/settings/Appearance";
 import { applyStoredAppearance } from "@/lib/appearanceUtils";
@@ -171,10 +171,10 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/checkout-return"
+        path="/scanner"
         element={
           <ProtectedRoute>
-            <CheckoutReturn />
+            <Scanner />
           </ProtectedRoute>
         }
       />
