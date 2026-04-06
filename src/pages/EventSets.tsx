@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import {
   Plus, Package, Trash2, Edit2, ChevronRight, Search, AlertTriangle, Check,
-  Star, CalendarDays, FileText, StickyNote, ArrowUpDown, Download,
+  Star, CalendarDays, FileText, StickyNote, ArrowUpDown, Download, Boxes,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +33,7 @@ import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { exportEventSetPDF } from "@/lib/exportUtils";
+import { PageHeader } from "@/components/PageHeader";
 
 // ─── Set Form Dialog ────────────────────────────────────────────────────────
 function SetForm({ open, onClose, onSubmit, initial }: {
@@ -439,19 +440,20 @@ export default function EventSetsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-24">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Veranstaltungs-Sets</h2>
-          <p className="text-muted-foreground text-xs sm:text-sm mt-1">
-            {sets.length} {sets.length === 1 ? "Set" : "Sets"} erstellt
-          </p>
-        </div>
-        <Button onClick={() => setFormOpen(true)} className="gap-1 h-9 text-xs sm:text-sm">
-          <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          <span className="hidden sm:inline">Neues Set</span>
-          <span className="sm:hidden">Set</span>
-        </Button>
-      </div>
+      <PageHeader
+        title="Veranstaltungs-Sets"
+        description={`${sets.length} ${sets.length === 1 ? "Set" : "Sets"} erstellt`}
+        icon={Boxes}
+        actions={
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Button onClick={() => setFormOpen(true)} className="gap-1 h-9 text-xs sm:text-sm">
+              <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Neues Set</span>
+              <span className="sm:hidden">Set</span>
+            </Button>
+          </div>
+        }
+      />
 
       {/* Search & Sort */}
       {sets.length > 0 && (

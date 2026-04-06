@@ -20,6 +20,7 @@ import { exportPatchplanAsPDF, downloadCSV, exportPatchplanCSV } from "@/lib/exp
 import { printPatchplan } from "@/lib/printUtils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/PageHeader";
 
 export default function DMXPatchplan() {
   const { allItems, loading } = useInventory();
@@ -85,67 +86,63 @@ export default function DMXPatchplan() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Sliders className="h-6 w-6 text-primary" />
-            DMX Patchplan
-          </h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            {patchplan.length} Kanal-Zuweisungen aus {allItems.filter(i => i.dmx_start_address && i.dmx_channels).length} Geräten
-          </p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button
-            variant={viewMode === 'timeline' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('timeline')}
-            className="gap-2"
-          >
-            <LayoutGrid className="h-4 w-4" />
-            Timeline
-          </Button>
-          <Button
-            variant={viewMode === 'table' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('table')}
-            className="gap-2"
-          >
-            <TableIcon className="h-4 w-4" />
-            Tabelle
-          </Button>
-          {!isMobile && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  disabled={patchplan.length === 0}
-                >
-                  <Download className="h-4 w-4" />
-                  Export
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleExportCSV}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Als CSV exportieren
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportPDF}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Als PDF exportieren
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handlePrint}>
-                  <Printer className="h-4 w-4 mr-2" />
-                  Drucken
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="DMX Patchplan"
+        description={`${patchplan.length} Kanal-Zuweisungen aus ${allItems.filter(i => i.dmx_start_address && i.dmx_channels).length} Geräten`}
+        icon={Sliders}
+        actions={
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant={viewMode === 'timeline' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('timeline')}
+              className="gap-2"
+            >
+              <LayoutGrid className="h-4 w-4" />
+              Timeline
+            </Button>
+            <Button
+              variant={viewMode === 'table' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('table')}
+              className="gap-2"
+            >
+              <TableIcon className="h-4 w-4" />
+              Tabelle
+            </Button>
+            {!isMobile && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    disabled={patchplan.length === 0}
+                  >
+                    <Download className="h-4 w-4" />
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExportCSV}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Als CSV exportieren
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportPDF}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Als PDF exportieren
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handlePrint}>
+                    <Printer className="h-4 w-4 mr-2" />
+                    Drucken
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+          }
+      />
 
       {/* Auslastung pro Universe */}
       {Object.keys(universeUsage).length > 0 && (

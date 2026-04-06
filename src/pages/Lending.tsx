@@ -52,6 +52,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useLendingHistory, LendingRecord } from "@/hooks/useLendingHistory";
 import { useInventory } from "@/hooks/useInventory";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/PageHeader";
 
 interface SlidingTabsProps {
   tabs: { value: string; label: string; icon?: ReactNode }[];
@@ -259,22 +260,19 @@ export default function Lending() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
-            <HandCoins className="h-7 w-7 text-primary" />
-            Verleih-Management
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Übersicht aller Verleihvorgänge und Rückgaben
-          </p>
-        </div>
-        <Button onClick={() => setIsAddOpen(true)} className="gap-2 self-start">
-          <Plus className="h-4 w-4" />
-          Neuer Verleih
-        </Button>
-      </div>
+      <PageHeader
+        title="Verleih"
+        description="Übersicht aller Verleihvorgänge und Rückgaben"
+        icon={HandCoins}
+        actions={
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <Button onClick={() => setIsAddOpen(true)} className="gap-2 self-start">
+              <Plus className="h-4 w-4" />
+              Neuer Verleih
+            </Button>
+          </div>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

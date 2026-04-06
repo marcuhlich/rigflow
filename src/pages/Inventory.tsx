@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Plus, QrCode, CheckSquare, Square, Download, FileText,
+  Plus, QrCode, CheckSquare, Square, Download, FileText, Package,
   Printer, Settings2, X, Zap, Table2, LayoutGrid, List,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ import { useGoogleSheets } from "@/hooks/useGoogleSheets";
 import { useSearchParams } from "react-router-dom";
 import { ItemCategory, ItemCondition } from "@/types/inventory";
 import { useLendingHistory } from "@/hooks/useLendingHistory";
+import { PageHeader } from "@/components/PageHeader";
 
 type ViewMode = "grid" | "table";
 
@@ -331,26 +332,18 @@ export default function Inventory() {
 
   return (
     <div className="space-y-3 sm:space-y-5 pb-24">
-
-      {/* ── Header ── */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Inventar</h2>
-          <p className="text-muted-foreground text-xs mt-0.5">
-            {items.length} {items.length === 1 ? "Artikel" : "Artikel"} gefunden
-          </p>
-        </div>
-
+    <PageHeader
+      title="Inventar"
+      description={`${items.length} Artikel gefunden`}
+      icon={Package}
+      actions={
         <div className="flex gap-1.5 sm:gap-2 w-full sm:w-auto flex-wrap">
-          {/* View Toggle – nur Desktop */}
           {!isMobile && (
             <div className="flex rounded-md border border-border overflow-hidden h-9">
               <button
                 onClick={() => setViewMode("grid")}
                 className={`px-2.5 flex items-center transition-colors ${
-                  viewMode === "grid"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted/50"
+                  viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/50"
                 }`}
                 title="Kachelansicht"
               >
@@ -359,9 +352,7 @@ export default function Inventory() {
               <button
                 onClick={() => setViewMode("table")}
                 className={`px-2.5 flex items-center border-l border-border transition-colors ${
-                  viewMode === "table"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted/50"
+                  viewMode === "table" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/50"
                 }`}
                 title="Listenansicht"
               >
@@ -369,38 +360,21 @@ export default function Inventory() {
               </button>
             </div>
           )}
-
-          <Button
-            variant={selectionMode ? "default" : "outline"}
-            onClick={toggleSelectionMode}
-            className="gap-1 flex-1 sm:flex-none px-2 sm:px-4 h-9 text-xs sm:text-sm"
-          >
-            {selectionMode
-              ? <CheckSquare className="h-3.5 w-3.5 shrink-0" />
-              : <Square className="h-3.5 w-3.5 shrink-0" />}
+          <Button variant={selectionMode ? "default" : "outline"} onClick={toggleSelectionMode} className="gap-1 flex-1 sm:flex-none px-2 sm:px-4 h-9 text-xs sm:text-sm">
+            {selectionMode ? <CheckSquare className="h-3.5 w-3.5 shrink-0" /> : <Square className="h-3.5 w-3.5 shrink-0" />}
             <span className="hidden sm:inline">{selectionMode ? "Auswahl beenden" : "Mehrfachauswahl"}</span>
             <span className="sm:hidden">{selectionMode ? "Fertig" : "Auswahl"}</span>
           </Button>
-
-          <Button
-            onClick={handleAddClick}
-            className="gap-1 flex-1 sm:flex-none px-2 sm:px-4 h-9 text-xs sm:text-sm"
-          >
+          <Button onClick={handleAddClick} className="gap-1 flex-1 sm:flex-none px-2 sm:px-4 h-9 text-xs sm:text-sm">
             <Plus className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden sm:inline">Neues Item</span>
             <span className="sm:hidden">Item</span>
           </Button>
-
-          <Button
-            variant="outline"
-            onClick={() => setCategoryManagerOpen(true)}
-            className="gap-1 flex-1 sm:flex-none px-2 sm:px-4 h-9 text-xs sm:text-sm"
-          >
+          <Button variant="outline" onClick={() => setCategoryManagerOpen(true)} className="gap-1 flex-1 sm:flex-none px-2 sm:px-4 h-9 text-xs sm:text-sm">
             <Settings2 className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden sm:inline">Kategorien</span>
-            <span className="sm:hidden">Kat.</span>
+            <span className="sm:hidden">Kategorien</span>
           </Button>
-
           {!isMobile && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -410,25 +384,17 @@ export default function Inventory() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleExportCSV}>
-                  <FileText className="h-4 w-4 mr-2" /> Als CSV exportieren
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportPDF}>
-                  <FileText className="h-4 w-4 mr-2" /> Als PDF exportieren
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportSheets} disabled={isExporting}>
-                  <Table2 className="h-4 w-4 mr-2" />
-                  {isExporting ? "Wird exportiert..." : "Nach Google Sheets"}
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportCSV}><FileText className="h-4 w-4 mr-2" /> Als CSV exportieren</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportPDF}><FileText className="h-4 w-4 mr-2" /> Als PDF exportieren</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportSheets} disabled={isExporting}><Table2 className="h-4 w-4 mr-2" />{isExporting ? "Wird exportiert..." : "Nach Google Sheets"}</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handlePrint}>
-                  <Printer className="h-4 w-4 mr-2" /> Drucken
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handlePrint}><Printer className="h-4 w-4 mr-2" /> Drucken</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
         </div>
-      </div>
+      }
+    />
 
       {/* Alle auswählen – nur sichtbar im selectionMode */}
       {selectionMode && items.length > 0 && (

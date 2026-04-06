@@ -10,11 +10,12 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Card } from '@/components/ui/card';
-import { Plus, AlertCircle, Trash } from 'lucide-react';
+import { Plus, AlertCircle, Trash, SquareCheckBig, Square } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SoftConfirm } from '@/components/SoftConfirm';
 import { DEFAULT_TEMPLATES, calculateChecklistStats } from '@/types/checklist';
 import { ChecklistCard } from '@/components/ChecklistCard';
+import { PageHeader } from '@/components/PageHeader';
 
 export function ChecklistsPage() {
   const {
@@ -74,117 +75,83 @@ export function ChecklistsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3 px-3 sm:px-6 py-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Event Checklisten</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Verwalte Deine Event-Vorbereitungen und Nachbesprechungen
-          </p>
-        </div>
+    <div className="space-y-6 px-3 sm:px-6">
+      <PageHeader
+        title="Event Checklisten"
+        description="Verwalte Deine Event-Vorbereitungen und Nachbesprechungen"
+        icon={SquareCheckBig}
+        actions={
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4 hidden sm:inline" />
+                <span className="hidden sm:inline">Neue Checklist</span>
+                <span className="sm:hidden">+</span>
+              </Button>
+            </DialogTrigger>
 
-        {/* Neue Checklist Button */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4 hidden sm:inline" />
-              <span className="hidden sm:inline">Neue Checklist</span>
-              <span className="sm:hidden">+</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="w-[95vw] sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Neue Checklist erstellen</DialogTitle>
-              <DialogDescription>
-                Wähle einen Vorlagen-Typ und gib einen Namen für dein Event ein
-              </DialogDescription>
-            </DialogHeader>
+            <DialogContent className="w-[95vw] sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Neue Checklist erstellen</DialogTitle>
+                <DialogDescription>
+                  Wähle einen Vorlagen-Typ und gib einen Namen für dein Event ein
+                </DialogDescription>
+              </DialogHeader>
 
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Event Name *</label>
-                <input
-                  type="text"
-                  value={eventName}
-                  onChange={(e) => setEventName(e.target.value)}
-                  placeholder="z.B. 'Summer Festival 2024'"
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') handleCreateChecklist();
-                  }}
-                />
-                {error && <p className="text-xs text-red-500">{error}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Vorlagen-Typ</label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {(['pre-event', 'post-event', 'general'] as const).map((type) => (
-                    <button
-                      key={type}
-                      onClick={() => setTemplateType(type)}
-                      className={`p-3 rounded-lg border-2 transition text-sm font-medium ${
-                        templateType === type
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border bg-background hover:border-muted-foreground'
-                      }`}
-                    >
-                      {type === 'pre-event' && '🔧 Vor Event'}
-                      {type === 'post-event' && '📋 Nach Event'}
-                      {type === 'general' && '📝 Allgemein'}
-                    </button>
-                  ))}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Event Name *</label>
+                  <input
+                    type="text"
+                    value={eventName}
+                    onChange={(e) => setEventName(e.target.value)}
+                    placeholder="z.B. 'Summer Festival 2024'"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') handleCreateChecklist();
+                    }}
+                  />
+                  {error && <p className="text-xs text-red-500">{error}</p>}
                 </div>
 
-                {/* Template Vorschau */}
-                <div className="mt-3 p-3 bg-muted rounded-lg border border-border">
-                  {DEFAULT_TEMPLATES[templateType] ? (
-                    <>
-                      <p className="text-xs font-medium text-muted-foreground mb-2">
-                        Enthält {DEFAULT_TEMPLATES[templateType].items?.length ?? 0} Standard-Items
-                      </p>
-                      <ul className="space-y-1">
-                        {DEFAULT_TEMPLATES[templateType].items
-                          ?.slice(0, 3)
-                          .map((item, i) => (
-                            <li
-                              key={i}
-                              className="text-xs text-muted-foreground flex items-center gap-2"
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-                              {item.text}
-                            </li>
-                          ))}
-                        {(DEFAULT_TEMPLATES[templateType].items?.length ?? 0) > 3 && (
-                          <li className="text-xs text-muted-foreground italic">
-                            +{(DEFAULT_TEMPLATES[templateType].items?.length ?? 0) - 3} weitere...
-                          </li>
-                        )}
-                      </ul>
-                    </>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">Template nicht gefunden</p>
-                  )}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Vorlagen-Typ</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {(['pre-event', 'post-event', 'general'] as const).map((type) => (
+                      <button
+                        key={type}
+                        onClick={() => setTemplateType(type)}
+                        className={`p-3 rounded-lg border-2 transition text-sm font-medium ${
+                          templateType === type
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border bg-background hover:border-muted-foreground'
+                        }`}
+                      >
+                        {type === 'pre-event' && '🔧 Vor Event'}
+                        {type === 'post-event' && '📋 Nach Event'}
+                        {type === 'general' && '📝 Allgemein'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Abbrechen
-              </Button>
-              <Button onClick={handleCreateChecklist} disabled={!eventName.trim()}>
-                Erstellen
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Abbrechen
+                </Button>
+                <Button onClick={handleCreateChecklist} disabled={!eventName.trim()}>
+                  Erstellen
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       {/* Empty State */}
       {sortedChecklists.length === 0 ? (
-        <div className="px-3 sm:px-6">
+        <div>
           <Card className="p-8 text-center">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-4">
               <AlertCircle className="h-6 w-6 text-muted-foreground" />
@@ -206,7 +173,7 @@ export function ChecklistsPage() {
           </Card>
         </div>
       ) : (
-        <div className="px-3 sm:px-6 space-y-4">
+        <div className="space-y-4">
           {/* Info Banner */}
           {checklists.some((c) => calculateChecklistStats(c.items).pending > 0) && (
             <Alert>

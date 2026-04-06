@@ -136,6 +136,12 @@ export function CommandPalette() {
         signOut();
       }
 
+      // ⌘/Ctrl + S: Open QR Scanner
+      if (e.key === 's' && isMeta) {
+        e.preventDefault();
+        navigate('/scanner');
+      }
+
       // --- Einfache Tasten (nur wenn NICHT in Input und NICHT beim Tippen) ---
 
       // / - Focus Search (opens palette)
@@ -166,10 +172,10 @@ export function CommandPalette() {
         });
       }
 
-      // s - Open QR Scanner (navigates to inventory first)
+      // s - Open QR Scanner (navigates to scanner)
       if (e.key === 's') {
         e.preventDefault();
-        navigate('/inventory');
+        navigate('/scanner');
       }
 
       // v - Toggle View (navigates to inventory)
@@ -278,9 +284,9 @@ export function CommandPalette() {
           title: 'QR Scanner öffnen',
           description: 'Items per QR-Code scannen',
           icon: <QrCode className="h-4 w-4" />,
-          shortcut: 's',
+          shortcut: '⌘ S',
           action: () => {
-            navigate('/inventory?action=open-scanner');
+            navigate('/scanner');
             addItem({
               id: 'qr-scanner',
               title: 'QR Scanner öffnen',
