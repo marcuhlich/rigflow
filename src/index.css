@@ -216,6 +216,12 @@
   color: inherit;
 }
 
+@media (display-mode: standalone) {
+  body {
+    overscroll-behavior-y: none;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

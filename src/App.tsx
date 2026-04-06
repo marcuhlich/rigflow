@@ -38,7 +38,6 @@ import Notifications from "./pages/settings/Notifications";
 import NotificationTest from "./pages/dev/NotificationTest";
 import PrivacySecurity from "./pages/settings/PrivacySecurity";
 import Scanner from "./pages/Scanner";
-import { EmailVerifiedListener } from '@/components/EmailVerifiedListener';
 import Appearance from "./pages/settings/Appearance";
 import { applyStoredAppearance } from "@/lib/appearanceUtils";
 import SettingsGuard from "@/components/SettingsGuard";
@@ -252,7 +251,6 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <AppInitializer />
-              <EmailVerifiedListener />
               <OverdueReminderInit />
               <CommandPalette />
               <AppRoutes />

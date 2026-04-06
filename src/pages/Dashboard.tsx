@@ -22,6 +22,7 @@ import { useLendingHistory } from "@/hooks/useLendingHistory";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import { PullToRefreshWrapper } from "@/components/PullToRefreshWrapper";
 
 // ─── Smooth Tooltip ──────────────────────────────────────────────────────────
 const useSmoothTooltipPosition = (coordinate: any) => {
@@ -379,6 +380,8 @@ export default function Dashboard() {
   const [pieActiveIndex] = useState(-1);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
   const navigate = useNavigate();
+  const { refetch } = useInventory();
+  const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
 
   useEffect(() => {
     const t = setTimeout(() => setChartsVisible(true), 100);
@@ -480,6 +483,10 @@ export default function Dashboard() {
   }
 
   return (
+    <PullToRefreshWrapper
+      onRefresh={async () => { await refetch(); }}
+      disabled={!isMobile || !isStandalone}
+    >
     <div className="space-y-5 sm:space-y-8 pb-24">
       <ScanRevealOverlay />
       <style>{`
@@ -935,5 +942,6 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+    </PullToRefreshWrapper>
   );
 }
