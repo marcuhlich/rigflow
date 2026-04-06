@@ -38,6 +38,7 @@ import { useGoogleSheets } from "@/hooks/useGoogleSheets";
 import { useSearchParams } from "react-router-dom";
 import { ItemCategory, ItemCondition } from "@/types/inventory";
 import { useLendingHistory } from "@/hooks/useLendingHistory";
+import { hapticFeedback } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 
 type ViewMode = "grid" | "table";
@@ -149,6 +150,7 @@ export default function Inventory() {
     try {
       await deleteItem(id);
       if (item) history.pushAction({ type: "delete", item });
+      hapticFeedback(100); // Delete feedback
       toast({ title: "Item gelöscht", description: "Das Item wurde erfolgreich entfernt." });
     } catch { /* handled in hook */ }
   };

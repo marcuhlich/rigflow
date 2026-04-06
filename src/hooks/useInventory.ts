@@ -8,6 +8,7 @@ import { Json } from '@/integrations/supabase/types';
 import { offlineQueue } from '@/lib/offlineQueue';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useNotifications } from '@/hooks/useNotifications';
+import { hapticFeedback } from '@/lib/utils';
 
 const ITEMS_CACHE_KEY = 'inventory_items';
 
@@ -499,6 +500,7 @@ export function useInventory() {
       });
 
       await notifySync(selectedIds.size, 0);
+      hapticFeedback(100); // Batch delete feedback
       toast({
         title: "Items gelöscht",
         description: `${selectedIds.size} Item(s) entfernt.`,

@@ -53,6 +53,7 @@ import { useLendingHistory, LendingRecord } from "@/hooks/useLendingHistory";
 import { useInventory } from "@/hooks/useInventory";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
+import { hapticFeedback } from "@/lib/utils";
 
 interface SlidingTabsProps {
   tabs: { value: string; label: string; icon?: ReactNode }[];
@@ -236,6 +237,7 @@ export default function Lending() {
       returned_at: null,
       notes: formNotes.trim() || null,
     });
+    hapticFeedback(50); // Lend item feedback
     setIsAddOpen(false);
     setFormItemId("");
     setFormLentTo("");
@@ -246,6 +248,7 @@ export default function Lending() {
   const handleDelete = async () => {
     if (deleteId) {
       await deleteRecord(deleteId);
+      hapticFeedback(100); // Delete lending record feedback
       setDeleteId(null);
     }
   };

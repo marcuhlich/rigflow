@@ -21,6 +21,7 @@ import {
 import { InventoryItem, CONDITIONS, CONDITION_LABELS, ItemCategory, ItemCondition } from "@/types/inventory";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { validators } from "@/lib/validators";
+import { hapticFeedback } from "@/lib/utils";
 
 interface ItemFormProps {
   isOpen: boolean;
@@ -165,6 +166,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [],
         unit_price: formData.unit_price ? parseFloat(formData.unit_price) : null,
         image_url: formData.image_url,
       });
+      hapticFeedback(50); // Success feedback
       onClose();
     } catch (error) {
       // Error handled in parent

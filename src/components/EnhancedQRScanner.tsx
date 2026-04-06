@@ -18,6 +18,7 @@ import { decodeQRPayload, extractItemId } from '@/lib/qrPayload';
 import { logger } from '@/lib/logger';
 import { InventoryItem } from '@/types/inventory';
 import { StatusBadge } from '@/components/StatusBadge';
+import { hapticFeedback } from '@/lib/utils';
 
 interface EnhancedQRScannerProps {
   isOpen: boolean;
@@ -93,6 +94,7 @@ export function EnhancedQRScanner({
 
       if (item) {
         setScannedItem(item);
+        hapticFeedback(50); // Scan success feedback
         onItemFound?.(itemId);
       } else {
         toast({

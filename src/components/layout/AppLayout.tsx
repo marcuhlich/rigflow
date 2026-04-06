@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { injectSpeedInsights } from '@vercel/speed-insights';
 import { ScanLine } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { hapticFeedback } from "@/lib/utils";
 
 injectSpeedInsights();
 
@@ -88,7 +89,7 @@ function LiquidGlassNav() {
                 key={item.to}
                 to={item.to}
                 end={item.to === "/"}
-                onClick={() => setMoreOpen(false)}
+                onClick={() => { setMoreOpen(false); hapticFeedback(20); }}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                   isActive ? "text-primary bg-primary/10" : "text-muted-foreground/80 active:bg-muted/30"
@@ -139,6 +140,7 @@ function LiquidGlassNav() {
                 to={item.to}
                 end={item.to === "/"}
                 ref={(el) => { itemRefs.current[i] = el; }}
+                onClick={() => hapticFeedback(20)} // Navigation feedback
                 className={cn(
                   "relative z-10 flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-[16px] text-[10px] font-medium transition-all duration-300 min-w-[52px]",
                   isActive ? "text-primary" : "text-muted-foreground/70 active:scale-95"
