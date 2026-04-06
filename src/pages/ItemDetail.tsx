@@ -47,6 +47,7 @@ export default function ItemDetail() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { items, updateItem, deleteItem } = useInventory();
+  const { addRecord } = useLendingHistory();
   const { getItemHistory } = useLendingHistory();
   
   const [item, setItem] = useState<InventoryItem | null>(null);
@@ -67,6 +68,19 @@ export default function ItemDetail() {
     if (!item) return;
     
     try {
+      // Check if transitioning to "verliehen" and not already lent
+      if (data.condition === 'verliehen' && item.condition !== 'verliehen' && data.lent_to) {
+        // Create lending history record
+        await addRecord({
+          item_id: item.id,
+          item_name: data.name,
+          lent_to: data.lent_to,
+          lent_at: new Date().toISOString().split('T')[0],
+          due_date: data.lent_until || null,
+          returned_at: null,
+          notes: null,
+        });
+      }
       await updateItem(item.id, data);
       setIsEditOpen(false);
       toast({

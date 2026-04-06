@@ -52,15 +52,29 @@ export function applyAccent(accent: AccentColor) {
  */
 export function applyTheme(theme: Theme) {
   const root = document.documentElement;
+
   if (theme === "dunkel") {
     root.classList.add("dark");
   } else if (theme === "hell") {
     root.classList.remove("dark");
   } else {
+    // System: sofort anwenden
     root.classList.toggle("dark", window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+    // Und auf spätere Systemänderungen reagieren
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = (e: MediaQueryListEvent) => {
+      if (localStorage.getItem("rigflow:theme") === "system") {
+        root.classList.toggle("dark", e.matches);
+        const storedAccent = (localStorage.getItem("rigflow:accentColor") as AccentColor) ?? "mint";
+        applyAccent(storedAccent);
+      }
+    };
+    // Alten Listener entfernen bevor neuer gesetzt wird
+    mq.removeEventListener("change", handler);
+    mq.addEventListener("change", handler);
   }
 
-  // Accent neu anwenden, damit die HSL-Werte zum neuen Theme-Modus passen
   const storedAccent = (localStorage.getItem("rigflow:accentColor") as AccentColor) ?? "mint";
   applyAccent(storedAccent);
 }

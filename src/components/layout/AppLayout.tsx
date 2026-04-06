@@ -256,19 +256,11 @@ export function AppLayout({ children }: AppLayoutProps) {
       <LiquidGlassNav />
 
       {/* Main Content */}
-      <main className="flex-1 p-3 sm:p-4 lg:p-8 overflow-x-hidden pb-24 lg:pb-8">
+      <main className="flex-1 px-3 sm:px-4 lg:px-8 overflow-x-hidden pb-24 lg:pb-8">
         <div className="max-w-7xl mx-auto w-full">{children}</div>
       </main>
 
       <OfflineIndicator />
-
-      <button
-        onClick={() => navigate("/scanner")}
-        className="fixed bottom-20 right-4 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:bg-primary/90 active:scale-95 transition-all"
-        aria-label="Scanner öffnen"
-      >
-        <ScanLine className="h-6 w-6" />
-      </button>
     </div>
   );
 }

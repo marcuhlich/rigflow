@@ -7,8 +7,7 @@ import { ScanRevealOverlay } from '@/components/ScanRevealOverlay';
 import {
   Package, CheckCircle, ArrowRightLeft, AlertTriangle, Zap, Clock, Activity,
   CheckSquare, ArrowRight, TrendingUp, CalendarDays, Star, MapPin, DollarSign,
-  RotateCcw, Bell,
-  Trash,
+  RotateCcw, Bell, ScanLine, Plus, Trash, QrCode,
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
@@ -22,6 +21,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLendingHistory } from "@/hooks/useLendingHistory";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 
 // ─── Smooth Tooltip ──────────────────────────────────────────────────────────
 const useSmoothTooltipPosition = (coordinate: any) => {
@@ -378,6 +378,7 @@ export default function Dashboard() {
   const [chartsVisible, setChartsVisible] = useState(false);
   const [pieActiveIndex] = useState(-1);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const navigate = useNavigate();
 
   useEffect(() => {
     const t = setTimeout(() => setChartsVisible(true), 100);
@@ -610,6 +611,37 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
+
+      {/* ══ Schnellaktionen ══════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          onClick={() => navigate("/scanner")}
+          className="flex items-center gap-3 p-4 rounded-xl bg-primary/10 border border-primary/30 hover:bg-primary/15 active:scale-[0.98] transition-all text-left"
+        >
+          <div className="p-2.5 rounded-lg bg-primary/20 shrink-0 relative flex items-center justify-center">
+            <ScanLine className="h-5 w-5 text-primary" />
+            <QrCode className="h-3.5 w-3.5 text-primary absolute opacity-80" />
+          </div>
+          
+          <div className="min-w-0">
+            <p className="font-semibold text-sm">Scanner</p>
+            <p className="text-xs text-muted-foreground truncate">Verleih, Aufbau, Abbau</p>
+          </div>
+        </button>
+
+        <Link
+          to="/inventory"
+          className="flex items-center gap-3 p-4 rounded-xl bg-muted/20 border border-border/50 hover:bg-muted/30 active:scale-[0.98] transition-all"
+        >
+          <div className="p-2.5 rounded-lg bg-muted/40 shrink-0">
+            <Package className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-semibold text-sm">Inventar</p>
+            <p className="text-xs text-muted-foreground truncate">{stats.total} Artikel</p>
+          </div>
+        </Link>
+      </div>
 
       {/* ══ 2. MOBILE: Defekte Artikel ══════════════════════════════════════════ */}
       {defectItems.length > 0 && (

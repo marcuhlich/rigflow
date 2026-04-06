@@ -205,12 +205,16 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [],
                   onValueChange={(v) => setFormData({ ...formData, category: v as ItemCategory })}
                 >
                   <SelectTrigger className="glass-input">
-                    <SelectValue />
+                    <SelectValue placeholder="Kategorie auswählen" />
                   </SelectTrigger>
                   <SelectContent className="glass-card border-border/50">
-                    {categories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
+                    {categories.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground">Keine Kategorien verfügbar</div>
+                    ) : (
+                      categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>

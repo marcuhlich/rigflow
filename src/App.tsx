@@ -75,121 +75,62 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <AppLayout>{children}</AppLayout>;
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && (!user || !user.user_metadata?.is_admin)) {
+      navigate("/", { replace: true });
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) return null;
+  if (!user || !user.user_metadata?.is_admin) return null;
+
+  return <AppLayout>{children}</AppLayout>;
+}
+
 function AppRoutes() {
   return (
     <Routes>
-      {/* Public Routes */}
-      <Route path="/landing" element={<Landing />} />
-      <Route path="/auth" element={<Auth />} />
 
-      {/* Install Prompt (nach Auth) */}
-      <Route path="/install-prompt" element={<InstallPrompt />} />
+      {/* ── Public ─────────────────────────────────────────────────────── */}
+      <Route path="/landing"          element={<Landing />} />
+      <Route path="/auth"             element={<Auth />} />
+      <Route path="/auth/callback"    element={<AuthCallback />} />
+      <Route path="/register"         element={<RegisterPage />} />
+      <Route path="/forgot-password"  element={<ForgotPassword />} />
+      <Route path="/reset-password"   element={<ResetPassword />} />
+      <Route path="/install"          element={<Install />} />
+      <Route path="/install-prompt"   element={<InstallPrompt />} />
 
-      {/* PWA Install Guide */}
-      <Route path="/install" element={<Install />} />
+      {/* ── App ────────────────────────────────────────────────────────── */}
+      <Route path="/"             element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/inventory"    element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
+      <Route path="/inventory/:id" element={<ProtectedRoute><ItemDetail /></ProtectedRoute>} />
+      <Route path="/lending"      element={<ProtectedRoute><Lending /></ProtectedRoute>} />
+      <Route path="/sets"         element={<ProtectedRoute><EventSetsPage /></ProtectedRoute>} />
+      <Route path="/checklists"   element={<ProtectedRoute><ChecklistsPage /></ProtectedRoute>} />
+      <Route path="/dmx"          element={<ProtectedRoute><DMXPatchplan /></ProtectedRoute>} />
+      <Route path="/scanner"      element={<ProtectedRoute><Scanner /></ProtectedRoute>} />
+      <Route path="/help"         element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
 
-      {/* Registration */}
-      <Route path="/register" element={<RegisterPage />} />
-
-      {/* Auth Callback */}
-      <Route path="/auth/callback" element={<AuthCallback />} />
-
-      {/* Password Reset */}
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-
-      {/* Reset Password */}
-      <Route path="/reset-password" element={<ResetPassword />} />
-
-      { /* Weitere Settings-Seiten (/settings/...) */}
-      {/* Weitere Settings-Seiten (/settings/...) */}
+      {/* ── Settings ───────────────────────────────────────────────────── */}
       <Route element={<ProtectedRoute><SettingsGuard /></ProtectedRoute>}>
-        <Route path="/settings" element={<AccountSettings />} />
-        <Route path="/settings/account-info" element={<AccountInfo />} />
-        <Route path="/settings/notifications" element={<Notifications />} />
-        <Route path="/settings/privacy-security" element={<PrivacySecurity />} />
-        <Route path="/settings/appearance" element={<Appearance />} />
+        <Route path="/settings"                    element={<AccountSettings />} />
+        <Route path="/settings/account-info"       element={<AccountInfo />} />
+        <Route path="/settings/notifications"      element={<Notifications />} />
+        <Route path="/settings/privacy-security"   element={<PrivacySecurity />} />
+        <Route path="/settings/appearance"         element={<Appearance />} />
       </Route>
 
-      { /* Dev/Test Pages */}
-      <Route path="/dev/notifications" element={<NotificationTest />} />
+      {/* ── Dev (nur Admin) ────────────────────────────────────────────── */}
+      <Route path="/dev/notifications" element={<AdminRoute><NotificationTest /></AdminRoute>} />
 
-      {/* Protected Routes */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/inventory"
-        element={
-          <ProtectedRoute>
-            <Inventory />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/inventory/:id"
-        element={
-          <ProtectedRoute>
-            <ItemDetail />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/dmx"
-        element={
-          <ProtectedRoute>
-            <DMXPatchplan />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/checklists"
-        element={
-          <ProtectedRoute>
-            <ChecklistsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/sets"
-        element={
-          <ProtectedRoute>
-            <EventSetsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/lending"
-        element={
-          <ProtectedRoute>
-            <Lending />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/scanner"
-        element={
-          <ProtectedRoute>
-            <Scanner />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/help"
-        element={
-          <ProtectedRoute>
-            <HelpPage />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Fallback */}
+      {/* ── Fallback ───────────────────────────────────────────────────── */}
       <Route path="*" element={<NotFound />} />
+
     </Routes>
   );
 }

@@ -52,14 +52,13 @@ export function EnhancedQRScanner({
 
   // Start scanning when dialog opens
   useEffect(() => {
-    if (isOpen && scanMethod === 'camera') {
+    if (isOpen && scanMethod === 'camera' && !scannedItem) {
       startScanning();
     }
-
     return () => {
       stopScanning();
     };
-  }, [isOpen, scanMethod, startScanning, stopScanning]);
+  }, [isOpen, scanMethod, scannedItem, startScanning, stopScanning]);
 
   // Scanning loop
   useEffect(() => {
@@ -175,7 +174,7 @@ export function EnhancedQRScanner({
                 <video
                   ref={videoRef}
                   className="w-full rounded-lg border-2 border-border bg-black"
-                  style={{ maxHeight: '400px' }}
+                  style={{ maxHeight: '400px', objectFit: 'cover' }}
                 />
                 <canvas ref={canvasRef} style={{ display: 'none' }} />
 

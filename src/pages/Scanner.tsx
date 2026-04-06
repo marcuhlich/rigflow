@@ -127,13 +127,17 @@ export default function Scanner() {
   const [dueDate, setDueDate]     = useState("");
   const [selectedSetId, setSelectedSetId] = useState<string>("");
   const [scannerOpen, setScannerOpen]     = useState(false);
+  const [ scannerKey, setScannerKey ] = useState(0);
   const [entries, setEntries]     = useState<ScannedEntry[]>([]);
   const [isProcessing, setIsProcessing]   = useState(false);
 
   const modeConfig = MODES.find((m) => m.id === mode);
 
   // Set-Items für den Soll-/Ist-Vergleich
-  const selectedSet = sets.find((s) => s.id === selectedSetId) ?? null;
+  const selectedSet =
+    selectedSetId && selectedSetId !== "none"
+      ? sets.find((s) => s.id === selectedSetId)
+      : null;
   const setItemIds  = new Set(selectedSet?.items?.map((si) => si.item_id) ?? []);
 
   // Fortschritt bei Aufbau mit Set
@@ -149,6 +153,7 @@ export default function Scanner() {
     if (m === "inventur" || m === "abbau") {
       setStep("scan");
       setScannerOpen(true);
+      setScannerKey((k) => k + 1);
     } else {
       setStep("context");
     }
@@ -163,6 +168,7 @@ export default function Scanner() {
     }
     setStep("scan");
     setScannerOpen(true);
+    setScannerKey((k) => k + 1);
   };
 
   // ─── QR-Scan Handler ─────────────────────────────────────────────────────
@@ -173,6 +179,14 @@ export default function Scanner() {
       toast({ title: "Item nicht gefunden", description: "Dieses QR-Label gehört zu keinem bekannten Item.", variant: "destructive" });
       return;
     }
+    
+    // ── Inventur: sofort zur Detailseite ──
+    if (mode === "inventur") {
+      setScannerOpen(false);
+      navigate(`/inventory/${itemId}`);
+      return;
+    }
+
     if (entries.some((e) => e.item.id === itemId)) {
       toast({ title: "Bereits gescannt", description: `${item.name} ist schon in der Liste.`, variant: "destructive" });
       if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
@@ -235,7 +249,7 @@ export default function Scanner() {
         mode === "abbau"     ? "Rückgabe gebucht" : "Inventur abgeschlossen";
 
       toast({ title: `✓ ${label}`, description: `${entries.length} Item(s) aktualisiert.` });
-      navigate("/dashboard");
+      navigate("/");
     } catch (err) {
       toast({ title: "Fehler", description: err instanceof Error ? err.message : "Unbekannter Fehler", variant: "destructive" });
     } finally {
@@ -361,7 +375,7 @@ export default function Scanner() {
                       <SelectValue placeholder="Kein Set – frei scannen" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Kein Set – frei scannen</SelectItem>
+                      <SelectItem value="none">Ohne Set</SelectItem>
                       {sets.map((s) => (
                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                       ))}
@@ -409,16 +423,23 @@ export default function Scanner() {
 
             {/* Scanner-Button */}
             <button
-              onClick={() => setScannerOpen(true)}
-              className="w-full flex flex-col items-center gap-3 py-8 rounded-xl border-2 border-dashed border-primary/40 hover:border-primary/70 hover:bg-primary/5 transition-all"
+              onClick={() => {
+                  setScannerKey((k) => k + 1);
+                  setScannerOpen(true);
+              }}
+              className="w-full flex flex-col items-center gap-3 py-8 rounded-xl bg-primary/10 border border-primary/30 active:bg-primary/20 active:scale-[0.98] transition-all"
             >
-              <div className="p-4 rounded-full bg-primary/10">
+              <div className="p-4 rounded-full bg-primary/20">
                 <QrCode className="h-8 w-8 text-primary" />
               </div>
               <div className="text-center">
-                <p className="font-semibold">QR-Code scannen</p>
+                <p className="font-semibold text-primary">
+                  {entries.length === 0 ? "QR-Code scannen" : "Weiteren scannen"}
+                </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {entries.length === 0 ? "Tippe hier um den Scanner zu öffnen" : `${entries.length} Item(s) gescannt – weiterscannen?`}
+                  {entries.length === 0
+                    ? "Tippe hier um den Scanner zu öffnen"
+                    : `${entries.length} Item(s) bereits gescannt`}
                 </p>
               </div>
             </button>
@@ -561,6 +582,7 @@ export default function Scanner() {
 
       {/* QR-Scanner (persistent) */}
       <EnhancedQRScanner
+        key={scannerKey}
         isOpen={scannerOpen}
         onClose={() => setScannerOpen(false)}
         onItemFound={handleScan}

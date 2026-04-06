@@ -49,7 +49,7 @@ const THEMES = [
   },
   {
     id: "system" as Theme,
-    label: "Systemstandard",
+    label: "System",
     icon: <Monitor className="w-3.5 h-3.5" />,
     bg: null, bar1: "", dot: "", btn: "",
   },
@@ -267,22 +267,24 @@ export default function Appearance() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
 
-      {/* ── Sticky Header ──────────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-10 backdrop-blur-md bg-background/80 border-b border-border">
-        <div className="max-w-lg mx-auto px-4 h-14 flex items-center gap-3">
-          <Link
+        {/* ── Sticky Header ── */}
+        <div className="fixed top-12 lg:top-14 left-0 right-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/40">
+        <div className="px-3 sm:px-4 lg:px-8 h-11 flex items-center justify-center relative">
+            <Link
             to="/settings"
-            className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
-          >
+            className="absolute left-3 sm:left-4 lg:left-8 inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+            >
             <ChevronLeft className="h-4 w-4" />
-            <span className="text-sm">Einstellungen</span>
-          </Link>
-          <span className="text-muted-foreground/40">·</span>
-          <span className="text-sm font-medium text-foreground">Erscheinungsbild</span>
+            <span className="text-sm hidden sm:inline">Einstellungen</span>
+            </Link>
+            <span className="text-sm font-medium text-foreground">Erscheinungsbild</span>
         </div>
-      </div>
+        </div>
+
+        {/* Spacer damit Content nicht unter dem fixed Header verschwindet */}
+        <div className="h-11 mb-2" />
 
       <div className="max-w-lg mx-auto px-4 py-8 space-y-5">
 
@@ -309,30 +311,26 @@ export default function Appearance() {
               >
                 <ThemeMockup theme={t} />
 
-                <div className="flex items-center gap-1.5 px-0.5">
+                <div className="flex items-center justify-center gap-1 px-0.5">
                   <span className={cn(
-                    "transition-colors shrink-0",
-                    theme === t.id
-                      ? "text-primary"
-                      : "text-muted-foreground group-hover:text-foreground"
-                  )}>
-                    {t.icon}
+                        "transition-colors shrink-0",
+                        theme === t.id ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                    )}>
+                        {t.icon}
                   </span>
                   <span className={cn(
-                    "text-xs font-medium truncate",
-                    theme === t.id
-                      ? "text-foreground"
-                      : "text-muted-foreground group-hover:text-foreground"
+                        "text-[10px] font-medium",
+                        theme === t.id ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
                   )}>
-                    {t.label}
+                  {t.label}
                   </span>
-                  {theme === t.id && (
-                    <span
-                      className="ml-auto w-2 h-2 rounded-full bg-primary shrink-0"
-                      style={{ boxShadow: `0 0 6px ${currentAccentHex}` }}
-                    />
-                  )}
                 </div>
+                    {theme === t.id && (
+                <div className="flex justify-center mt-0.5">
+                  <span className="w-2 h-2 rounded-full bg-primary"
+                        style={{ boxShadow: `0 0 6px ${currentAccentHex}` }} />
+                </div>
+                )}
               </button>
             ))}
           </div>

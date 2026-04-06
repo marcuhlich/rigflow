@@ -37,6 +37,7 @@ import { printInventory } from "@/lib/printUtils";
 import { useGoogleSheets } from "@/hooks/useGoogleSheets";
 import { useSearchParams } from "react-router-dom";
 import { ItemCategory, ItemCondition } from "@/types/inventory";
+import { useLendingHistory } from "@/hooks/useLendingHistory";
 
 type ViewMode = "grid" | "table";
 
@@ -50,7 +51,6 @@ export default function Inventory() {
   const initialLocation = searchParams.get("location") || "all";
 
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
@@ -84,6 +84,7 @@ export default function Inventory() {
   };
   const handlePrint = () => printInventory(items);
   const { exportToSheets, isExporting } = useGoogleSheets();
+  const { addRecord } = useLendingHistory();
 
   const {
     items, allItems, loading,
@@ -109,9 +110,7 @@ export default function Inventory() {
     const action = searchParams.get("action");
     if (!action) return;
 
-    if (action === "open-scanner") {
-      setIsScannerOpen(true);
-    } else if (action === "toggle-view") {
+    if (action === "toggle-view") {
       setViewMode(prev => prev === "grid" ? "table" : "grid");
     } else if (action === "toggle-selection") {
       setSelectionMode(prev => !prev);
@@ -155,19 +154,21 @@ export default function Inventory() {
 
   const handleViewDetails = (id: string) => navigate(`/inventory/${id}`);
 
-  const handleQRScan = (itemId: string) => {
-    const scannedItem = items.find((i) => i.id === itemId);
-    if (scannedItem) {
-      setIsScannerOpen(false);
-      navigate(`/inventory/${itemId}`);
-      toast({ title: "Item gefunden", description: `${scannedItem.name} wurde gescannt.` });
-    } else {
-      toast({ title: "Item nicht gefunden", description: "Kein Item mit dieser ID vorhanden.", variant: "destructive" });
-    }
-  };
-
   const handleFormSubmit = async (data: Omit<InventoryItem, "id" | "user_id" | "created_at" | "updated_at">) => {
     if (editItem) {
+      // Check if transitioning to "verliehen" and not already lent
+      if (data.condition === 'verliehen' && editItem.condition !== 'verliehen' && data.lent_to) {
+        // Create lending history record
+        await addRecord({
+          item_id: editItem.id,
+          item_name: data.name,
+          lent_to: data.lent_to,
+          lent_at: new Date().toISOString().split('T')[0],
+          due_date: data.lent_until || null,
+          returned_at: null,
+          notes: null,
+        });
+      }
       await updateItem(editItem.id, data);
       const newItem = { ...editItem, ...data, updated_at: new Date().toISOString() };
       history.pushAction({ type: "update", oldItem: editItem, newItem });
@@ -175,6 +176,19 @@ export default function Inventory() {
     } else {
       await addItem(data);
       const latestItem = allItems[0];
+      // Check if creating as "verliehen"
+      if (latestItem && data.condition === 'verliehen' && data.lent_to) {
+        // Create lending history record
+        await addRecord({
+          item_id: latestItem.id,
+          item_name: data.name,
+          lent_to: data.lent_to,
+          lent_at: new Date().toISOString().split('T')[0],
+          due_date: data.lent_until || null,
+          returned_at: null,
+          notes: null,
+        });
+      }
       if (latestItem) history.pushAction({ type: "add", item: latestItem });
       toast({ title: "Item hinzugefügt", description: "Das neue Item wurde erfolgreich erstellt." });
     }
@@ -276,23 +290,17 @@ export default function Inventory() {
         handleAddClick();
       }
 
-      // 4. Scanner öffnen (Taste: 's')
-      if (e.key === "s") {
-        e.preventDefault();
-        setIsScannerOpen(true);
-      }
-
-      // 5. Ansicht wechseln (Taste: 'v' für View)
+      // 4. Ansicht wechseln (Taste: 'v' für View)
       if (e.key === "v") {
         setViewMode(prev => prev === "grid" ? "table" : "grid");
       }
 
-      // 6. Auswahlmodus umschalten (Taste: 'm' für Multi-Select)
+      // 5. Auswahlmodus umschalten (Taste: 'm' für Multi-Select)
       if (e.key === "m") {
         toggleSelectionMode();
       }
       
-      // 7. Alles schließen / Filter löschen (Taste: 'Escape')
+      // 6. Alles schließen / Filter löschen (Taste: 'Escape')
       if (e.key === "Escape") {
         clearFilters();
         if (selectionMode) toggleSelectionMode();
@@ -372,16 +380,6 @@ export default function Inventory() {
               : <Square className="h-3.5 w-3.5 shrink-0" />}
             <span className="hidden sm:inline">{selectionMode ? "Auswahl beenden" : "Mehrfachauswahl"}</span>
             <span className="sm:hidden">{selectionMode ? "Fertig" : "Auswahl"}</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={() => setIsScannerOpen(true)}
-            className="gap-1 flex-1 sm:flex-none px-2 sm:px-4 h-9 text-xs sm:text-sm"
-          >
-            <QrCode className="h-3.5 w-3.5 shrink-0" />
-            <span className="hidden sm:inline">QR scannen</span>
-            <span className="sm:hidden">Scan</span>
           </Button>
 
           <Button
@@ -509,13 +507,6 @@ export default function Inventory() {
         editItem={editItem}
         categories={categoryNames}
         dmxCategories={dmxCategories}
-      />
-
-      <EnhancedQRScanner
-        isOpen={isScannerOpen}
-        onClose={() => setIsScannerOpen(false)}
-        onItemFound={handleQRScan}
-        onNavigateToItem={handleViewDetails}
       />
 
       <BatchActionsBar
