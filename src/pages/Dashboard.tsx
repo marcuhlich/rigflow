@@ -257,9 +257,11 @@ const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
     if (offsetX < -THRESHOLD) {
       setOffsetX(-ACTION_WIDTH);
       setRevealed(true);
+      if (navigator.vibrate) navigator.vibrate([6, 40, 12]);
     } else {
       setOffsetX(0);
       setRevealed(false);
+      if (navigator.vibrate) navigator.vibrate(4);
     }
   };
 
@@ -341,9 +343,10 @@ const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
         {/* ── Action buttons ── */}
         <button
           style={{
-            flex: `0 0 ${ACTION_WIDTH / 2}px`, border: "none", cursor: "pointer",
+            flex: `0 0 ${ACTION_WIDTH / 2}px`, border: "none", cursor: "pointer", marginLeft: "6px",
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "4px",
             background: "hsl(var(--primary))", color: "#fff", fontSize: "10px", fontWeight: 700,
+            borderRadius: "12px 0 0 12px",
           }}
           onClick={() => { close(); onReturn?.(item.id); }}
         >
@@ -620,7 +623,7 @@ export default function Dashboard() {
       </section>
 
       {/* ══ Schnellaktionen ══════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid gap-3">
         <button
           onClick={() => navigate("/scanner")}
           className="flex items-center gap-3 p-4 rounded-xl bg-primary/10 border border-primary/30 hover:bg-primary/15 active:scale-[0.98] transition-all text-left"
@@ -635,19 +638,6 @@ export default function Dashboard() {
             <p className="text-xs text-muted-foreground truncate">Verleih, Aufbau, Abbau</p>
           </div>
         </button>
-
-        <Link
-          to="/inventory"
-          className="flex items-center gap-3 p-4 rounded-xl bg-muted/20 border border-border/50 hover:bg-muted/30 active:scale-[0.98] transition-all"
-        >
-          <div className="p-2.5 rounded-lg bg-muted/40 shrink-0">
-            <Package className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <div className="min-w-0">
-            <p className="font-semibold text-sm">Inventar</p>
-            <p className="text-xs text-muted-foreground truncate">{stats.total} Artikel</p>
-          </div>
-        </Link>
       </div>
 
       {/* ══ 2. MOBILE: Defekte Artikel ══════════════════════════════════════════ */}
@@ -679,7 +669,7 @@ export default function Dashboard() {
 
       {/* ══ 3. Anstehende Events + Quick Links ══════════════════════════════════ */}
       <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
-        <Card className="border-border/50">
+        <Card className="border-border/50" hidden={upcomingSets.length === 0 && checklists.length === 0}>
           <CardContent className="p-4 sm:p-5">
             <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
               <CalendarDays className="h-4 w-4 text-primary" />
@@ -816,7 +806,7 @@ export default function Dashboard() {
 
       {/* ══ 5. Charts & Aktivitäten ═════════════════════════════════════════════ */}
       <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
-        <div className="glass-card p-4 sm:p-6">
+        <div className="glass-card p-4 sm:p-6" style={{ display: isMobile ? 'none' : 'block' }}>
           <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
             <Activity className="h-4 w-4 text-primary" />
             Status-Verteilung
@@ -879,7 +869,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
-        <div className="glass-card p-4 sm:p-6">
+        <div className="glass-card p-4 sm:p-6" hidden={isMobile}>
           <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
             <MapPin className="h-4 w-4 text-primary" />
             Standorte

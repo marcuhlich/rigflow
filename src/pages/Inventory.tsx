@@ -40,6 +40,7 @@ import { ItemCategory, ItemCondition } from "@/types/inventory";
 import { useLendingHistory } from "@/hooks/useLendingHistory";
 import { hapticFeedback } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
+import { useEventSets } from "@/hooks/useEventSets";
 
 type ViewMode = "grid" | "table";
 
@@ -65,6 +66,7 @@ export default function Inventory() {
   const { categoryNames, dmxCategories, addCategory, removeCategory, toggleDmx, categories } = useCategories();
   const history = useInventoryHistory();
   const undoRedoCtx = useUndoRedoContext();
+  const { sets, addItemToSet } = useEventSets();
 
 
   // Autofocus Suchfeld auf Desktop
@@ -247,12 +249,19 @@ export default function Inventory() {
     } catch { /* failed redo */ }
   }, [history, deleteItem, updateItem, addItem, toast]);
 
+  const handleUndoRef = useRef(handleUndo);
+  const handleRedoRef = useRef(handleRedo);
+  useEffect(() => { handleUndoRef.current = handleUndo; }, [handleUndo]);
+  useEffect(() => { handleRedoRef.current = handleRedo; }, [handleRedo]);
+
   useEffect(() => {
     undoRedoCtx.register({
-      canUndo: history.canUndo, canRedo: history.canRedo,
-      onUndo: handleUndo, onRedo: handleRedo,
+      canUndo: history.canUndo,
+      canRedo: history.canRedo,
+      onUndo: () => handleUndoRef.current(),
+      onRedo: () => handleRedoRef.current(),
     });
-  }, [history.canUndo, history.canRedo, handleUndo, handleRedo]);
+  }, [history.canUndo, history.canRedo]);
 
   useEffect(() => () => undoRedoCtx.unregister(), []);
 
@@ -453,6 +462,11 @@ export default function Inventory() {
           selectedIds={selectedIds}
           onToggleSelection={toggleSelection}
           selectionMode={selectionMode}
+          onUpdateItem={updateItem}
+          onAddItem={addItem}
+          eventSets={sets}
+          onAddToSet={addItemToSet}
+          onFilterCategory={(cat) => setCategoryFilter(cat)}
         />
       ) : (
         <InventoryTable
@@ -463,6 +477,11 @@ export default function Inventory() {
           selectedIds={selectedIds}
           onToggleSelection={toggleSelection}
           selectionMode={selectionMode}
+          onUpdateItem={updateItem}
+          onAddItem={addItem}
+          eventSets={sets}
+          onAddToSet={addItemToSet}
+          onFilterCategory={(cat) => setCategoryFilter(cat)}
         />
       )}
 

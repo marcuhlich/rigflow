@@ -109,7 +109,7 @@ export function AuditLogPanel() {
         .from('audit_log')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(80);
 
       if (error) throw error;
       setLogs(data as AuditLogEntry[]);

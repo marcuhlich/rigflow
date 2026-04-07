@@ -147,7 +147,7 @@ export default function ItemDetail() {
   }
 
   return (
-    <div className="space-y-6 overflow-x-hidden">
+    <div className="space-y-6 overflow-x-hidden pt-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <Button
           variant="ghost"
