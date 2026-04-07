@@ -15,19 +15,19 @@ const quickLinks = [
     title: "Inventar",
     description: "Equipment verwalten und organisieren",
     icon: BookOpen,
-    href: "/docs/inventory/overview",
+    href: "/docs/Inventar/overview",
   },
   {
     title: "QR Scanning",
     description: "Equipment blitzschnell scannen",
     icon: QrCode,
-    href: "/docs/inventory/qr-scanning",
+    href: "/docs/Inventar/qr-scanning",
   },
   {
-    title: "API Referenz",
-    description: "Programmatischer Zugriff auf RigFlow",
+    title: "Entwicklung",
+    description: "So wird RigFlow entwickelt",
     icon: Code,
-    href: "/docs/api/reference",
+    href: "/docs/Dev/dev-getting-started",
   },
 ];
 

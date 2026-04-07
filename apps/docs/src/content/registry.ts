@@ -55,10 +55,14 @@ export async function getDocBySlug(slug: string): Promise<DocPage | undefined> {
 // Optional: List of all Markdown files you want to expose
 // z.B. ["getting-started", "inventory/overview", "inventory/qr-scanning", "api/reference"]
 export const allSlugs = [
-  "getting-started",
-  "inventory/overview",
-  "inventory/qr-scanning",
-  "api/reference",
+  "start",
+  "erste-schritte",
+  "PWA/pwa-getting-started",
+  "PWA/pwa-installation",
+  "Inventar/overview",
+  "Inventar/qr-scanning",
+  "Dev/reference",
+  "Dev/dev-getting-started",
 ];
 
 // Fetch all docs dynamically
