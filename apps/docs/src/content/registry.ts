@@ -17,10 +17,10 @@ function parseFrontmatter(raw: string): { data: Record<string, string>; content:
 }
 
 // Import all markdown files
-import gettingStartedMd from "./docs/getting-started.md?raw";
-import inventoryOverviewMd from "./docs/inventory/overview.md?raw";
-import qrScanningMd from "./docs/inventory/qr-scanning.md?raw";
-import apiReferenceMd from "./docs/api/reference.md?raw";
+import gettingStartedMd from "/content/docs/getting-started.md?raw";
+import inventoryOverviewMd from "/content/docs/inventory/overview.md?raw";
+import qrScanningMd from "/content/docs/inventory/qr-scanning.md?raw";
+import apiReferenceMd from "/content/docs/api/reference.md?raw";
 
 export interface DocPage {
   slug: string;
