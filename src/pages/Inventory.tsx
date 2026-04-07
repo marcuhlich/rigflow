@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus, QrCode, CheckSquare, Square, Download, FileText, Package,
-  Printer, Settings2, X, Zap, Table2, LayoutGrid, List,
+  Printer, Settings2, X, Zap, Table2, LayoutGrid, List, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,6 +42,8 @@ import { hapticFeedback } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 import { useEventSets } from "@/hooks/useEventSets";
 import { PullToRefreshWrapper } from "@/components/PullToRefreshWrapper";
+import { TrashDrawer } from "@/components/TrashDrawer";
+import { ToastAction } from "@/components/ui/toast";
 
 type ViewMode = "grid" | "table";
 
@@ -61,6 +63,7 @@ export default function Inventory() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryDmx, setNewCategoryDmx] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [trashOpen, setTrashOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -103,6 +106,8 @@ export default function Inventory() {
     addItem, updateItem, deleteItem,
     selectedIds, toggleSelection, selectAll, clearSelection,
     isProcessing, batchUpdateCondition, batchUpdateLocation, batchDelete,
+    // Papierkorb:
+    trashedItems, trashedCount, fetchTrashedItems, restoreItem, permanentlyDeleteItem, emptyTrash,
   } = useInventory();
 
     useEffect(() => {
@@ -155,8 +160,17 @@ export default function Inventory() {
     try {
       await deleteItem(id);
       if (item) history.pushAction({ type: "delete", item });
-      hapticFeedback(100); // Delete feedback
-      toast({ title: "Item gelöscht", description: "Das Item wurde erfolgreich entfernt." });
+      hapticFeedback(100);
+      toast({
+        title: "In Papierkorb verschoben",
+        description: `„${item?.name}" wurde in den Papierkorb verschoben.`,
+        action: (
+          <ToastAction altText="Rückgängig" onClick={() => handleUndoRef.current()}>
+            {/* ↑ statt handleUndo() – Ref zeigt immer auf aktuelle Version */}
+            Rückgängig
+          </ToastAction>
+        ),
+      });
     } catch { /* handled in hook */ }
   };
 
@@ -217,15 +231,13 @@ export default function Inventory() {
           toast({ title: "Rückgängig", description: `"${action.oldItem.name}" wurde zurückgesetzt.` });
           break;
         }
-        case "delete": {
-          const { id, user_id, created_at, updated_at, ...itemData } = action.item;
-          await addItem(itemData as any);
-          toast({ title: "Rückgängig", description: `"${action.item.name}" wurde wiederhergestellt.` });
+        case "delete":
+          await restoreItem(action.item.id);  // restoreItem war stale
+          toast({ title: "Rückgängig", description: `„${action.item.name}" wurde wiederhergestellt.` });
           break;
-        }
       }
     } catch { history.pushAction(action); }
-  }, [history, deleteItem, updateItem, addItem, toast]);
+  }, [history, deleteItem, updateItem, addItem, restoreItem, toast]);
 
   const handleRedo = useCallback(async () => {
     const action = history.redo();
@@ -410,6 +422,19 @@ export default function Inventory() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 h-9 text-xs sm:text-sm relative"
+            onClick={() => setTrashOpen(true)}
+            title="Papierkorb"
+          >
+            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Papierkorb</span>
+            {trashedCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-muted-foreground/50" />
+            )}
+          </Button>
         </div>
       }
     />
@@ -580,6 +605,15 @@ export default function Inventory() {
           </div>
         </DialogContent>
       </Dialog>
+      <TrashDrawer
+        open={trashOpen}
+        onClose={() => setTrashOpen(false)}
+        trashedItems={trashedItems}
+        onFetch={fetchTrashedItems}
+        onRestore={restoreItem}
+        onPermanentDelete={permanentlyDeleteItem}
+        onEmptyTrash={emptyTrash}
+      />
     </div>
     </PullToRefreshWrapper>
   );

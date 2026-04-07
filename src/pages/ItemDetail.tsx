@@ -98,21 +98,16 @@ export default function ItemDetail() {
 
   const handleDelete = async () => {
     if (!item) return;
-
     try {
       await deleteItem(item.id);
       toast({
-        title: "Item gelöscht",
-        description: "Das Item wurde erfolgreich entfernt.",
+        title: "In Papierkorb verschoben",
+        description: `„${item.name}" kann im Papierkorb wiederhergestellt werden.`,
       });
       setIsDeleteOpen(false);
       navigate("/inventory");
-    } catch (error) {
-      toast({
-        title: "Fehler",
-        description: "Item konnte nicht gelöscht werden.",
-        variant: "destructive",
-      });
+    } catch {
+      toast({ title: "Fehler", description: "Item konnte nicht gelöscht werden.", variant: "destructive" });
       setIsDeleteOpen(false);
     }
   };
@@ -409,7 +404,7 @@ export default function ItemDetail() {
           <AlertDialogHeader>
             <AlertDialogTitle>Item löschen?</AlertDialogTitle>
             <AlertDialogDescription>
-              "{item.name}" wird permanent gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
+              „{item.name}" wird in den Papierkorb verschoben und kann dort wiederhergestellt werden.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -41,8 +41,6 @@ import Scanner from "./pages/Scanner";
 import Appearance from "./pages/settings/Appearance";
 import { applyStoredAppearance } from "@/lib/appearanceUtils";
 import SettingsGuard from "@/components/SettingsGuard";
-import { AnimatePresence } from "framer-motion";
-import { useLocation } from "react-router-dom";
 
 const queryClient = new QueryClient();
 
@@ -93,10 +91,8 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppRoutes() {
-  const location = useLocation();
   return (
-    <AnimatePresence mode="wait">
-    <Routes location={location} key={location.pathname}>
+    <Routes>
 
       {/* ── Public ─────────────────────────────────────────────────────── */}
       <Route path="/landing"          element={<Landing />} />
@@ -135,7 +131,6 @@ function AppRoutes() {
       <Route path="*" element={<NotFound />} />
 
     </Routes>
-    </AnimatePresence>
   );
 }
 

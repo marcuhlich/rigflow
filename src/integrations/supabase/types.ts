@@ -248,6 +248,7 @@ export type Database = {
           unit_price: number | null
           updated_at: string
           user_id: string
+          deleted_at?: string | null
         }
         Insert: {
           accessories?: string | null
@@ -268,6 +269,7 @@ export type Database = {
           unit_price?: number | null
           updated_at?: string
           user_id: string
+          deleted_at?: string | null
         }
         Update: {
           accessories?: string | null
@@ -288,6 +290,7 @@ export type Database = {
           unit_price?: number | null
           updated_at?: string
           user_id?: string
+          deleted_at?: string | null
         }
         Relationships: []
       }
