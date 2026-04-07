@@ -41,6 +41,7 @@ import { useLendingHistory } from "@/hooks/useLendingHistory";
 import { hapticFeedback } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 import { useEventSets } from "@/hooks/useEventSets";
+import { PullToRefreshWrapper } from "@/components/PullToRefreshWrapper";
 
 type ViewMode = "grid" | "table";
 
@@ -67,6 +68,8 @@ export default function Inventory() {
   const history = useInventoryHistory();
   const undoRedoCtx = useUndoRedoContext();
   const { sets, addItemToSet } = useEventSets();
+  const { refetch } = useInventory();
+  const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
 
 
   // Autofocus Suchfeld auf Desktop
@@ -342,6 +345,10 @@ export default function Inventory() {
   }
 
   return (
+    <PullToRefreshWrapper
+          onRefresh={async () => { await refetch(); }}
+          disabled={!isMobile || !isStandalone}
+    >
     <div className="space-y-3 sm:space-y-5 pb-24">
     <PageHeader
       title="Inventar"
@@ -574,5 +581,6 @@ export default function Inventory() {
         </DialogContent>
       </Dialog>
     </div>
+    </PullToRefreshWrapper>
   );
 }
