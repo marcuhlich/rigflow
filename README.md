@@ -77,6 +77,9 @@ RigFlow kann auf **mehreren Wegen verwendet werden**.
 
 ---
 
+## Dokumentation
+Eine ausführliche Dokumentation unter: https://rigflow-docs.vercel.app/
+
 ## Features
 
 | Feature | Beschreibung |
@@ -107,6 +110,7 @@ RigFlow kann auf **mehreren Wegen verwendet werden**.
 - **PWA:** vite-plugin-pwa · Service Worker
 
 ---
+
 
 ## Lokale Entwicklung
 
