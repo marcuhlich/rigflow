@@ -1,3 +1,5 @@
+// apps/docs/src/content/registry.ts
+
 // Simple browser-compatible frontmatter parser
 function parseFrontmatter(raw: string): { data: Record<string, string>; content: string } {
   const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
@@ -16,12 +18,7 @@ function parseFrontmatter(raw: string): { data: Record<string, string>; content:
   return { data, content };
 }
 
-// Import all markdown files
-import gettingStartedMd from "/content/docs/getting-started.md?raw";
-import inventoryOverviewMd from "/content/docs/inventory/overview.md?raw";
-import qrScanningMd from "/content/docs/inventory/qr-scanning.md?raw";
-import apiReferenceMd from "/content/docs/api/reference.md?raw";
-
+// Types
 export interface DocPage {
   slug: string;
   title: string;
@@ -36,33 +33,47 @@ export interface DocCategory {
   pages: DocPage[];
 }
 
-function parseDoc(raw: string, slug: string, category?: string): DocPage {
-  const { data, content } = parseFrontmatter(raw);
-  return {
-    slug,
-    title: data.title || slug,
-    description: data.description || "",
-    content,
-    category,
-  };
+// Fetch a single Markdown file
+export async function getDocBySlug(slug: string): Promise<DocPage | undefined> {
+  try {
+    const res = await fetch(`/content/docs/${slug}.md`);
+    if (!res.ok) return undefined;
+    const raw = await res.text();
+    const { data, content } = parseFrontmatter(raw);
+    return {
+      slug,
+      title: data.title || slug,
+      description: data.description || "",
+      content,
+      category: data.category,
+    };
+  } catch {
+    return undefined;
+  }
 }
 
-const allDocs: DocPage[] = [
-  parseDoc(gettingStartedMd, "getting-started"),
-  parseDoc(inventoryOverviewMd, "inventory/overview", "Inventar"),
-  parseDoc(qrScanningMd, "inventory/qr-scanning", "Inventar"),
-  parseDoc(apiReferenceMd, "api/reference", "API"),
+// Optional: List of all Markdown files you want to expose
+// z.B. ["getting-started", "inventory/overview", "inventory/qr-scanning", "api/reference"]
+export const allSlugs = [
+  "getting-started",
+  "inventory/overview",
+  "inventory/qr-scanning",
+  "api/reference",
 ];
 
-export function getAllDocs(): DocPage[] {
-  return allDocs;
+// Fetch all docs dynamically
+export async function getAllDocs(): Promise<DocPage[]> {
+  const docs: DocPage[] = [];
+  for (const slug of allSlugs) {
+    const doc = await getDocBySlug(slug);
+    if (doc) docs.push(doc);
+  }
+  return docs;
 }
 
-export function getDocBySlug(slug: string): DocPage | undefined {
-  return allDocs.find((doc) => doc.slug === slug);
-}
-
-export function getDocCategories(): DocCategory[] {
+// Generate categories dynamically
+export async function getDocCategories(): Promise<DocCategory[]> {
+  const allDocs = await getAllDocs();
   const categoryMap = new Map<string, DocPage[]>();
   const uncategorized: DocPage[] = [];
 
