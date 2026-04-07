@@ -4,21 +4,30 @@ import {
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
-  NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
-import { getDocCategories } from "@/content/registry";
-import { Workflow, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { getDocCategories, DocCategory } from "@/content/registry";
+import { Workflow, Menu } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { DocsSidebar } from "@/components/DocsSidebar";
 
 export function TopNav() {
   const location = useLocation();
-  const categories = getDocCategories();
+  const [categories, setCategories] = useState<DocCategory[]>([]);
+
   const isHome = location.pathname === "/";
   const isDocs = location.pathname.startsWith("/docs");
+
+  useEffect(() => {
+    async function loadCategories() {
+      const cats = await getDocCategories(); // auf Promise warten
+      setCategories(Array.isArray(cats) ? cats : []);
+      console.log("Loaded categories:", cats); // jetzt echte Daten
+    }
+    loadCategories();
+  }, []);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass">
@@ -40,16 +49,24 @@ export function TopNav() {
           <NavigationMenuList>
             <NavigationMenuItem>
               <Link to="/">
-                <NavigationMenuLink
+                <NavigationMenuTrigger
                   className={cn(
                     "inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors",
-                    isHome
-                      ? "text-primary"
-                      : "text-muted-foreground hover:text-foreground"
+                    isHome ? "text-primary" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   Home
-                </NavigationMenuLink>
+                  <NavigationMenuContent>
+                    <div className="p-4 w-[300px]">
+                      <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                        Willkommen bei RigFlow
+                      </h4>
+                      <p className="text-sm text-foreground">
+                        Entdecke die Dokumentation für RigFlow, dein Tool zur Verwaltung von Event-Equipment.
+                      </p>
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuTrigger>
               </Link>
             </NavigationMenuItem>
 
@@ -65,20 +82,16 @@ export function TopNav() {
               <NavigationMenuContent>
                 <div className="grid gap-1 p-4 w-[320px]">
                   {categories.map((cat) =>
-                    cat.pages.map((page) => (
+                    Array.isArray(cat.pages) ? cat.pages.map((page) => (
                       <Link
                         key={page.slug}
                         to={`/docs/${page.slug}`}
                         className="block rounded-md p-3 hover:bg-muted/50 transition-colors"
                       >
-                        <div className="text-sm font-medium text-foreground">
-                          {page.title}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          {page.description}
-                        </div>
+                        <div className="text-sm font-medium text-foreground">{page.title}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{page.description}</div>
                       </Link>
-                    ))
+                    )) : null
                   )}
                 </div>
               </NavigationMenuContent>

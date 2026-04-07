@@ -1,15 +1,21 @@
 import { useParams } from "react-router-dom";
-import { getDocBySlug } from "@/content/registry";
+import { getDocBySlug, DocPage } from "@/content/registry";
 import { DocsSidebar } from "@/components/DocsSidebar";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { TableOfContents } from "@/components/TableOfContents";
 import { TopNav } from "@/components/TopNav";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 export default function DocsPage() {
   const params = useParams();
   const slug = params["*"] || "getting-started";
-  const doc = getDocBySlug(slug);
+
+  const [doc, setDoc] = useState<DocPage | undefined>(undefined);
+
+  useEffect(() => {
+    getDocBySlug(slug).then((res) => setDoc(res as DocPage));
+  }, [slug]);
 
   if (!doc) {
     return (
@@ -18,7 +24,7 @@ export default function DocsPage() {
         <div className="pt-20 md:pt-24 container mx-auto px-4 md:px-6 text-center">
           <h1 className="text-2xl font-bold text-foreground">Seite nicht gefunden</h1>
           <p className="text-muted-foreground mt-2">
-            Die angeforderte Dokumentation existiert nicht.
+            Die angeforderte Dokumentation existiert nicht oder wird geladen.
           </p>
         </div>
       </div>
@@ -51,17 +57,17 @@ export default function DocsPage() {
 
               {/* Mobile TOC */}
               <div className="lg:hidden mb-6 glass-subtle rounded-lg p-4">
-                <TableOfContents content={doc.content} />
+                <TableOfContents content={doc?.content || ""} />
               </div>
 
-              <MarkdownRenderer content={doc.content} />
+              <MarkdownRenderer content={doc?.content || ""} />
             </div>
           </motion.main>
 
           {/* Desktop TOC */}
           <aside className="hidden lg:block w-48 shrink-0 sticky top-24 h-fit">
             <div className="glass-subtle rounded-lg p-4">
-              <TableOfContents content={doc.content} />
+              <TableOfContents content={doc.content || ""} />
             </div>
           </aside>
         </div>
