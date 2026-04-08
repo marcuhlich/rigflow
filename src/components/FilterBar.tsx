@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Filter, X, MapPin, SlidersHorizontal, CheckCircle, Check } from "lucide-react";
+import { Search, Filter, X, MapPin, SlidersHorizontal, CheckCircle, Check, Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,8 +31,11 @@ interface FilterBarProps {
   locationFilter?: string;
   onLocationChange?: (value: string) => void;
   locations?: string[];
-  categories?: string[];
+  categories?: { id: string; name: string }[];
   onClearFilters: () => void;
+  availableTags?: string[];
+  tagFilter?: string;
+  onTagChange?: (tag: string) => void;
 }
 
 export function FilterBar({
@@ -48,6 +51,9 @@ export function FilterBar({
   locations = [],
   categories = [],
   onClearFilters,
+  availableTags = [],
+  tagFilter = 'all',
+  onTagChange,
 }: FilterBarProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [snapRatio, setSnapRatio] = useState(0);
@@ -58,12 +64,14 @@ export function FilterBar({
     searchQuery ||
     categoryFilter !== "all" ||
     conditionFilter !== "all" ||
-    locationFilter !== "all";
+    locationFilter !== "all" ||
+    tagFilter !== 'all';
 
   const activeFilterCount = [
     categoryFilter !== "all",
     conditionFilter !== "all",
     locationFilter !== "all",
+    tagFilter !== 'all'
   ].filter(Boolean).length;
 
   // ── Chip row helper ───────────────────────────────────────────────────────
@@ -116,7 +124,7 @@ export function FilterBar({
   if (isMobile) {
     const categoryOptions = [
       { value: "all" as const, label: "Alle" },
-      ...categories.map((c) => ({ value: c as ItemCategory | "all", label: c })),
+      ...categories.map((c) => ({ value: c.id as ItemCategory | "all", label: c.name })),
     ];
     const conditionOptions = [
       { value: "all" as const, label: "Alle" },
@@ -244,6 +252,18 @@ export function FilterBar({
                   onChange={onLocationChange as (v: string | "all") => void}
                 />
               )}
+              {onTagChange && availableTags.length > 0 && (
+              <ChipGroup
+                label="Tags"
+                icon={<Tag className="h-3 w-3" />}
+                options={[
+                  { value: 'all' as const, label: 'Alle' },
+                  ...availableTags.map(t => ({ value: t as string | 'all', label: t })),
+                ]}
+                value={tagFilter ?? 'all'}
+                onChange={onTagChange as (v: string | 'all') => void}
+              />
+            )}
             </div>
 
             <DrawerFooter className="flex-row gap-2 pt-4 pb-10">
@@ -278,7 +298,7 @@ export function FilterBar({
     );
   }
 
-  // ── Desktop layout (unchanged) ────────────────────────────────────────────
+  // ── Desktop layout  ────────────────────────────────────────────────────
   return (
     <div className="glass-card p-4">
       <div className="flex flex-col lg:flex-row gap-4">
@@ -306,16 +326,16 @@ export function FilterBar({
             <SelectTrigger className="flex-1 min-w-0 sm:flex-none sm:w-[160px] glass-input">
               <Filter className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" />
               <span className="truncate">
-                {categoryFilter === "all" ? "Kategorie" : categoryFilter}
+                {categoryFilter === "all"
+                  ? "Kategorie"
+                  : categories.find(c => c.id === categoryFilter)?.name ?? categoryFilter}
               </span>
             </SelectTrigger>
             <SelectContent className="glass-card border-border/50">
               <SelectItem value="all">Alle Kategorien</SelectItem>
               {categories.map((cat) => (
-                <SelectItem key={cat} value={cat}>
-                  {cat}
-                </SelectItem>
-              ))}
+              <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+            ))}
             </SelectContent>
           </Select>
 
@@ -354,6 +374,21 @@ export function FilterBar({
                   <SelectItem key={loc} value={loc}>
                     {loc}
                   </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {onTagChange && availableTags.length > 0 && (
+            <Select value={tagFilter} onValueChange={onTagChange}>
+              <SelectTrigger className="flex-1 min-w-0 sm:flex-none sm:w-[140px] glass-input">
+                <Tag className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" />
+                <span className="truncate">{tagFilter === 'all' ? 'Tags' : tagFilter}</span>
+              </SelectTrigger>
+              <SelectContent className="glass-card border-border/50">
+                <SelectItem value="all">Alle Tags</SelectItem>
+                {availableTags.map(tag => (
+                  <SelectItem key={tag} value={tag}>{tag}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

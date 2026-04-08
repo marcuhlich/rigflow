@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { History, ChevronDown, ChevronUp, Package, Trash2, Edit, Layers, RefreshCw } from "lucide-react";
+import { History, ChevronDown, ChevronUp, Package, Trash2, Edit, Layers, RefreshCw, Delete, RotateCcw } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,6 +23,9 @@ const ACTION_ICONS: Record<string, React.ReactNode> = {
   delete: <Trash2 className="h-3.5 w-3.5 text-destructive" />,
   batch_update: <Layers className="h-3.5 w-3.5 text-blue-500" />,
   batch_delete: <Layers className="h-3.5 w-3.5 text-destructive" />,
+  restore: <RotateCcw className="h-3.5 w-3.5 text-green-500" />,
+  soft_delete: <Trash2 className="h-3.5 w-3.5 text-destructive" />,
+  permanent_delete: <Delete className="h-3.5 w-3.5 text-destructive" />,
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -31,6 +34,9 @@ const ACTION_LABELS: Record<string, string> = {
   delete: "Gelöscht",
   batch_update: "Batch-Update",
   batch_delete: "Batch-Löschen",
+  restore: "Wiederhergestellt",
+  soft_delete: "In Papierkorb verschoben",
+  permanent_delete: "Endgültig gelöscht",
 };
 
 const FIELD_LABELS: Record<string, string> = {
@@ -59,6 +65,9 @@ const FIELD_LABELS: Record<string, string> = {
   notes: "Notizen",
   created_at: "Erstellt am",
   updated_at: "Aktualisiert am",
+  lent_to: "Ausgeliehen an",
+  lent_until: "Ausgeliehen bis",
+  attributes: "Attribute",
 };
 
 function formatFieldName(fieldName: string): string {

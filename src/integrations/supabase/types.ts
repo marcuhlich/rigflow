@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.4"
   }
   public: {
     Tables: {
@@ -41,6 +41,33 @@ export type Database = {
           item_id?: string | null
           item_name?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      categories: {
+        Row: {
+          color: string
+          icon: string
+          id: string
+          is_dmx_capable: boolean
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          color?: string
+          icon?: string
+          id: string
+          is_dmx_capable?: boolean
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          color?: string
+          icon?: string
+          id?: string
+          is_dmx_capable?: boolean
+          name?: string
+          sort_order?: number
         }
         Relationships: []
       }
@@ -231,9 +258,11 @@ export type Database = {
       inventory_items: {
         Row: {
           accessories: string | null
+          attributes: Json | null
           category: string
           condition: Database["public"]["Enums"]["item_condition"]
           created_at: string
+          deleted_at: string | null
           dmx_channels: number | null
           dmx_start_address: number | null
           dmx_universe: number | null
@@ -248,13 +277,14 @@ export type Database = {
           unit_price: number | null
           updated_at: string
           user_id: string
-          deleted_at?: string | null
         }
         Insert: {
           accessories?: string | null
+          attributes?: Json | null
           category: string
           condition?: Database["public"]["Enums"]["item_condition"]
           created_at?: string
+          deleted_at?: string | null
           dmx_channels?: number | null
           dmx_start_address?: number | null
           dmx_universe?: number | null
@@ -269,13 +299,14 @@ export type Database = {
           unit_price?: number | null
           updated_at?: string
           user_id: string
-          deleted_at?: string | null
         }
         Update: {
           accessories?: string | null
+          attributes?: Json | null
           category?: string
           condition?: Database["public"]["Enums"]["item_condition"]
           created_at?: string
+          deleted_at?: string | null
           dmx_channels?: number | null
           dmx_start_address?: number | null
           dmx_universe?: number | null
@@ -290,9 +321,38 @@ export type Database = {
           unit_price?: number | null
           updated_at?: string
           user_id?: string
-          deleted_at?: string | null
         }
         Relationships: []
+      }
+      item_tags: {
+        Row: {
+          item_id: string
+          tag_id: string
+        }
+        Insert: {
+          item_id: string
+          tag_id: string
+        }
+        Update: {
+          item_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_tags_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lending_history: {
         Row: {
@@ -341,6 +401,30 @@ export type Database = {
           },
         ]
       }
+      mfa_recovery_codes: {
+        Row: {
+          code_hash: string
+          created_at: string
+          id: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          id?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          id?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -365,29 +449,23 @@ export type Database = {
         }
         Relationships: []
       }
-      user_categories: {
+      tags: {
         Row: {
           created_at: string
           id: string
-          is_dmx_capable: boolean
           name: string
-          sort_order: number
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          is_dmx_capable?: boolean
           name: string
-          sort_order?: number
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          is_dmx_capable?: boolean
           name?: string
-          sort_order?: number
           user_id?: string
         }
         Relationships: []
@@ -400,13 +478,6 @@ export type Database = {
       is_demo_user: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      item_category:
-        | "Kabel"
-        | "Lautsprecher"
-        | "Lichttechnik"
-        | "Mikrofone"
-        | "Zubehör"
-        | "Effektgeräte"
       item_condition: "verfügbar" | "verliehen" | "in-einsatz" | "defekt"
     }
     CompositeTypes: {
@@ -535,14 +606,6 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      item_category: [
-        "Kabel",
-        "Lautsprecher",
-        "Lichttechnik",
-        "Mikrofone",
-        "Zubehör",
-        "Effektgeräte",
-      ],
       item_condition: ["verfügbar", "verliehen", "in-einsatz", "defekt"],
     },
   },

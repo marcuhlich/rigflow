@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
+import { useCategories } from '@/hooks/useCategories';
 
 function CopyIdButton({ id }: { id: string }) {
   const [copied, setCopied] = useState(false);
@@ -49,6 +50,7 @@ export default function ItemDetail() {
   const { items, updateItem, deleteItem } = useInventory();
   const { addRecord } = useLendingHistory();
   const { getItemHistory } = useLendingHistory();
+  const { categories } = useCategories();
   
   const [item, setItem] = useState<InventoryItem | null>(null);
   const [isQROpen, setIsQROpen] = useState(false);
@@ -191,11 +193,28 @@ export default function ItemDetail() {
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <h1 className="text-3xl font-bold">{item.name}</h1>
-                <div className="flex items-center gap-3 mt-3">
-                  <Badge variant="outline">{item.category}</Badge>
-                  <StatusBadge condition={item.condition} />
+                <div className="mt-3 space-y-3">
+                  {/* Kategorie + Status */}
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline">{item.category}</Badge>
+                    <StatusBadge condition={item.condition} />
+                  </div>
+
+                  {/* Tags */}
+                  {item.tags && item.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {item.tags.map(tag => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/15 text-primary border border-primary/25"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
+                </div>
             </div>
             {item.image_url && (
               <img
@@ -205,6 +224,27 @@ export default function ItemDetail() {
               />
             )}
           </Card>
+
+          {/* Eigenschaften */}
+          {item.attributes && Object.keys(item.attributes).length > 0 && (
+            <Card className="p-6">
+              <h2 className="text-lg font-semibold mb-4">Eigenschaften</h2>
+              <div className="grid gap-3 md:grid-cols-2">
+                {Object.entries(item.attributes).map(([key, value]) => (
+                  <div key={key}>
+                    <label className="text-sm font-medium text-muted-foreground capitalize">
+                      {key.replace(/_/g, ' ')}
+                    </label>
+                    <p className="text-sm mt-1">
+                      {typeof value === 'boolean'
+                        ? (value ? 'Ja' : 'Nein')
+                        : String(value)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
 
           {/* Details Card */}
           <Card className="p-6">
@@ -425,6 +465,7 @@ export default function ItemDetail() {
         onClose={() => setIsEditOpen(false)}
         onSubmit={handleEditSubmit}
         editItem={item}
+        categories={categories}
       />
     </div>
   );
