@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { InventoryContextMenu } from "@/components/InventoryContextMenu";
 import { EventSetWithItems } from "@/types/eventSet";
 import { hapticFeedback } from "@/lib/utils";
+import { hapticStop, hapticLongPress } from "@/lib/utils";
 
 const LONG_PRESS_MS = 1000;
 
@@ -63,6 +64,7 @@ export const InventoryGrid = React.memo(function InventoryGrid({
     animTimer.current = null;
     pressStartPos.current = null;
     setPressingId(null);
+    hapticStop(); // ← laufendes Muster sofort abbrechen
   };
 
   const handlePointerDown = (e: React.PointerEvent, item: InventoryItem) => {
@@ -76,6 +78,8 @@ export const InventoryGrid = React.memo(function InventoryGrid({
 
     didLongPress.current = false;
     pressStartPos.current = { x: e.clientX, y: e.clientY };
+
+    hapticLongPress(LONG_PRESS_MS);
 
     animTimer.current = setTimeout(() => setPressingId(item.id), 250);
 

@@ -6,7 +6,15 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function hapticFeedback(pattern: number | number[] = 50) {
-  if ('vibrate' in navigator) {
-    navigator.vibrate(pattern);
-  }
+  navigator.vibrate?.(pattern);
+}
+
+export function hapticStop() {
+  navigator.vibrate?.(0);
+}
+
+// Registriert das komplette Long-Press-Muster auf einen Schlag:
+// [StartBuzz, Stille, AbschlussBuzz]
+export function hapticLongPress(durationMs: number) {
+  navigator.vibrate?.([12, durationMs - 30, 60]);
 }
