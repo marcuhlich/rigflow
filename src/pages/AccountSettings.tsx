@@ -144,7 +144,7 @@ const handleDeleteAccount = async () => {
       </div>
 
       {/* ── Nav Menu Items ── */}
-      <Card className="glass-card overflow-hidden p-0">
+      <Card className="glass-card overflow-hidden p-0 lg:hidden">
         {[
           { icon: Settings, label: "Kontoinformationen", to: "/settings/account-info" },
           { icon: Bell, label: "Benachrichtigungen", to: "/settings/notifications" },
@@ -204,7 +204,7 @@ const handleDeleteAccount = async () => {
       </Card>
 
       {/* ── Support & Legal ── */}
-      <Card className="glass-card overflow-hidden p-0">
+      <Card className="glass-card overflow-hidden p-0 lg:hidden">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 pt-3 pb-1">
           Support & Rechtliches
         </p>
@@ -255,7 +255,7 @@ const handleDeleteAccount = async () => {
       </Card>
 
       {/* ── Abmelden ── */}
-      <Card className="glass-card overflow-hidden p-0">
+      <Card className="glass-card overflow-hidden p-0 lg:hidden">
         <button
           onClick={handleLogout}
           disabled={isLoggingOut}

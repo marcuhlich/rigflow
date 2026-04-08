@@ -433,7 +433,7 @@ const AccountInfo = () => {
   return (
     <div className="min-h-screen">
       {/* ── Sticky Header ── */}
-        <div className="fixed top-12 lg:top-14 left-0 right-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/40">
+        <div className="fixed top-12 lg:top-14 left-0 right-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/40 lg:hidden">
         <div className="px-3 sm:px-4 lg:px-8 h-11 flex items-center justify-center relative">
             <Link
             to="/settings"
@@ -446,7 +446,7 @@ const AccountInfo = () => {
         </div>
         </div>
 
-        <div className="h-11 mb-2" />
+        <div className="h-11 mb-2 lg:hidden" />
 
       <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
 

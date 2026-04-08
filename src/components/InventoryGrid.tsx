@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Pencil, Trash2, MapPin, User, Package, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,6 +10,9 @@ import { de } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { InventoryContextMenu } from "@/components/InventoryContextMenu";
 import { EventSetWithItems } from "@/types/eventSet";
+import { hapticFeedback } from "@/lib/utils";
+
+const LONG_PRESS_MS = 1000;
 
 interface InventoryGridProps {
   items: InventoryItem[];
@@ -24,6 +27,7 @@ interface InventoryGridProps {
   eventSets: EventSetWithItems[];
   onAddToSet: (setId: string, itemId: string, quantity: number) => Promise<void>;
   onFilterCategory: (category: string) => void;
+  onEnterSelectionMode?: (firstItemId: string) => void;
 }
 
 export const InventoryGrid = React.memo(function InventoryGrid({
@@ -39,9 +43,64 @@ export const InventoryGrid = React.memo(function InventoryGrid({
   eventSets,
   onAddToSet,
   onFilterCategory,
+  onEnterSelectionMode,
 }: InventoryGridProps) {
   const [qrItemId, setQrItemId] = useState<string | null>(null);
+  const [pressingId, setPressingId] = useState<string | null>(null);
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const animTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pressStartPos = useRef<{ x: number; y: number } | null>(null);
+  const didLongPress = useRef(false);
+  const pressPosRef = useRef<{ x: number; y: number } | null>(null);
+  const [completingId, setCompletingId] = useState<string | null>(null);
+
   const qrItem = items.find((i) => i.id === qrItemId);
+
+  const cancelPress = () => {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    if (animTimer.current) clearTimeout(animTimer.current);
+    pressTimer.current = null;
+    animTimer.current = null;
+    pressStartPos.current = null;
+    setPressingId(null);
+  };
+
+  const handlePointerDown = (e: React.PointerEvent, item: InventoryItem) => {
+    if (selectionMode) return;
+    if (e.pointerType === "mouse") return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+
+    // Position relativ zur Karte speichern für den Ripple-Ursprung
+    const rect = e.currentTarget.getBoundingClientRect();
+    pressPosRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+
+    didLongPress.current = false;
+    pressStartPos.current = { x: e.clientX, y: e.clientY };
+
+    animTimer.current = setTimeout(() => setPressingId(item.id), 250);
+
+    pressTimer.current = setTimeout(() => {
+      didLongPress.current = true;
+      hapticFeedback(80);
+      setPressingId(null);
+      setCompletingId(item.id); // Bounce-Animation starten
+      setTimeout(() => {
+        setCompletingId(null);
+        onEnterSelectionMode?.(item.id);
+      }, 300); // Dauer der Bounce-Animation
+    }, LONG_PRESS_MS);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!pressStartPos.current) return;
+    const dx = Math.abs(e.clientX - pressStartPos.current.x);
+    const dy = Math.abs(e.clientY - pressStartPos.current.y);
+    // Mehr als 8px bewegt → kein Long Press
+    if (dx > 8 || dy > 8) cancelPress();
+  };
+
+  const handlePointerUp = () => cancelPress();
+  const handlePointerLeave = () => cancelPress();
 
   if (items.length === 0) {
     return (
@@ -66,10 +125,9 @@ export const InventoryGrid = React.memo(function InventoryGrid({
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {items.map((item) => {
           const isSelected = selectedIds.has(item.id);
+          const isPressing = pressingId === item.id;
+          const isCompleting = completingId === item.id;
 
-          // FIX: InventoryContextMenu wraps the card div as children so the
-          // ContextMenuTrigger inside actually has an element to attach to.
-          // The key prop moves up to the outermost element.
           return (
             <InventoryContextMenu
               key={item.id}
@@ -82,11 +140,65 @@ export const InventoryGrid = React.memo(function InventoryGrid({
             >
               <div
                 className={cn(
-                  "glass-card group relative flex flex-col overflow-hidden",
-                  "transition-shadow duration-200 hover:shadow-lg hover:shadow-black/20",
-                  isSelected && "ring-2 ring-primary bg-primary/5"
+                  "glass-card group relative flex flex-col overflow-hidden select-none",
+                  isSelected && "ring-2 ring-primary bg-primary/5",
                 )}
+
+                // Im style:
+                style={{
+                  transform: isPressing
+                    ? "translateY(-12px) scale(1.04)"
+                    : isCompleting
+                    ? undefined // handled by animation
+                    : "translateY(0) scale(1)",
+                  boxShadow: isPressing
+                    ? "0 24px 60px rgba(0,0,0,0.35), 0 0 40px hsl(var(--primary) / 0.35)"
+                    : isCompleting
+                    ? undefined
+                    : undefined,
+                  transition: isPressing
+                    ? `transform 300ms cubic-bezier(0.2, 0, 0, 1), box-shadow 300ms ease`
+                    : "transform 150ms ease, box-shadow 200ms ease",
+                  animation: isCompleting
+                    ? "longpress-bounce 450ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards"
+                    : undefined,
+                  zIndex: isPressing || isCompleting ? 10 : undefined,
+                  position: "relative",
+                }}
+                onPointerDown={(e) => handlePointerDown(e, item)}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerLeave={handlePointerLeave}
+                onPointerCancel={handlePointerLeave}
               >
+                {/* Pulse-Ring: wächst von innen nach außen während des Haltens */}
+                {isPressing && pressPosRef.current && (
+                  <>
+                    {/* Ripple vom Fingerpunkt */}
+                    <span
+                      className="pointer-events-none absolute z-20 rounded-full"
+                      style={{
+                        left: pressPosRef.current.x,
+                        top: pressPosRef.current.y,
+                        width: 0,
+                        height: 0,
+                        transform: "translate(-50%, -50%)",
+                        background: "radial-gradient(circle, hsl(var(--primary) / 0.5) 0%, hsl(var(--primary) / 0) 70%)",
+                        animation: `longpress-ripple ${LONG_PRESS_MS - 100}ms ease-out forwards`,
+                      }}
+                    />
+                    {/* Sanfter Glow über die ganze Karte */}
+                    <span
+                      className="pointer-events-none absolute inset-0 rounded-[inherit] z-10"
+                      style={{
+                        background: "radial-gradient(circle at 50% 50%, hsl(var(--primary) / 0.12) 0%, transparent 75%)",
+                        animation: `longpress-glow ${LONG_PRESS_MS - 100}ms ease-out forwards`,
+                        opacity: 0,
+                      }}
+                    />
+                  </>
+                )}
+
                 {selectionMode && (
                   <div className="absolute top-2.5 left-2.5 z-20">
                     <Checkbox
@@ -142,11 +254,13 @@ export const InventoryGrid = React.memo(function InventoryGrid({
                     "flex flex-col flex-1 p-3 sm:p-4 cursor-pointer",
                     !selectionMode && "sm:pb-9"
                   )}
-                  onClick={() =>
+                  onClick={() => {
+                    cancelPress(); // ← Safety-Net: Animation auf jeden Fall stoppen
+                    if (didLongPress.current) { didLongPress.current = false; return; }
                     selectionMode
                       ? onToggleSelection?.(item.id)
-                      : onViewDetails?.(item.id)
-                  }
+                      : onViewDetails?.(item.id);
+                  }}
                 >
                   {item.image_url && (
                     <img

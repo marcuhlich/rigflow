@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Command,
   CommandDialog,
   CommandEmpty,
   CommandGroup,
@@ -14,16 +13,12 @@ import {
   Home,
   Package,
   Calendar,
-  Sliders,
   Moon,
   Sun,
-  HelpCircle,
   MessageSquare,
   FileText,
   Plus,
   LogOut,
-  Settings,
-  Zap,
   Clock,
   Search,
   QrCode,

@@ -1,6 +1,6 @@
-import { Outlet } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import DemoUserInfo from "@/components/DemoUserInfo";
+import SettingsLayout from "@/components/layout/SettingsLayout";
 
 export default function SettingsGuard() {
   const { user } = useAuth();
@@ -14,5 +14,5 @@ export default function SettingsGuard() {
     );
   }
 
-  return <Outlet />;
+  return <SettingsLayout />;
 }

@@ -499,6 +499,10 @@ export default function Inventory() {
           eventSets={sets}
           onAddToSet={addItemToSet}
           onFilterCategory={(cat) => setCategoryFilter(cat)}
+          onEnterSelectionMode={(firstId) => {
+            setSelectionMode(true);
+            toggleSelection(firstId);
+          }}
         />
       ) : (
         <InventoryTable
