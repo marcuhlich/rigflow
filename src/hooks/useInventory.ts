@@ -184,7 +184,7 @@ export function useInventory() {
   }, [notifyOffline, notifyOnline]);
 
   const locations = useMemo(() => {
-    return [...new Set(items.map(item => item.location))].sort();
+    return [...new Set(items.map(item => item.location))].filter(Boolean).sort();
   }, [items]);
 
   const filteredItems = useMemo(() => {

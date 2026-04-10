@@ -239,7 +239,7 @@ export function InventoryContextMenu({
     }
   };
 
-  const handleShowHistory = () => navigate(`/item/${item.id}`);
+  const handleShowHistory = () => navigate(`/inventory/${item.id}?tab=wartung`);
 
   const recentSets = (eventSets || []).slice(0, 5);
 

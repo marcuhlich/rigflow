@@ -223,6 +223,43 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
     }
   };
 
+  // ── DMX-Instanz-State (nur beim Bearbeiten) ───────────────────────────────
+  type InstanceEdit = { instanceNumber: number; address: string; universe: string };
+  const [instanceEdits, setInstanceEdits] = useState<InstanceEdit[]>([]);
+
+  // Instanzen laden wenn DMX-Item geöffnet wird
+  useEffect(() => {
+    if (!isOpen || !editItem || !editItem.dmx_channels) {
+      setInstanceEdits([]);
+      return;
+    }
+    const qty = editItem.quantity;
+    if (qty <= 1) { setInstanceEdits([]); return; }
+
+    supabase
+      .from('dmx_instances')
+      .select('*')
+      .eq('item_id', editItem.id)
+      .then(({ data }) => {
+        const configs = new Map((data ?? []).map(d => [d.instance_number, d]));
+        const baseAddr = editItem.dmx_start_address ?? 1;
+        const baseCh   = editItem.dmx_channels ?? 1;
+        const baseUni  = editItem.dmx_universe ?? 1;
+
+        setInstanceEdits(
+          Array.from({ length: qty }, (_, i) => {
+            const n = i + 1;
+            const cfg = configs.get(n);
+            return {
+              instanceNumber: n,
+              address:  cfg ? String(cfg.dmx_start_address) : String(baseAddr + i * baseCh),
+              universe: cfg ? String(cfg.dmx_universe)      : String(baseUni),
+            };
+          })
+        );
+      });
+  }, [isOpen, editItem]);
+
   // ── Submit ────────────────────────────────────────────────────────────────
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -295,6 +332,19 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
         tags:              formData.tags,
         deleted_at:        null,
       });
+      if (editItem && instanceEdits.length > 0) {
+        for (const inst of instanceEdits) {
+          const addr = parseInt(inst.address);
+          const uni  = parseInt(inst.universe);
+          if (isNaN(addr) || isNaN(uni)) continue;
+          await supabase
+            .from('dmx_instances')
+            .upsert(
+              { item_id: editItem.id, instance_number: inst.instanceNumber, dmx_start_address: addr, dmx_universe: uni },
+              { onConflict: 'item_id,instance_number' }
+            );
+        }
+      }
       hapticFeedback(50);
       onClose();
     } catch {
@@ -467,28 +517,48 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
               </div>
             </div>
 
-            {/* ── DMX-Felder (nur Licht) ── */}
+            {/* ── DMX-Felder ── */}
             <div
               className="overflow-hidden transition-all duration-300"
-              style={{ maxHeight: showDMX ? '200px' : '0px', opacity: showDMX ? 1 : 0 }}
+              style={{ maxHeight: showDMX ? '600px' : '0px', opacity: showDMX ? 1 : 0 }}
             >
               <div className="space-y-3 p-4 rounded-xl bg-primary/10 border border-primary/20">
                 <Label className="text-sm font-medium text-primary">DMX-Konfiguration</Label>
-                <div className="grid grid-cols-3 gap-3">
+
+                {/* Basis-Felder (immer sichtbar) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {[
                     { id: 'dmx_universe',      label: 'Universum',    key: 'dmx_universe',      ph: '1',  max: undefined, errKey: 'dmx_universe' },
                     { id: 'dmx_start_address', label: 'Startadresse', key: 'dmx_start_address', ph: '1',  max: 512,       errKey: 'dmx_start_address' },
                     { id: 'dmx_channels',      label: 'Kanäle',       key: 'dmx_channels',      ph: '16', max: undefined, errKey: 'dmx_channels' },
                   ].map(field => (
-                    <div key={field.id} className="space-y-2">
-                      <Label htmlFor={field.id}>{field.label}</Label>
+                    <div key={field.id} className="space-y-1.5">
+                      <Label htmlFor={field.id} className="text-xs text-muted-foreground">
+                        {field.label}
+                        {field.key === 'dmx_start_address' && instanceEdits.length > 0 && (
+                          <span className="ml-1 text-primary/60">(Instanz 1)</span>
+                        )}
+                      </Label>
                       <Input
                         id={field.id}
                         type="number"
                         min="1"
                         max={field.max}
                         value={(formData as any)[field.key]}
-                        onChange={e => setFormData(p => ({ ...p, [field.key]: e.target.value }))}
+                        onChange={e => {
+                          setFormData(p => ({ ...p, [field.key]: e.target.value }));
+                          // Basis-Felder → Instanz #1 mitziehen
+                          if (field.key === 'dmx_start_address' && instanceEdits.length > 0) {
+                            setInstanceEdits(prev => prev.map(inst =>
+                              inst.instanceNumber === 1 ? { ...inst, address: e.target.value } : inst
+                            ));
+                          }
+                          if (field.key === 'dmx_universe' && instanceEdits.length > 0) {
+                            setInstanceEdits(prev => prev.map(inst =>
+                              inst.instanceNumber === 1 ? { ...inst, universe: e.target.value } : inst
+                            ));
+                          }
+                        }}
                         placeholder={field.ph}
                         className={`glass-input ${errors[field.errKey] ? 'border-destructive' : ''}`}
                       />
@@ -498,6 +568,93 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
                     </div>
                   ))}
                 </div>
+
+                {/* Instanz-Liste (nur beim Bearbeiten mit qty > 1) */}
+                {instanceEdits.length > 1 && (
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center gap-2">
+                      <div className="h-px flex-1 bg-primary/20" />
+                      <span className="text-[10px] text-primary/60 font-medium uppercase tracking-wide">
+                        Alle Instanzen
+                      </span>
+                      <div className="h-px flex-1 bg-primary/20" />
+                    </div>
+
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {instanceEdits.map(inst => {
+                        const addr = parseInt(inst.address);
+                        const ch   = parseInt(formData.dmx_channels) || 0;
+                        const endAddr = !isNaN(addr) && ch > 0 ? addr + ch - 1 : null;
+                        const outOfRange = endAddr !== null && endAddr > 512;
+
+                        return (
+                          <div
+                            key={inst.instanceNumber}
+                            className="flex items-center gap-2 rounded-lg bg-primary/5 border border-primary/15 px-3 py-2"
+                          >
+                            {/* Instanz-Badge */}
+                            <span className="text-[10px] font-mono font-semibold text-primary/70 w-6 shrink-0">
+                              #{inst.instanceNumber}
+                            </span>
+
+                            {/* Universe */}
+                            <div className="flex items-center gap-1 shrink-0">
+                              <span className="text-[10px] text-muted-foreground hidden sm:inline">U</span>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={inst.universe}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setInstanceEdits(prev => prev.map(i =>
+                                    i.instanceNumber === inst.instanceNumber ? { ...i, universe: val } : i
+                                  ));
+                                  if (inst.instanceNumber === 1) {
+                                    setFormData(p => ({ ...p, dmx_universe: val }));
+                                  }
+                                }}
+                                className="glass-input h-8 w-14 text-center text-xs px-1 font-mono"
+                                placeholder="1"
+                              />
+                            </div>
+
+                            {/* Startadresse */}
+                            <div className="flex items-center gap-1 flex-1 min-w-0">
+                              <span className="text-[10px] text-muted-foreground hidden sm:inline shrink-0">CH</span>
+                              <Input
+                                type="number"
+                                min="1"
+                                max="512"
+                                value={inst.address}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setInstanceEdits(prev => prev.map(i =>
+                                    i.instanceNumber === inst.instanceNumber ? { ...i, address: val } : i
+                                  ));
+                                  if (inst.instanceNumber === 1) {
+                                    setFormData(p => ({ ...p, dmx_start_address: val }));
+                                  }
+                                }}
+                                className={`glass-input h-8 w-16 text-center text-xs px-1 font-mono ${outOfRange ? 'border-destructive' : ''}`}
+                                placeholder="1"
+                              />
+                            </div>
+
+                            {/* Endadresse */}
+                            <span className={`text-[10px] font-mono shrink-0 ${outOfRange ? 'text-destructive' : 'text-muted-foreground'}`}>
+                              → {endAddr !== null ? endAddr : '–'}
+                              {outOfRange && ' ⚠'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <p className="text-[10px] text-muted-foreground/60">
+                      Instanz #1 ist immer mit den Basis-Feldern oben synchronisiert
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 

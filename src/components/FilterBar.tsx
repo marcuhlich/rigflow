@@ -258,7 +258,7 @@ export function FilterBar({
                 icon={<Tag className="h-3 w-3" />}
                 options={[
                   { value: 'all' as const, label: 'Alle' },
-                  ...availableTags.map(t => ({ value: t as string | 'all', label: t })),
+                  ...availableTags.filter(t => t).map(t => ({ value: t as string | 'all', label: t })),
                 ]}
                 value={tagFilter ?? 'all'}
                 onChange={onTagChange as (v: string | 'all') => void}
@@ -333,9 +333,9 @@ export function FilterBar({
             </SelectTrigger>
             <SelectContent className="glass-card border-border/50">
               <SelectItem value="all">Alle Kategorien</SelectItem>
-              {categories.map((cat) => (
-              <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-            ))}
+              {categories.filter(cat => cat.id).map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -370,7 +370,7 @@ export function FilterBar({
               </SelectTrigger>
               <SelectContent className="glass-card border-border/50">
                 <SelectItem value="all">Alle Standorte</SelectItem>
-                {locations.map((loc) => (
+                {locations.filter(loc => loc).map((loc) => (
                   <SelectItem key={loc} value={loc}>
                     {loc}
                   </SelectItem>
@@ -387,7 +387,7 @@ export function FilterBar({
               </SelectTrigger>
               <SelectContent className="glass-card border-border/50">
                 <SelectItem value="all">Alle Tags</SelectItem>
-                {availableTags.map(tag => (
+                {availableTags.filter(tag => tag).map(tag => (
                   <SelectItem key={tag} value={tag}>{tag}</SelectItem>
                 ))}
               </SelectContent>
