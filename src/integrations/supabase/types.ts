@@ -271,6 +271,7 @@ export type Database = {
           lent_to: string | null
           lent_until: string | null
           location: string
+          maintenance_interval_days: number | null
           name: string
           notes: string | null
           quantity: number
@@ -293,6 +294,7 @@ export type Database = {
           lent_to?: string | null
           lent_until?: string | null
           location: string
+          maintenance_interval_days?: number | null
           name: string
           notes?: string | null
           quantity?: number
@@ -315,6 +317,7 @@ export type Database = {
           lent_to?: string | null
           lent_until?: string | null
           location?: string
+          maintenance_interval_days?: number | null
           name?: string
           notes?: string | null
           quantity?: number
@@ -401,6 +404,50 @@ export type Database = {
           },
         ]
       }
+      maintenance_records: {
+        Row: {
+          cost: number | null
+          created_at: string
+          id: string
+          image_url: string | null
+          item_id: string
+          notes: string | null
+          performed_at: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          cost?: number | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          item_id: string
+          notes?: string | null
+          performed_at?: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          cost?: number | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          item_id?: string
+          notes?: string | null
+          performed_at?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_records_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mfa_recovery_codes: {
         Row: {
           code_hash: string
@@ -425,6 +472,81 @@ export type Database = {
         }
         Relationships: []
       }
+      package_items: {
+        Row: {
+          created_at: string
+          id: string
+          inventory_item_id: string
+          package_id: string
+          position: number
+          quantity: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inventory_item_id: string
+          package_id: string
+          position?: number
+          quantity?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inventory_item_id?: string
+          package_id?: string
+          position?: number
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_items_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_items_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      packages: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          icon: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -444,6 +566,240 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      project_dmx_patches: {
+        Row: {
+          created_at: string
+          dmx_start_address: number
+          dmx_universe: number
+          id: string
+          instance_number: number
+          inventory_item_id: string
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dmx_start_address: number
+          dmx_universe?: number
+          id?: string
+          instance_number?: number
+          inventory_item_id: string
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dmx_start_address?: number
+          dmx_universe?: number
+          id?: string
+          instance_number?: number
+          inventory_item_id?: string
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_dmx_patches_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_dmx_patches_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_items: {
+        Row: {
+          condition: string | null
+          created_at: string
+          id: string
+          inventory_item_id: string
+          notes: string | null
+          package_instance_id: string | null
+          packed: boolean
+          project_id: string
+          quantity: number
+          source: string
+        }
+        Insert: {
+          condition?: string | null
+          created_at?: string
+          id?: string
+          inventory_item_id: string
+          notes?: string | null
+          package_instance_id?: string | null
+          packed?: boolean
+          project_id: string
+          quantity?: number
+          source?: string
+        }
+        Update: {
+          condition?: string | null
+          created_at?: string
+          id?: string
+          inventory_item_id?: string
+          notes?: string | null
+          package_instance_id?: string | null
+          packed?: boolean
+          project_id?: string
+          quantity?: number
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_items_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_items_package_instance_id_fkey"
+            columns: ["package_instance_id"]
+            isOneToOne: false
+            referencedRelation: "project_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_packages: {
+        Row: {
+          added_at: string
+          id: string
+          package_id: string
+          project_id: string
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          package_id: string
+          project_id: string
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          package_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_packages_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_packages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_todos: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          done: boolean
+          id: string
+          position: number
+          project_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          done?: boolean
+          id?: string
+          position?: number
+          project_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          done?: boolean
+          id?: string
+          position?: number
+          project_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_todos_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          event_date_end: string | null
+          event_date_start: string | null
+          id: string
+          is_favorite: boolean
+          location: string | null
+          name: string
+          notes: string | null
+          status: Database["public"]["Enums"]["project_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          event_date_end?: string | null
+          event_date_start?: string | null
+          id?: string
+          is_favorite?: boolean
+          location?: string | null
+          name: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          event_date_end?: string | null
+          event_date_start?: string | null
+          id?: string
+          is_favorite?: boolean
+          location?: string | null
+          name?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
           updated_at?: string
           user_id?: string
         }
@@ -479,6 +835,15 @@ export type Database = {
     }
     Enums: {
       item_condition: "verfügbar" | "verliehen" | "in-einsatz" | "defekt"
+      project_status:
+        | "draft"
+        | "planned"
+        | "packed"
+        | "transit"
+        | "live"
+        | "returning"
+        | "archived"
+        | "archived"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -607,6 +972,15 @@ export const Constants = {
   public: {
     Enums: {
       item_condition: ["verfügbar", "verliehen", "in-einsatz", "defekt"],
+      project_status: [
+        "draft",
+        "planned",
+        "packed",
+        "transit",
+        "live",
+        "returning",
+        "archived",
+      ],
     },
   },
 } as const

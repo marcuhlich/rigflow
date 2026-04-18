@@ -80,10 +80,6 @@ export default function NotificationTest() {
           Online
         </Button>
       </div>
-
-      <p className="text-xs text-muted-foreground text-center pt-4">
-        Diese Seite nach dem Testen löschen und Route aus App.tsx entfernen.
-      </p>
     </div>
   );
 }

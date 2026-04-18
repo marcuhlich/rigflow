@@ -4,7 +4,8 @@ import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import { useToast } from "@/hooks/use-toast";
 import { InventoryItem, ItemCondition, CONDITION_LABELS } from "@/types/inventory";
 import { QRCodeDisplay } from "@/components/QRCodeDisplay";
-import { EventSetWithItems } from "@/types/eventSet";
+import { useProjects } from "@/hooks/useProjects";
+import { supabase } from "@/integrations/supabase/client";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -27,7 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Activity,
-  CalendarPlus,
+  FolderKanban,
   Copy,
   Filter,
   History,
@@ -49,8 +50,6 @@ interface InventoryContextMenuProps {
   onAddItem: (
     item: Omit<InventoryItem, "id" | "user_id" | "created_at" | "updated_at">
   ) => Promise<void>;
-  eventSets: EventSetWithItems[];
-  onAddToSet: (setId: string, itemId: string, quantity: number) => Promise<void>;
   onFilterCategory: (category: string) => void;
 }
 
@@ -176,16 +175,60 @@ export function InventoryContextMenu({
   children,
   onUpdateItem,
   onAddItem,
-  eventSets,
-  onAddToSet,
   onFilterCategory,
 }: InventoryContextMenuProps) {
   const { isMobile } = useDeviceDetection();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [qrOpen, setQrOpen] = useState(false);
+  const { projects } = useProjects();
 
   if (isMobile) return <>{children}</>;
+
+  // Nur aktive (nicht archivierte) Projekte, max. 8
+  const activeProjects = projects
+    .filter(p => p.status !== ('archived' as any) && p.status !== 'draft')
+    .slice(0, 8);
+
+  const handleAddToProject = async (projectId: string, projectName: string) => {
+    try {
+      // Prüfen ob Item bereits im Projekt
+      const { data: existing } = await supabase
+        .from('project_items')
+        .select('id')
+        .eq('project_id', projectId)
+        .eq('inventory_item_id', item.id)
+        .maybeSingle();
+
+      if (existing) {
+        toast({
+          title: 'Bereits im Projekt',
+          description: `„${item.name}" ist schon in „${projectName}" enthalten.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      await supabase.from('project_items').insert({
+        project_id:        projectId,
+        inventory_item_id: item.id,
+        quantity:          item.quantity,
+        source:            'direct',
+        packed:            false,
+      } as any);
+
+      toast({
+        title: 'Zum Projekt hinzugefügt',
+        description: `„${item.name}" wurde zu „${projectName}" hinzugefügt.`,
+      });
+    } catch {
+      toast({
+        title: 'Fehler',
+        description: 'Item konnte nicht hinzugefügt werden.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // ─── Handlers ────────────────────────────────────────────────────────────
 
@@ -227,21 +270,7 @@ export function InventoryContextMenu({
     }
   };
 
-  const handleAddToSet = async (set: EventSetWithItems) => {
-    try {
-      await onAddToSet(set.id, item.id, 1);
-      toast({
-        title: "Zum Event hinzugefügt",
-        description: `„${item.name}" wurde zu „${set.name}" hinzugefügt.`,
-      });
-    } catch {
-      /* useEventSets already shows a toast on duplicate / error */
-    }
-  };
-
   const handleShowHistory = () => navigate(`/inventory/${item.id}?tab=wartung`);
-
-  const recentSets = (eventSets || []).slice(0, 5);
 
   // ─── Render ──────────────────────────────────────────────────────────────
 
@@ -307,31 +336,45 @@ export function InventoryContextMenu({
 
           <ContextMenuSeparator className={SEPARATOR_CLS} />
 
-          {/* ── 4. Zu Event-Set hinzufügen ────────────────────────────── */}
+          {/* ── 4. Zu Projekt hinzufügen ─────────────────────────────── */}
           <ContextMenuSub>
             <ContextMenuSubTrigger className={SUBTRIGGER_CLS}>
-              <CalendarPlus className="h-4 w-4 text-primary shrink-0" />
-              Zu Event-Set hinzufügen
+              <FolderKanban className="h-4 w-4 text-primary shrink-0" />
+              Zu Projekt hinzufügen
             </ContextMenuSubTrigger>
             <ContextMenuSubContent
-              className={`${SUB_CONTENT_CLS} w-52`}
+              className={`${SUB_CONTENT_CLS} w-56`}
               {...subContentProps}
             >
-              {recentSets.length === 0 ? (
+              {activeProjects.length === 0 ? (
                 <ContextMenuLabel className="px-3 py-2 text-xs text-muted-foreground">
-                  Keine Event-Sets vorhanden
+                  Keine aktiven Projekte vorhanden
                 </ContextMenuLabel>
               ) : (
-                recentSets.map((set) => (
+                activeProjects.map((project) => (
                   <ContextMenuItem
-                    key={set.id}
+                    key={project.id}
                     className={`truncate ${ITEM_CLS}`}
-                    onSelect={() => handleAddToSet(set)}
+                    onSelect={() => handleAddToProject(project.id, project.name)}
                   >
-                    {set.name}
+                    <span className="truncate flex-1">{project.name}</span>
+                    <span className="text-[10px] text-muted-foreground shrink-0 ml-1">
+                      {({
+                        planned: 'Geplant', packed: 'Gepackt',
+                        transit: 'Unterwegs', live: 'Live', returning: 'Rücklauf',
+                      } as Record<string, string>)[project.status] ?? ''}
+                    </span>
                   </ContextMenuItem>
                 ))
               )}
+              <ContextMenuSeparator className={SEPARATOR_CLS} />
+              <ContextMenuItem
+                className={ITEM_CLS}
+                onSelect={() => navigate('/projects')}
+              >
+                <FolderKanban className="h-4 w-4 text-primary shrink-0" />
+                Alle Projekte →
+              </ContextMenuItem>
             </ContextMenuSubContent>
           </ContextMenuSub>
 

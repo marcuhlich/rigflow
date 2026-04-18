@@ -21,8 +21,8 @@ import Inventory from "./pages/Inventory";
 import ItemDetail from "./pages/ItemDetail";
 import HelpPage from "./pages/HelpPage";
 import DMXPatchplan from "./pages/DMXPatchplan";
-import { ChecklistsPage } from "./pages/Checklists";
-import EventSetsPage from "./pages/EventSets";
+import ProjectsPage from "./pages/Projects";
+import ProjectDetail from "./pages/ProjectDetail";
 import Lending from "./pages/Lending";
 import AccountSettings from "./pages/AccountSettings";
 import Auth from "./pages/Auth";
@@ -41,6 +41,7 @@ import Scanner from "./pages/Scanner";
 import Appearance from "./pages/settings/Appearance";
 import { applyStoredAppearance } from "@/lib/appearanceUtils";
 import SettingsGuard from "@/components/SettingsGuard";
+import HapticsTest from "./pages/dev/Haptics";
 
 const queryClient = new QueryClient();
 
@@ -109,8 +110,8 @@ function AppRoutes() {
       <Route path="/inventory"    element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
       <Route path="/inventory/:id" element={<ProtectedRoute><ItemDetail /></ProtectedRoute>} />
       <Route path="/lending"      element={<ProtectedRoute><Lending /></ProtectedRoute>} />
-      <Route path="/sets"         element={<ProtectedRoute><EventSetsPage /></ProtectedRoute>} />
-      <Route path="/checklists"   element={<ProtectedRoute><ChecklistsPage /></ProtectedRoute>} />
+      <Route path="/projects"   element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
+      <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
       <Route path="/dmx"          element={<ProtectedRoute><DMXPatchplan /></ProtectedRoute>} />
       <Route path="/scanner"      element={<ProtectedRoute><Scanner /></ProtectedRoute>} />
       <Route path="/help"         element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
@@ -126,6 +127,7 @@ function AppRoutes() {
 
       {/* ── Dev (nur Admin) ────────────────────────────────────────────── */}
       <Route path="/dev/notifications" element={<AdminRoute><NotificationTest /></AdminRoute>} />
+      <Route path="/dev/haptics" element={<AdminRoute><HapticsTest /></AdminRoute>} />
 
       {/* ── Fallback ───────────────────────────────────────────────────── */}
       <Route path="*" element={<NotFound />} />

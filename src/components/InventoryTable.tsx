@@ -15,7 +15,6 @@ import { QRCodeDisplay } from "@/components/QRCodeDisplay";
 import { InventoryItem } from "@/types/inventory";
 import { cn } from "@/lib/utils";
 import { InventoryContextMenu } from "@/components/InventoryContextMenu";
-import { EventSetWithItems } from "@/types/eventSet";
 
 interface InventoryTableProps {
   items: InventoryItem[];
@@ -35,14 +34,6 @@ interface InventoryTableProps {
     item: Omit<InventoryItem, "id" | "user_id" | "created_at" | "updated_at">
   ) => Promise<void>;
 
-  eventSets?: EventSetWithItems[];
-
-  onAddToSet?: (
-    setId: string,
-    itemId: string,
-    quantity: number
-  ) => Promise<void>;
-
   onFilterCategory?: (category: string) => void;
 }
 
@@ -56,8 +47,6 @@ export const InventoryTable = React.memo(function InventoryTable({
   selectionMode = false,
   onUpdateItem,
   onAddItem,
-  eventSets,
-  onAddToSet,
   onFilterCategory,
 }: InventoryTableProps) {
   const [qrItemId, setQrItemId] = useState<string | null>(null);
@@ -117,8 +106,6 @@ export const InventoryTable = React.memo(function InventoryTable({
                   item={item}
                   onUpdateItem={onUpdateItem ?? (async () => {})}
                   onAddItem={onAddItem ?? (async () => {})}
-                  eventSets={eventSets ?? []}
-                  onAddToSet={onAddToSet ?? (async () => {})}
                   onFilterCategory={onFilterCategory ?? (() => {})}
                 >
                   <TableRow

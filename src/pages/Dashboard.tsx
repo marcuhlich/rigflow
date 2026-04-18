@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScanRevealOverlay } from '@/components/ScanRevealOverlay';
 import {
   Package, CheckCircle, ArrowRightLeft, AlertTriangle, Zap, Clock, Activity,
-  CheckSquare, ArrowRight, TrendingUp, CalendarDays, Star, MapPin, DollarSign,
-  RotateCcw, Bell, ScanLine, Plus, Trash, QrCode,
+  ArrowRight, TrendingUp, CalendarDays, Star, MapPin, DollarSign,
+  RotateCcw, ScanLine, Trash, QrCode, FolderKanban,
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
@@ -15,8 +15,7 @@ import {
 } from "recharts";
 import { StatCard } from "@/components/StatCard";
 import { useInventory } from "@/hooks/useInventory";
-import { useEventChecklists } from "@/hooks/useEventChecklists";
-import { useEventSets } from "@/hooks/useEventSets";
+import { useProjects } from "@/hooks/useProjects";
 import { useAuth } from "@/hooks/useAuth";
 import { useLendingHistory } from "@/hooks/useLendingHistory";
 import { format } from "date-fns";
@@ -373,8 +372,7 @@ const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { allItems, stats, loading } = useInventory();
-  const { checklists } = useEventChecklists();
-  const { sets } = useEventSets();
+  const { projects } = useProjects();
   const { user } = useAuth();
   const { refetch: refetchInventory } = useInventory();
   const { activeLoans, completedLoans, markReturned, deleteRecord } = useLendingHistory();
@@ -426,14 +424,21 @@ export default function Dashboard() {
     return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
   }, [allItems]);
 
-  const upcomingSets = useMemo(() => {
+  const upcomingProjects = useMemo(() => {
     const now = new Date();
     const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    return sets
-      .filter((s) => s.event_date_start && new Date(s.event_date_start) >= now && new Date(s.event_date_start) <= in30)
-      .sort((a, b) => new Date(a.event_date_start!).getTime() - new Date(b.event_date_start!).getTime())
+    return projects
+      .filter(p =>
+        p.event_date_start &&
+        new Date(p.event_date_start) >= now &&
+        new Date(p.event_date_start) <= in30 &&
+        p.status !== ('archived' as any)
+      )
+      .sort((a, b) =>
+        new Date(a.event_date_start!).getTime() - new Date(b.event_date_start!).getTime()
+      )
       .slice(0, 5);
-  }, [sets]);
+  }, [projects]);
 
   const lentItems = useMemo(() => {
     const now = new Date();
@@ -667,63 +672,88 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ══ 3. Anstehende Events + Quick Links ══════════════════════════════════ */}
+      {/* ══ 3. Anstehende Projekte + Quick Links ══════════════════════════════════ */}
       <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
-        <Card className="border-border/50" hidden={upcomingSets.length === 0 && checklists.length === 0}>
+        <Card className="border-border/50">
           <CardContent className="p-4 sm:p-5">
             <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
               <CalendarDays className="h-4 w-4 text-primary" />
-              Anstehende Events
+              Anstehende Projekte
             </h3>
-            {upcomingSets.length > 0 ? (
+            {upcomingProjects.length > 0 ? (
               <div className="space-y-2">
-                {upcomingSets.map((s) => {
-                  const allOk = s.items.length > 0 && s.items.every((i: any) => (i.available_quantity || 0) >= i.quantity);
+                {upcomingProjects.map((p) => {
+                  const STATUS_LABEL: Record<string, string> = {
+                    draft: 'Entwurf', planned: 'Geplant', packed: 'Gepackt',
+                    transit: 'Unterwegs', live: 'Live', returning: 'Rücklauf',
+                  };
+                  const STATUS_VARIANT: Record<string, 'secondary' | 'default' | 'destructive'> = {
+                    draft: 'secondary', planned: 'secondary', packed: 'default',
+                    transit: 'default', live: 'default', returning: 'secondary',
+                  };
                   return (
-                    <Link key={s.id} to="/sets"
-                      className="flex items-center justify-between p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+                    <Link
+                      key={p.id}
+                      to={`/projects/${p.id}`}
+                      className="flex items-center justify-between p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors"
+                    >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          {s.is_favorite && <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 shrink-0" />}
-                          <p className="text-xs sm:text-sm font-medium truncate">{s.name}</p>
+                          {p.is_favorite && (
+                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 shrink-0" />
+                          )}
+                          <p className="text-xs sm:text-sm font-medium truncate">{p.name}</p>
                         </div>
                         <p className="text-[11px] text-muted-foreground">
-                          {format(new Date(s.event_date_start!), "dd. MMM yyyy", { locale: de })}
-                          {s.event_date_end && ` – ${format(new Date(s.event_date_end), "dd. MMM", { locale: de })}`}
+                          {format(new Date(p.event_date_start!), 'dd. MMM yyyy', { locale: de })}
+                          {p.event_date_end && p.event_date_end !== p.event_date_start &&
+                            ` – ${format(new Date(p.event_date_end), 'dd. MMM', { locale: de })}`}
+                          {p.location && ` · ${p.location}`}
                         </p>
                       </div>
-                      <Badge variant={allOk ? "secondary" : "destructive"} className="text-[10px] shrink-0 ml-2">
-                        {allOk ? "Bereit" : "Prüfen"}
+                      <Badge
+                        variant={STATUS_VARIANT[p.status] ?? 'secondary'}
+                        className="text-[10px] shrink-0 ml-2"
+                      >
+                        {STATUS_LABEL[p.status] ?? p.status}
                       </Badge>
                     </Link>
                   );
                 })}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground py-4 text-center">Keine Events in den nächsten 30 Tagen.</p>
+              <p className="text-xs text-muted-foreground py-4 text-center">
+                Keine Projekte in den nächsten 30 Tagen.
+              </p>
             )}
-            <Link to="/sets" className="flex items-center gap-1 mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors">
-              Alle Sets <ArrowRight className="h-3 w-3" />
+            <Link
+              to="/projects"
+              className="flex items-center gap-1 mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Alle Projekte <ArrowRight className="h-3 w-3" />
             </Link>
           </CardContent>
         </Card>
 
         <div className="space-y-3">
-          {checklists.length > 0 && (
-            <Link to="/checklists"
-              className="flex items-center justify-between p-3 sm:p-4 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors group">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
-                  <CheckSquare className="h-4 w-4 text-primary" />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-xs sm:text-sm truncate">Event Checklisten</p>
-                  <p className="text-[11px] text-muted-foreground">{checklists.length} aktive Checkliste{checklists.length !== 1 ? "n" : ""}</p>
-                </div>
+          {/* Projekte Quicklink */}
+          <Link
+            to="/projects"
+            className="flex items-center justify-between p-3 sm:p-4 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors group"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
+                <FolderKanban className="h-4 w-4 text-primary" />
               </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
-            </Link>
-          )}
+              <div className="min-w-0">
+                <p className="font-semibold text-xs sm:text-sm truncate">Projekte</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {projects.filter(p => p.status !== ('archived' as any)).length} aktive Projekte
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+          </Link>
 
           {/* Desktop: Lent */}
           {lentItems.length > 0 && (
@@ -740,8 +770,8 @@ export default function Dashboard() {
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium truncate">{item.name}</p>
                         <p className="text-[11px] text-muted-foreground truncate">
-                          an {item.lent_to || "–"}
-                          {item.lent_until && ` · bis ${format(new Date(item.lent_until), "dd.MM.yy")}`}
+                          an {item.lent_to || '–'}
+                          {item.lent_until && ` · bis ${format(new Date(item.lent_until), 'dd.MM.yy')}`}
                         </p>
                       </div>
                       {item.isOverdue && (

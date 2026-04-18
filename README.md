@@ -147,8 +147,7 @@ src/
 │   ├── Inventory.tsx
 │   ├── ItemDetail.tsx
 │   ├── DMXPatchplan.tsx
-│   ├── Checklists.tsx
-│   ├── EventSets.tsx
+│   ├── Projects.tsx
 │   ├── Lending.tsx
 │   └── Auth.tsx
 │

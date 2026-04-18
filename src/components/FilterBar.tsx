@@ -101,7 +101,6 @@ export function FilterBar({
               <button
                 key={opt.value}
                 onClick={() => {
-                  if (navigator.vibrate) navigator.vibrate(6);
                   onChange(opt.value as T | "all");
                 }}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-95 ${

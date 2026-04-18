@@ -13,13 +13,15 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useInventory } from '@/hooks/useInventory';
-import { useEventSets } from '@/hooks/useEventSets';
+import { useProjects } from '@/hooks/useProjects';
+import { supabase } from '@/integrations/supabase/client';
 import { useQRScanner, useQRInput } from '@/hooks/useQRScanner';
 import { decodeQRPayload, extractItemId } from '@/lib/qrPayload';
 import { logger } from '@/lib/logger';
 import { InventoryItem } from '@/types/inventory';
 import { StatusBadge } from '@/components/StatusBadge';
 import { hapticFeedback } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 interface EnhancedQRScannerProps {
   isOpen: boolean;
@@ -52,12 +54,20 @@ export function EnhancedQRScanner({
   const { itemId, isValid, handleInputChange, handlePaste, clear } = useQRInput();
   const { toast } = useToast();
   const { items } = useInventory();
-  const { sets } = useEventSets();
+  const { projects } = useProjects();
+  const [itemProjects, setItemProjects] = useState<typeof projects>([]);
 
-  // Sets, die dieses Item enthalten
-  const itemSets = scannedItem
-    ? sets.filter(s => s.items.some(si => si.item_id === scannedItem.id))
-    : [];
+  useEffect(() => {
+    if (!scannedItem) { setItemProjects([]); return; }
+    supabase
+      .from("project_items")
+      .select("project_id")
+      .eq("inventory_item_id", scannedItem.id)
+      .then(({ data }) => {
+        const ids = new Set((data ?? []).map((r: any) => r.project_id));
+        setItemProjects(projects.filter(p => ids.has(p.id)));
+      });
+  }, [scannedItem, projects]);
 
   // Start scanning when dialog opens
   useEffect(() => {
@@ -402,47 +412,42 @@ export function EnhancedQRScanner({
               </div>
 
               {/* ── Sektion 2: Event-Sets ── */}
-              {itemSets.length > 0 && (
+              {itemProjects.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    📦 Event-Sets
+                    📁 Projekte
                   </p>
                   <div className="space-y-2">
-                    {itemSets.map(set => {
-                      const setItem = set.items.find(si => si.item_id === scannedItem.id);
-                      return (
-                        <Card key={set.id} className="p-3">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className="h-8 w-8 rounded-full bg-amber-500/15 flex items-center justify-center shrink-0">
-                                <Layers className="h-4 w-4 text-amber-500" />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="font-semibold text-sm truncate">{set.name}</p>
-                                {set.event_date_start && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {new Date(set.event_date_start).toLocaleDateString('de-DE')}
-                                    {set.event_date_end && set.event_date_end !== set.event_date_start && (
-                                      <> – {new Date(set.event_date_end).toLocaleDateString('de-DE')}</>
-                                    )}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            {setItem && (
-                              <Badge variant="outline" className="shrink-0 text-xs">
-                                ×{setItem.quantity}
-                              </Badge>
+                    {itemProjects.map(project => (
+                      <Card key={project.id} className="p-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-8 w-8 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                            <Layers className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-sm truncate">{project.name}</p>
+                            {project.event_date_start && (
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(project.event_date_start).toLocaleDateString('de-DE')}
+                                {project.event_date_end && ` – ${new Date(project.event_date_end).toLocaleDateString('de-DE')}`}
+                              </p>
                             )}
                           </div>
-                          {set.description && (
-                            <p className="text-xs text-muted-foreground mt-2 pl-11 truncate">
-                              {set.description}
-                            </p>
-                          )}
-                        </Card>
-                      );
-                    })}
+                          <span className={cn(
+                            "text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0",
+                            project.status === 'live'    ? 'bg-primary/20 text-primary' :
+                            project.status === 'packed'  ? 'bg-amber-500/20 text-amber-400' :
+                            project.status === 'transit' ? 'bg-orange-500/20 text-orange-400' :
+                            'bg-muted/60 text-muted-foreground'
+                          )}>
+                            {project.status === 'live' ? 'Live' :
+                            project.status === 'packed' ? 'Gepackt' :
+                            project.status === 'transit' ? 'Unterwegs' :
+                            project.status === 'planned' ? 'Geplant' : 'Entwurf'}
+                          </span>
+                        </div>
+                      </Card>
+                    ))}
                   </div>
                 </div>
               )}

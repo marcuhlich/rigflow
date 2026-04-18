@@ -9,7 +9,6 @@ import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { InventoryContextMenu } from "@/components/InventoryContextMenu";
-import { EventSetWithItems } from "@/types/eventSet";
 import { hapticFeedback } from "@/lib/utils";
 import { hapticStop, hapticLongPress } from "@/lib/utils";
 
@@ -25,8 +24,6 @@ interface InventoryGridProps {
   selectionMode?: boolean;
   onUpdateItem: (id: string, updates: Partial<Omit<InventoryItem, "id"|"user_id"|"created_at"|"updated_at">>) => Promise<void>;
   onAddItem: (item: Omit<InventoryItem, "id"|"user_id"|"created_at"|"updated_at">) => Promise<void>;
-  eventSets: EventSetWithItems[];
-  onAddToSet: (setId: string, itemId: string, quantity: number) => Promise<void>;
   onFilterCategory: (category: string) => void;
   onEnterSelectionMode?: (firstItemId: string) => void;
 }
@@ -41,8 +38,6 @@ export const InventoryGrid = React.memo(function InventoryGrid({
   selectionMode = false,
   onUpdateItem,
   onAddItem,
-  eventSets,
-  onAddToSet,
   onFilterCategory,
   onEnterSelectionMode,
 }: InventoryGridProps) {
@@ -81,7 +76,7 @@ export const InventoryGrid = React.memo(function InventoryGrid({
 
     hapticLongPress(LONG_PRESS_MS);
 
-    animTimer.current = setTimeout(() => setPressingId(item.id), 250);
+    animTimer.current = setTimeout(() => setPressingId(item.id), 50);
 
     pressTimer.current = setTimeout(() => {
       didLongPress.current = true;
@@ -138,8 +133,6 @@ export const InventoryGrid = React.memo(function InventoryGrid({
               item={item}
               onUpdateItem={onUpdateItem}
               onAddItem={onAddItem}
-              eventSets={eventSets}
-              onAddToSet={onAddToSet}
               onFilterCategory={onFilterCategory}
             >
               <div

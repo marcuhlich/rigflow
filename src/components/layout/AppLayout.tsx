@@ -1,6 +1,6 @@
 import { ReactNode, useRef, useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, Sliders, CheckSquare, Boxes, HandCoins, MoreHorizontal, Search } from "lucide-react";
+import { LayoutDashboard, Package, Sliders, FolderKanban, HandCoins, MoreHorizontal, Search } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { UndoRedoButtons } from "@/components/UndoRedoButtons";
@@ -19,15 +19,14 @@ interface AppLayoutProps {
 }
 
 const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard", mobileLabel: "Home" },
-  { to: "/inventory", icon: Package, label: "Inventar", mobileLabel: "Inventar" },
-  { to: "/lending", icon: HandCoins, label: "Verleih", mobileLabel: "Verleih" },
-  { to: "/sets", icon: Boxes, label: "Sets", mobileLabel: "Sets" },
-  { to: "/checklists", icon: CheckSquare, label: "Checklisten", mobileLabel: "Checks" },
-  { to: "/dmx", icon: Sliders, label: "DMX", mobileLabel: "DMX" },
+  { to: "/",          icon: LayoutDashboard, label: "Dashboard", mobileLabel: "Home"     },
+  { to: "/inventory", icon: Package,         label: "Inventar",  mobileLabel: "Inventar" },
+  { to: "/projects",  icon: FolderKanban,    label: "Projekte",  mobileLabel: "Projekte" },
+  { to: "/lending",   icon: HandCoins,       label: "Verleih",   mobileLabel: "Verleih"  },
+  { to: "/dmx",       icon: Sliders,         label: "DMX",       mobileLabel: "DMX"      },
 ];
 
-const MOBILE_NAV_COUNT = 4;
+const MOBILE_NAV_COUNT = 5;
 
 function LiquidGlassNav() {
   const location = useLocation();
@@ -140,7 +139,7 @@ function LiquidGlassNav() {
                 to={item.to}
                 end={item.to === "/"}
                 ref={(el) => { itemRefs.current[i] = el; }}
-                onClick={() => hapticFeedback(20)} // Navigation feedback
+                onClick={() => hapticFeedback(8)} // Navigation feedback
                 className={cn(
                   "relative z-10 flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-[16px] text-[10px] font-medium transition-all duration-300 min-w-[52px]",
                   isActive ? "text-primary" : "text-muted-foreground/70 active:scale-95"
@@ -157,6 +156,7 @@ function LiquidGlassNav() {
             );
           })}
 
+          {moreItems.length > 0 && (
           <button
             ref={(el) => { itemRefs.current[MOBILE_NAV_COUNT] = el as any; }}
             onClick={() => setMoreOpen((v) => !v)}
@@ -173,6 +173,7 @@ function LiquidGlassNav() {
               Mehr
             </span>
           </button>
+          )}
         </nav>
       </div>
     </div>

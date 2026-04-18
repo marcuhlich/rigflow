@@ -99,12 +99,12 @@ export function CommandPalette() {
       // ⌘/Ctrl + E: Go to Events
       if (e.key === 'e' && isMeta) {
         e.preventDefault();
-        navigate('/sets');
+        navigate('/projects');
         addItem({
-          id: 'go-events',
-          title: 'Zu den Events',
+          id: 'go-projects',
+          title: 'Zu den Projekten',
           category: 'Navigation',
-          path: '/sets',
+          path: '/projects',
         });
       }
 
@@ -226,12 +226,12 @@ export function CommandPalette() {
           href: '/inventory',
         },
         {
-          id: 'go-events',
-          title: 'Zu den Events',
-          description: 'Event-Management und Checklisten',
+          id: 'go-projects',
+          title: 'Zu den Projekten',
+          description: 'Projekt-Management und Event-Planung',
           icon: <Calendar className="h-4 w-4" />,
           shortcut: '⌘ E',
-          href: '/sets',
+          href: '/projects',
         },
         {
           id: 'go-lending',

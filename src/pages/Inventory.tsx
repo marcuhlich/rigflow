@@ -40,8 +40,6 @@ import { ItemCategory, ItemCondition } from "@/types/inventory";
 import { useLendingHistory } from "@/hooks/useLendingHistory";
 import { hapticFeedback } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
-import { useEventSets } from "@/hooks/useEventSets";
-import { PullToRefreshWrapper } from "@/components/PullToRefreshWrapper";
 import { TrashDrawer } from "@/components/TrashDrawer";
 import { ToastAction } from "@/components/ui/toast";
 
@@ -67,7 +65,6 @@ export default function Inventory() {
   const { categoryNames, dmxCategories, categories } = useCategories();
   const history = useInventoryHistory();
   const undoRedoCtx = useUndoRedoContext();
-  const { sets, addItemToSet } = useEventSets();
   const { refetch } = useInventory();
   const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
 
@@ -143,7 +140,7 @@ export default function Inventory() {
 
   const handleExportSheets = async () => {
     try {
-      await exportToSheets(items);
+      await exportToSheets(items as any);
       toast({ title: "Export erfolgreich", description: "Google Sheet wurde geöffnet." });
     } catch {
       toast({ title: "Export fehlgeschlagen", description: "Bitte versuche es erneut.", variant: "destructive" });
@@ -355,10 +352,6 @@ export default function Inventory() {
   }
 
   return (
-    <PullToRefreshWrapper
-          onRefresh={async () => { await refetch(); }}
-          disabled={!isMobile || !isStandalone}
-    >
     <div className="space-y-3 sm:space-y-5 pb-24">
     <PageHeader
       title="Inventar"
@@ -493,8 +486,6 @@ export default function Inventory() {
           selectionMode={selectionMode}
           onUpdateItem={updateItem}
           onAddItem={addItem}
-          eventSets={sets}
-          onAddToSet={addItemToSet}
           onFilterCategory={(cat) => setCategoryFilter(cat)}
           onEnterSelectionMode={(firstId) => {
             setSelectionMode(true);
@@ -512,8 +503,6 @@ export default function Inventory() {
           selectionMode={selectionMode}
           onUpdateItem={updateItem}
           onAddItem={addItem}
-          eventSets={sets}
-          onAddToSet={addItemToSet}
           onFilterCategory={(cat) => setCategoryFilter(cat)}
         />
       )}
@@ -547,6 +536,5 @@ export default function Inventory() {
         onEmptyTrash={emptyTrash}
       />
     </div>
-    </PullToRefreshWrapper>
   );
 }
