@@ -66,6 +66,7 @@ import { cn } from "@/lib/utils";
 import { STATUS_ORDER, isWarningJump } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
 import { DateRange } from "react-day-picker";
+import { ProjectDMXTab } from "@/components/ProjectDMXTab";
 
 // ─── Phasen-Konstanten ────────────────────────────────────────────────────────
 
@@ -752,6 +753,70 @@ function FinalizeProjectDialog({ open, onClose, projectName, allItems, condition
   );
 }
 
+function EditQuantityDialog({
+  open, onClose, itemName, currentQty, maxQty, onSave,
+}: {
+  open: boolean; onClose: () => void;
+  itemName: string; currentQty: number; maxQty: number;
+  onSave: (qty: number) => Promise<void>;
+}) {
+  const [qty, setQty]       = useState(currentQty);
+  const [saving, setSaving] = useState(false);
+ 
+  useEffect(() => { if (open) setQty(currentQty); }, [open, currentQty]);
+ 
+  const handleSave = async () => {
+    if (qty < 1 || qty > maxQty) return;
+    setSaving(true);
+    try { await onSave(qty); onClose(); }
+    finally { setSaving(false); }
+  };
+ 
+  return (
+    <Dialog open={open} onOpenChange={v => !v && onClose()}>
+      <DialogContent className="sm:max-w-xs">
+        <DialogHeader>
+          <DialogTitle>Menge bearbeiten</DialogTitle>
+          <DialogDescription className="truncate">{itemName}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <div className="space-y-1">
+            <Label>Menge <span className="text-muted-foreground font-normal">(max. {maxQty})</span></Label>
+            <div className="flex items-center gap-2">
+              <button
+                className="h-8 w-8 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors text-lg leading-none"
+                onClick={() => setQty(q => Math.max(1, q - 1))}
+                disabled={qty <= 1}
+              >
+                −
+              </button>
+              <Input
+                type="number" min={1} max={maxQty}
+                value={qty}
+                onChange={e => setQty(Math.min(maxQty, Math.max(1, parseInt(e.target.value) || 1)))}
+                className="h-8 text-center w-16 tabular-nums"
+              />
+              <button
+                className="h-8 w-8 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors text-lg leading-none"
+                onClick={() => setQty(q => Math.min(maxQty, q + 1))}
+                disabled={qty >= maxQty}
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">Abbrechen</Button>
+          <Button onClick={handleSave} disabled={saving || qty < 1 || qty > maxQty} className="w-full sm:w-auto">
+            {saving ? 'Speichern...' : 'Speichern'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Projekt-Edit Dialog ──────────────────────────────────────────────────────
 
 function ProjectEditDialog({ open, onClose, initial, onSubmit }: {
@@ -972,7 +1037,12 @@ function EquipmentPickerDialog({
 
 // ─── Item-Zeile (wiederverwendet in Paket + Direktartikel) ───────────────────
 
-function ItemRow({ itemName, itemCategory, packed, showPack, showCond, isLocked, packDisabled, conflict, condition, quantity, onTogglePacked, onRemove, onConditionChange }: {
+function ItemRow({
+  itemName, itemCategory,
+  packed, showPack, showCond, isLocked, packDisabled,
+  conflict, condition, quantity,
+  onTogglePacked, onRemove, onConditionChange, onEdit,
+}: {
   itemName?: string; itemCategory?: string;
   packed: boolean; showPack: boolean; showCond: boolean;
   isLocked: boolean; packDisabled: boolean;
@@ -980,6 +1050,8 @@ function ItemRow({ itemName, itemCategory, packed, showPack, showCond, isLocked,
   onTogglePacked: (packed: boolean) => void;
   onRemove: () => void;
   onConditionChange: (c: Condition) => void;
+  /** undefined = kein Edit-Button (z.B. Paket-Items) */
+  onEdit?: () => void;
 }) {
   return (
     <div className="flex items-center gap-2 px-4 py-2.5 flex-wrap">
@@ -999,10 +1071,24 @@ function ItemRow({ itemName, itemCategory, packed, showPack, showCond, isLocked,
         <ConditionSelect value={condition} onChange={onConditionChange} disabled={isLocked} />
       )}
       {!isLocked && (
-        <button className="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0"
-          onClick={onRemove}>
-          <X className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex items-center gap-0.5 shrink-0">
+          {onEdit && (
+            <button
+              className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+              onClick={onEdit}
+              title="Menge bearbeiten"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <button
+            className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+            onClick={onRemove}
+            title="Entfernen"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
       )}
     </div>
   );
@@ -1080,18 +1166,22 @@ function PackageGroupSection({ group, status, conflicts, conditions, isReadonly,
 
 // ─── Direktartikel-Liste ──────────────────────────────────────────────────────
 
-function DirectItemsList({ items, status, conflicts, conditions, isReadonly, onTogglePacked, onRemoveItem, onConditionChange }: {
+function DirectItemsList({
+  items, status, conflicts, conditions, isReadonly,
+  onTogglePacked, onRemoveItem, onConditionChange, onEditItem,
+}: {
   items: EnrichedProjectItem[]; status: ProjectStatus; isReadonly: boolean;
   conflicts: Record<string, ConflictInfo>; conditions: Record<string, Condition>;
   onTogglePacked: (id: string, packed: boolean) => void;
   onRemoveItem: (id: string) => void;
   onConditionChange: (id: string, c: Condition) => void;
+  onEditItem: (item: EnrichedProjectItem) => void;
 }) {
   if (items.length === 0) return null;
   const isLocked = LOCKED_PHASES.includes(status) || isReadonly;
   const showPack = PACK_PHASES.includes(status) && !isReadonly;
   const showCond = CONDITION_PHASES.includes(status) && !isReadonly;
-
+ 
   return (
     <div>
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Direktartikel</p>
@@ -1108,6 +1198,7 @@ function DirectItemsList({ items, status, conflicts, conditions, isReadonly, onT
               onTogglePacked={p => onTogglePacked(item.id, p)}
               onRemove={() => onRemoveItem(item.id)}
               onConditionChange={c => onConditionChange(item.id, c)}
+              onEdit={!isLocked ? () => onEditItem(item) : undefined}
             />
           </div>
         ))}
@@ -1142,6 +1233,9 @@ function EquipmentTab({
   const navigate = useNavigate();
   const [pickerOpen,   setPickerOpen]   = useState(false);
   const [markingInUse, setMarkingInUse] = useState(false);
+  const [editingItem, setEditingItem] = useState<EnrichedProjectItem | null>(null);
+
+  const {refetch: refetchProject} = useProjectDetail(projectId);
 
   // Sets für den Picker — verhindert Doppel-Hinzufügen
   const addedPackageIds = useMemo(() => new Set(packageGroups.map(g => g.package_id)), [packageGroups]);
@@ -1151,6 +1245,17 @@ function EquipmentTab({
     directItems.forEach(i => { if (i.inventory_item_id) ids.add(i.inventory_item_id); });
     return ids;
   }, [packageGroups, directItems]);
+
+  const handleEditQuantity = useCallback(async (qty: number) => {
+  if (!editingItem) return;
+  await supabase
+    .from('project_items')
+    .update({ quantity: qty } as any)
+    .eq('id', editingItem.id);
+  await refetchProject();
+  // Projekt neu laden damit die Änderung sichtbar wird
+  // (refetchProject kommt als Prop oder via useProjectDetail)
+}, [editingItem, refetchProject]);
 
   const progress = totalItems > 0 ? Math.round((packedItems / totalItems) * 100) : 0;
   const isLocked = LOCKED_PHASES.includes(status);
@@ -1181,8 +1286,9 @@ function EquipmentTab({
               className="gap-1.5 border-blue-500/30 text-blue-300 hover:bg-blue-500/10"
               disabled={markingInUse}
               onClick={async () => { setMarkingInUse(true); try { await onMarkInUse(); } finally { setMarkingInUse(false); } }}>
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              {markingInUse ? 'Markiere...' : 'Alle direkt markieren'}
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden sm:inline">{markingInUse ? 'Markiere...' : 'Alle direkt markieren'}</span>
+              <span className="sm:hidden">{markingInUse ? '...' : 'Alle markieren'}</span>
             </Button>
           </div>
         </div>
@@ -1274,6 +1380,7 @@ function EquipmentTab({
         conditions={conditions} isReadonly={isReadonly}
         onTogglePacked={togglePacked} onRemoveItem={removeItem}
         onConditionChange={onConditionChange}
+        onEditItem={setEditingItem}
       />
 
       {/* ── Leer-State ── */}
@@ -1286,6 +1393,20 @@ function EquipmentTab({
           </CardContent>
         </Card>
       )}
+
+      <EditQuantityDialog
+        open={!!editingItem}
+        onClose={() => setEditingItem(null)}
+        itemName={editingItem?.item_name ?? ''}
+        currentQty={editingItem?.quantity ?? 1}
+        maxQty={
+          // Maximale Menge = Inventar-Bestand des Items
+          availableInventory.find(i => i.id === editingItem?.inventory_item_id)?.quantity
+          ?? editingItem?.quantity
+          ?? 99
+        }
+        onSave={handleEditQuantity}
+      />
 
       <EquipmentPickerDialog
         open={pickerOpen} onClose={() => setPickerOpen(false)}
@@ -1360,7 +1481,7 @@ function TodosTab({ todos, status, isReadonly, onAdd, onToggle, onDelete, onReor
   };
 
   const template   = PHASE_TEMPLATES[status];
-  const showBanner = !!template && templateDismissed !== status && !isReadonly;
+  const showBanner = !!template && templateDismissed !== status && !isReadonly && todos.length === 0;
   const doneCount  = todos.filter(t => t.done).length;
 
   return (
@@ -1818,19 +1939,9 @@ export default function ProjectDetail() {
               </TabsContent>
 
               <TabsContent value="dmx" className="mt-4 tab-in">
-                <Card className="border-dashed">
-                  <CardContent className="flex flex-col items-center justify-center py-14 text-center">
-                    <Sliders className="h-10 w-10 text-muted-foreground/40 mb-3" />
-                    <p className="text-sm font-medium">DMX-Patchplan</p>
-                    <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-                      Der projektgebundene Patchplan wird in einem späteren Update verfügbar sein.
-                    </p>
-                    <Button variant="outline" size="sm" className="mt-4 gap-1.5" onClick={() => navigate('/dmx')}>
-                      <Sliders className="h-4 w-4" /> Globaler Patchplan
-                    </Button>
-                  </CardContent>
-                </Card>
+                <ProjectDMXTab projectId={id!} projectName={project.name} allItems={allItems} isReadonly={isReadonly} />
               </TabsContent>
+
             </Tabs>
           </div>
 

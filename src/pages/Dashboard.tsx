@@ -142,7 +142,7 @@ const MobileBentoStats = ({ stats, totalValue, activeLoansCount }: MobileBentoSt
   const tiles = [
     { id: "avail", label: "Verfügbar",  value: stats.available,                color: "#22c55e", icon: <CheckCircle className="h-3.5 w-3.5" />,    to: "/inventory?filter=verfügbar" },
     { id: "lent",  label: "Verliehen",  value: activeLoansCount || stats.lent, color: "#f97316", icon: <ArrowRightLeft className="h-3.5 w-3.5" />, to: "/lending" },
-    { id: "use",   label: "Im Einsatz", value: stats.inUse,                    color: "hsl(var(--primary))", icon: <Zap className="h-3.5 w-3.5" />, to: "/sets" },
+    { id: "use",   label: "Im Einsatz", value: stats.inUse,                    color: "hsl(var(--primary))", icon: <Zap className="h-3.5 w-3.5" />, to: "/projects" },
     { id: "def",   label: "Defekt",     value: stats.defect,                   color: "#ef4444", icon: <AlertTriangle className="h-3.5 w-3.5" />,  to: "/inventory?filter=defekt" },
   ];
 

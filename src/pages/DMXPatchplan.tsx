@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, Sliders, Table as TableIcon, LayoutGrid, Download, FileText, Printer } from "lucide-react";
+import { AlertTriangle, Sliders, TableIcon, List, LayoutGrid, Download, FileText, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect } from "react";
@@ -92,37 +92,46 @@ export default function DMXPatchplan() {
         icon={Sliders}
         actions={
           <div className="flex gap-2 flex-wrap">
-            <Button
-              variant={viewMode === 'timeline' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('timeline')}
-              className="gap-2"
-            >
-              <LayoutGrid className="h-4 w-4" />
-              Timeline
-            </Button>
-            <Button
-              variant={viewMode === 'table' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('table')}
-              className="gap-2"
-            >
-              <TableIcon className="h-4 w-4" />
-              Tabelle
-            </Button>
+            {/* Toggle */}
+            <div className="flex rounded-md border border-border overflow-hidden h-9">
+              <button
+                onClick={() => setViewMode("timeline")}
+                className={`px-2.5 flex items-center transition-colors ${
+                  viewMode === "timeline"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted/50"
+                }`}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+
+              <button
+                onClick={() => setViewMode("table")}
+                className={`px-2.5 flex items-center border-l border-border transition-colors ${
+                  viewMode === "table"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted/50"
+                }`}
+              >
+                <List className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Export */}
             {!isMobile && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="gap-2"
+                    className="gap-2 h-9" // wichtig für gleiche Höhe!
                     disabled={patchplan.length === 0}
                   >
                     <Download className="h-4 w-4" />
                     Export
                   </Button>
                 </DropdownMenuTrigger>
+
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={handleExportCSV}>
                     <FileText className="h-4 w-4 mr-2" />

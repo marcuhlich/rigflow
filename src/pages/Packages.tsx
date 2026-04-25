@@ -35,6 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PackageWithItems, PackageItem } from "@/types/project";
 import { InventoryItem } from "@/types/inventory";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 // ─── Konstanten ───────────────────────────────────────────────────────────────
 
@@ -669,6 +670,19 @@ export default function PackagesPage({ embedded = false }: PackagesPageProps) {
 
   const handleDelete = async () => {
     if (!deleteId) return;
+
+    // Erst alle project_packages-Einträge + deren project_items entfernen
+    const { data: ppRows } = await supabase
+      .from('project_packages')
+      .select('id')
+      .eq('package_id', deleteId);
+
+    if (ppRows && ppRows.length > 0) {
+      const ppIds = ppRows.map((r: any) => r.id);
+      await supabase.from('project_items').delete().in('package_instance_id', ppIds);
+      await supabase.from('project_packages').delete().eq('package_id', deleteId);
+    }
+
     await deletePackage(deleteId);
     toast({ title: 'Paket gelöscht' });
     if (editorPkg?.id === deleteId) setEditorPkg(null);

@@ -571,6 +571,54 @@ export type Database = {
         }
         Relationships: []
       }
+      project_dmx_instances: {
+        Row: {
+          created_at: string
+          dmx_start_address: number
+          dmx_universe: number
+          id: string
+          instance_number: number
+          item_id: string
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dmx_start_address: number
+          dmx_universe?: number
+          id?: string
+          instance_number?: number
+          item_id: string
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dmx_start_address?: number
+          dmx_universe?: number
+          id?: string
+          instance_number?: number
+          item_id?: string
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_dmx_instances_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_dmx_instances_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_dmx_patches: {
         Row: {
           created_at: string
@@ -626,6 +674,7 @@ export type Database = {
           id: string
           inventory_item_id: string
           notes: string | null
+          original_location: string | null
           package_instance_id: string | null
           packed: boolean
           project_id: string
@@ -638,6 +687,7 @@ export type Database = {
           id?: string
           inventory_item_id: string
           notes?: string | null
+          original_location?: string | null
           package_instance_id?: string | null
           packed?: boolean
           project_id: string
@@ -650,6 +700,7 @@ export type Database = {
           id?: string
           inventory_item_id?: string
           notes?: string | null
+          original_location?: string | null
           package_instance_id?: string | null
           packed?: boolean
           project_id?: string
@@ -842,7 +893,6 @@ export type Database = {
         | "transit"
         | "live"
         | "returning"
-        | "archived"
         | "archived"
     }
     CompositeTypes: {
