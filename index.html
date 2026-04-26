@@ -2,7 +2,7 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rigflow | Veranstaltungstechnik verwalten</title>
     <meta name="description" content="Verwalte deine Veranstaltungstechnik einfach und übersichtlich. Kabel, Lautsprecher, Lichttechnik, Mikrofone und mehr." />
     <meta name="author" content="Rigflow" />
@@ -10,7 +10,6 @@
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#1a1a2e" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Rigflow" />
@@ -20,13 +19,23 @@
     <meta property="og:title" content="Rigflow Inventory" />
     <meta property="og:description" content="Verwalte deine Veranstaltungstechnik einfach und übersichtlich." />
     <meta property="og:type" content="website" />
-
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Rigflow" />
 
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" />
+    </noscript>
+
     <script src="https://accounts.google.com/gsi/client" async defer></script>
   </head>
-
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

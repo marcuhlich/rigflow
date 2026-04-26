@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { UndoRedoProvider } from "@/contexts/UndoRedoContext";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -13,37 +13,48 @@ import { PushService } from "@/lib/pushService";
 import { logger } from "@/lib/logger";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
-import Landing from "./pages/Landing";
-import InstallPrompt from "./pages/InstallPrompt";
-import RegisterPage from '@/pages/RegisterPage';
-import Dashboard from "./pages/Dashboard";
-import Inventory from "./pages/Inventory";
-import ItemDetail from "./pages/ItemDetail";
-import HelpPage from "./pages/HelpPage";
-import DMXPatchplan from "./pages/DMXPatchplan";
-import ProjectsPage from "./pages/Projects";
-import ProjectDetail from "./pages/ProjectDetail";
-import Lending from "./pages/Lending";
-import AccountSettings from "./pages/AccountSettings";
-import Auth from "./pages/Auth";
-import Install from "./pages/Install";
-import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 import { useOverdueReminder } from "@/hooks/useOverdueReminder";
-import AuthCallback from "./pages/AuthCallback";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import AccountInfo from "./pages/settings/AccountInfo";
-import Notifications from "./pages/settings/Notifications";
-import NotificationTest from "./pages/dev/NotificationTest";
-import PrivacySecurity from "./pages/settings/PrivacySecurity";
-import Scanner from "./pages/Scanner";
-import Appearance from "./pages/settings/Appearance";
 import { applyStoredAppearance } from "@/lib/appearanceUtils";
 import SettingsGuard from "@/components/SettingsGuard";
-import HapticsTest from "./pages/dev/Haptics";
 
-const queryClient = new QueryClient();
+const Landing = lazy(() => import("./pages/Landing"));
+const InstallPrompt = lazy(() => import("./pages/InstallPrompt"));
+const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Install = lazy(() => import("./pages/Install"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Inventory = lazy(() => import("./pages/Inventory"));
+const ItemDetail = lazy(() => import("./pages/ItemDetail"));
+const Lending = lazy(() => import("./pages/Lending"));
+const ProjectsPage = lazy(() => import("./pages/Projects"));
+const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
+const DMXPatchplan = lazy(() => import("./pages/DMXPatchplan"));
+const Scanner = lazy(() => import("./pages/Scanner"));
+const HelpPage = lazy(() => import("./pages/HelpPage"));
+// Settings
+const AccountSettings = lazy(() => import("./pages/AccountSettings"));
+const AccountInfo = lazy(() => import("./pages/settings/AccountInfo"));
+const Notifications = lazy(() => import("./pages/settings/Notifications"));
+const PrivacySecurity = lazy(() => import("./pages/settings/PrivacySecurity"));
+const Appearance = lazy(() => import("./pages/settings/Appearance"));
+// Dev
+const NotificationTest = lazy(() => import("./pages/dev/NotificationTest"));
+const HapticsTest = lazy(() => import("./pages/dev/Haptics"));
+
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 10,
+    },
+  },
+});
 
 applyStoredAppearance();
 
@@ -93,6 +104,11 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
     <Routes>
 
       {/* ── Public ─────────────────────────────────────────────────────── */}
@@ -133,6 +149,7 @@ function AppRoutes() {
       <Route path="*" element={<NotFound />} />
 
     </Routes>
+    </Suspense>
   );
 }
 

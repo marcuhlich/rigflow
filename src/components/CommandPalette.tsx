@@ -482,7 +482,6 @@ export function CommandPalette() {
             </p>
             <a
               href="/help"
-              target="_blank"
               rel="noopener noreferrer"
               className="text-primary hover:underline text-xs"
             >

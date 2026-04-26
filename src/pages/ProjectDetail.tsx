@@ -67,6 +67,7 @@ import { STATUS_ORDER, isWarningJump } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
 import { DateRange } from "react-day-picker";
 import { ProjectDMXTab } from "@/components/ProjectDMXTab";
+import { ProjectReportDialog } from "@/components/ProjectReportDialog";
 
 // ─── Phasen-Konstanten ────────────────────────────────────────────────────────
 
@@ -577,10 +578,11 @@ function StatusPickerLocal({ status, onChangeStatus, disabled }: {
 
 // ─── Finalisierungs-Dialog ────────────────────────────────────────────────────
 
-function FinalizeProjectDialog({ open, onClose, projectName, allItems, conditions, onFinalize }: {
+function FinalizeProjectDialog({ open, onClose, projectName, allItems, conditions, onFinalize, onOpenReport }: {
   open: boolean; onClose: () => void; projectName: string;
   allItems: EnrichedProjectItem[]; conditions: Record<string, Condition>;
   onFinalize: (options: FinalizeOptions) => Promise<void>;
+  onOpenReport: () => void;
 }) {
   const [step, setStep]         = useState<FinalizeStep>('confirm');
   const [options, setOptions]   = useState<FinalizeOptions>({ missingAction: null, sendDamagedToMaintenance: true });
@@ -713,13 +715,19 @@ function FinalizeProjectDialog({ open, onClose, projectName, allItems, condition
               </div>
             )}
 
-            <div className="rounded-lg border border-border/50 p-3 opacity-50">
-              <div className="flex items-center gap-2">
-                <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                <p className="text-sm font-medium">Projektbericht als PDF</p>
-                <Badge variant="outline" className="text-[10px] ml-auto">Bald verfügbar</Badge>
-              </div>
-            </div>
+            <div
+          className="rounded-lg border border-border/50 p-3 cursor-pointer hover:bg-muted/30 transition-colors"
+          onClick={() => { onClose(); setTimeout(() => onOpenReport(), 50); }}
+        >
+          <div className="flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-muted-foreground" />
+            <p className="text-sm font-medium">Projektbericht als PDF</p>
+            <Badge variant="outline" className="text-[10px] ml-auto text-primary border-primary/40">Vorschau →</Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1 pl-6">
+            Alle Items, Zustände und Todos als druckbares Dokument
+          </p>
+        </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setStep('confirm')} className="w-full sm:w-auto">← Zurück</Button>
@@ -1572,6 +1580,7 @@ export default function ProjectDetail() {
   const [editOpen,      setEditOpen]      = useState(false);
   const [deleteOpen,    setDeleteOpen]    = useState(false);
   const [finalizeOpen,  setFinalizeOpen]  = useState(false);
+  const [reportOpen,    setReportOpen]    = useState(false);
   const [pendingStatus, setPendingStatus] = useState<{ from: ProjectStatus; to: ProjectStatus } | null>(null);
 
   // Conditions — auf Seiten-Ebene damit FinalizeDialog darauf zugreifen kann
@@ -2051,6 +2060,18 @@ export default function ProjectDetail() {
           open={finalizeOpen} onClose={() => setFinalizeOpen(false)}
           projectName={project.name} allItems={allItems}
           conditions={conditions} onFinalize={handleFinalize}
+          onOpenReport={() => setReportOpen(true)}
+        />
+
+        <ProjectReportDialog
+          open={reportOpen} onClose={() => setReportOpen(false)}
+          project={project}
+          packageGroups={packageGroups}
+          directItems={directItems}
+          allItems={allItems}
+          todos={todos}
+          conditions={conditions}
+          conflicts={conflicts}
         />
 
         <AlertDialog open={!!pendingStatus} onOpenChange={v => !v && setPendingStatus(null)}>
