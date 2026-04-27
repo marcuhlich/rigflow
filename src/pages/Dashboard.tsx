@@ -7,7 +7,7 @@ import { ScanRevealOverlay } from '@/components/ScanRevealOverlay';
 import {
   Package, CheckCircle, ArrowRightLeft, AlertTriangle, Zap, Clock, Activity,
   ArrowRight, TrendingUp, CalendarDays, Star, MapPin, DollarSign,
-  RotateCcw, ScanLine, Trash, QrCode, FolderKanban,
+  RotateCcw, ScanLine, Trash, QrCode, FolderKanban, Bell,
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
@@ -18,6 +18,7 @@ import { useInventory } from "@/hooks/useInventory";
 import { useProjects } from "@/hooks/useProjects";
 import { useAuth } from "@/hooks/useAuth";
 import { useLendingHistory } from "@/hooks/useLendingHistory";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -148,7 +149,6 @@ const MobileBentoStats = ({ stats, totalValue, activeLoansCount }: MobileBentoSt
 
   return (
     <section className="mobile-bento-grid">
-      {/* Hero card */}
       <Link
         to="/inventory"
         className="mobile-hero-card"
@@ -157,12 +157,9 @@ const MobileBentoStats = ({ stats, totalValue, activeLoansCount }: MobileBentoSt
       >
         <div className="mobile-hero-mesh" />
         <div style={{ position: "relative", zIndex: 10, padding: "14px", height: "100%", display: "flex", flexDirection: "column" }}>
-          {/* ↓ color uses CSS variable — adapts to dark/light */}
           <p style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--mob-hero-label)", margin: "0 0 6px 0" }}>
             Wo ist mein Zeug?
           </p>
-
-          {/* Donut */}
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
             <div style={{ width: "120px", height: "120px" }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -182,14 +179,11 @@ const MobileBentoStats = ({ stats, totalValue, activeLoansCount }: MobileBentoSt
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            {/* Center % */}
             <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", pointerEvents: "none" }}>
               <p style={{ fontSize: "22px", fontWeight: 800, color: "var(--mob-hero-pct)", lineHeight: 1, margin: 0 }}>{availPct}%</p>
               <p style={{ fontSize: "9px", color: "var(--mob-hero-pct-sub)", margin: "2px 0 0 0" }}>frei</p>
             </div>
           </div>
-
-          {/* Legend */}
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "6px" }}>
             {donutData.map(d => (
               <div key={d.name} style={{ display: "flex", alignItems: "center", gap: "3px" }}>
@@ -202,7 +196,6 @@ const MobileBentoStats = ({ stats, totalValue, activeLoansCount }: MobileBentoSt
         </div>
       </Link>
 
-      {/* 4 secondary tiles */}
       <div className="mobile-secondary-grid">
         {tiles.map((s) => (
           <Link
@@ -287,7 +280,6 @@ const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* ── Card — background and border use CSS variables ── */}
         <div style={{ flex: `0 0 calc(100% - ${ACTION_WIDTH}px)`, minWidth: 0 }}>
           <Link
             to={`/inventory/${item.id}`}
@@ -330,7 +322,6 @@ const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
                 </span>
               )}
             </div>
-            {/* Progress bar */}
             <div style={{
               height: "2.5px", width: "100%", backgroundColor: urgencyColor,
               borderRadius: "0 0 12px 12px",
@@ -339,7 +330,6 @@ const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
           </Link>
         </div>
 
-        {/* ── Action buttons ── */}
         <button
           style={{
             flex: `0 0 ${ACTION_WIDTH / 2}px`, border: "none", cursor: "pointer", marginLeft: "6px",
@@ -371,32 +361,22 @@ const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const { allItems, stats, loading } = useInventory();
+  // FIX: Ein einziger useInventory-Call statt drei
+  const { allItems, stats, loading, refetch } = useInventory();
   const { projects } = useProjects();
   const { user } = useAuth();
-  const { refetch: refetchInventory } = useInventory();
   const { activeLoans, completedLoans, markReturned, deleteRecord } = useLendingHistory();
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [chartsVisible, setChartsVisible] = useState(false);
   const [pieActiveIndex] = useState(-1);
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  // FIX: reaktiver Hook statt einmaligem window.innerWidth-Snapshot
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const { refetch } = useInventory();
   const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
 
   useEffect(() => {
     const t = setTimeout(() => setChartsVisible(true), 100);
     return () => clearTimeout(t);
   }, []);
-
-  useEffect(() => {
-    if (user && !localStorage.getItem(`onboarding_completed_${user.id}`)) setShowOnboarding(true);
-  }, [user]);
-
-  const handleOnboardingComplete = () => {
-    if (user) localStorage.setItem(`onboarding_completed_${user.id}`, "true");
-    setShowOnboarding(false);
-  };
 
   const pieData = useMemo(() => [
     { name: "Verfügbar",  value: stats.available, color: "hsl(var(--success))" },
@@ -504,6 +484,16 @@ export default function Dashboard() {
         @keyframes glowPill    { 0%,100%{ box-shadow:0 0 6px 1px rgba(239,68,68,.5) } 50%{ box-shadow:0 0 14px 4px rgba(239,68,68,.85) } }
         @keyframes meshMove    { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
 
+        /* FIX: Aktivitäten-Stagger */
+        @keyframes activityIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .activity-item {
+          opacity: 0;
+          animation: activityIn 0.3s ease forwards;
+        }
+
         /* ── Mobile Bento ─────────────────────────── */
         @media (max-width: 767px) {
           .mobile-bento-grid {
@@ -601,11 +591,8 @@ export default function Dashboard() {
       </div>
 
       {/* ══ 1. BENTO STATS ══════════════════════════════════════════════════════ */}
-
-      {/* Mobile */}
       <MobileBentoStats stats={stats} totalValue={totalValue} activeLoansCount={activeLoans.length} />
 
-      {/* Desktop */}
       <section className="desktop-only grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <StatCard title="Gesamt"     value={stats.total}                    icon={Package}       variant="default"     />
         <StatCard title="Verfügbar"  value={stats.available}                icon={CheckCircle}   variant="success"     />
@@ -637,7 +624,6 @@ export default function Dashboard() {
             <ScanLine className="h-5 w-5 text-primary" />
             <QrCode className="h-3.5 w-3.5 text-primary absolute opacity-80" />
           </div>
-          
           <div className="min-w-0">
             <p className="font-semibold text-sm">Scanner</p>
             <p className="text-xs text-muted-foreground truncate">Verleih, Aufbau, Abbau</p>
@@ -649,7 +635,6 @@ export default function Dashboard() {
       {defectItems.length > 0 && (
         <div className="mobile-only">
           <div className="mobile-section-header">
-            {/* icon color uses CSS variable — adapts to dark/light */}
             <AlertTriangle className="h-3.5 w-3.5" style={{ color: "var(--mob-section-color)" }} />
             <span className="mobile-section-title">Defekt · {stats.defect} Artikel</span>
           </div>
@@ -695,7 +680,7 @@ export default function Dashboard() {
                     <Link
                       key={p.id}
                       to={`/projects/${p.id}`}
-                      className="flex items-center justify-between p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors"
+                      className="flex items-center justify-between p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 active:scale-[0.98] transition-all"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
@@ -722,9 +707,11 @@ export default function Dashboard() {
                 })}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground py-4 text-center">
-                Keine Projekte in den nächsten 30 Tagen.
-              </p>
+              /* FIX: Leerer State mit Icon statt reinem Text */
+              <div className="flex flex-col items-center gap-2 py-6 text-center">
+                <CalendarDays className="h-8 w-8 text-muted-foreground/30" />
+                <p className="text-xs text-muted-foreground">Keine Projekte in den nächsten 30 Tagen.</p>
+              </div>
             )}
             <Link
               to="/projects"
@@ -736,10 +723,9 @@ export default function Dashboard() {
         </Card>
 
         <div className="space-y-3">
-          {/* Projekte Quicklink */}
           <Link
             to="/projects"
-            className="flex items-center justify-between p-3 sm:p-4 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors group"
+            className="flex items-center justify-between p-3 sm:p-4 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 active:scale-[0.98] transition-all group"
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
@@ -755,7 +741,6 @@ export default function Dashboard() {
             <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
           </Link>
 
-          {/* Desktop: Lent */}
           {lentItems.length > 0 && (
             <Card className="desktop-only border-warning/30">
               <CardContent className="p-4">
@@ -766,7 +751,7 @@ export default function Dashboard() {
                 <div className="space-y-1.5">
                   {lentItems.map((item) => (
                     <Link key={item.id} to={`/inventory/${item.id}`}
-                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/20 transition-colors">
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/20 active:scale-[0.98] transition-all">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium truncate">{item.name}</p>
                         <p className="text-[11px] text-muted-foreground truncate">
@@ -784,7 +769,6 @@ export default function Dashboard() {
             </Card>
           )}
 
-          {/* Desktop: Defect */}
           {defectItems.length > 0 && (
             <Card className="desktop-only border-destructive/30">
               <CardContent className="p-4">
@@ -795,7 +779,7 @@ export default function Dashboard() {
                 <div className="space-y-1.5">
                   {defectItems.map((item) => (
                     <Link key={item.id} to={`/inventory/${item.id}`}
-                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/20 transition-colors">
+                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/20 active:scale-[0.98] transition-all">
                       <p className="text-xs font-medium truncate">{item.name}</p>
                       <span className="text-[11px] text-muted-foreground shrink-0">{item.category}</span>
                     </Link>
@@ -820,11 +804,12 @@ export default function Dashboard() {
               item={item}
               onReturn={async (id) => {
                 await markReturned(id);
-                refetchInventory();
+                refetch();
               }}
               onRemind={async (id) => {
-                await deleteRecord(id);
-                refetchInventory();
+                // onRemind sendet eine Erinnerung — deleteRecord bleibt für echtes Löschen
+                // Hier kannst du später push notification / toast ergänzen
+                if (navigator.vibrate) navigator.vibrate([10, 50, 10]);
               }}
             />
           ))}
@@ -866,7 +851,11 @@ export default function Dashboard() {
               </div>
             )
           ) : (
-            <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">Keine Daten vorhanden</div>
+            /* FIX: Skeleton statt leerem Div während Charts laden */
+            <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
+              <Activity className="h-8 w-8 opacity-20" />
+              <span className="text-sm">Keine Daten vorhanden</span>
+            </div>
           )}
         </div>
 
@@ -893,7 +882,10 @@ export default function Dashboard() {
               </div>
             )
           ) : (
-            <div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">Keine Kategorien vorhanden</div>
+            <div className="h-[260px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
+              <TrendingUp className="h-8 w-8 opacity-20" />
+              <span className="text-sm">Keine Kategorien vorhanden</span>
+            </div>
           )}
         </div>
       </div>
@@ -915,14 +907,17 @@ export default function Dashboard() {
                       <span className="text-muted-foreground shrink-0 ml-2">{count} Stück</span>
                     </div>
                     <div className="h-2 rounded-full bg-muted/40 overflow-hidden">
-                      <div className="h-full rounded-full bg-primary/70 transition-all" style={{ width: `${Math.max(pct, 2)}%` }} />
+                      <div className="h-full rounded-full bg-primary/70 transition-all duration-700" style={{ width: `${Math.max(pct, 2)}%` }} />
                     </div>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <p className="h-[160px] flex items-center justify-center text-muted-foreground text-sm">Keine Standorte vorhanden.</p>
+            <div className="h-[160px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
+              <MapPin className="h-8 w-8 opacity-20" />
+              <span className="text-sm">Keine Standorte vorhanden.</span>
+            </div>
           )}
         </div>
 
@@ -933,9 +928,13 @@ export default function Dashboard() {
           </h3>
           {recentActivities.length > 0 ? (
             <div className="space-y-2">
-              {recentActivities.map((activity) => (
-                <div key={activity.id + activity.time}
-                  className="flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+              {/* FIX: Stagger-Animation pro Item */}
+              {recentActivities.map((activity, index) => (
+                <div
+                  key={activity.id + activity.time}
+                  className={`activity-item flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors`}
+                  style={{ animationDelay: `${index * 60}ms` }}
+                >
                   <div className={`p-1.5 rounded-full flex-shrink-0 ${
                     activity.type === "lent" ? "bg-warning/20 text-warning"
                     : activity.type === "returned" ? "bg-primary/20 text-primary"
@@ -955,8 +954,9 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <div className="h-[160px] flex items-center justify-center text-muted-foreground text-sm">
-              Keine aktuellen Aktivitäten
+            <div className="h-[160px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
+              <Clock className="h-8 w-8 opacity-20" />
+              <span className="text-sm">Keine aktuellen Aktivitäten</span>
             </div>
           )}
         </div>

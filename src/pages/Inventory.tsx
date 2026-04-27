@@ -105,12 +105,34 @@ export default function Inventory() {
     tagFilter, setTagFilter, availableTags,
   } = useInventory();
 
-    useEffect(() => {
-    setSearchQuery(searchParams.get("search") || "");
-    setCategoryFilter(searchParams.get("category") as ItemCategory || "all");
-    setConditionFilter(searchParams.get("filter") as ItemCondition || "all");
-    setLocationFilter(searchParams.get("location") || "all");
-  }, [searchParams, setSearchQuery, setCategoryFilter, setConditionFilter, setLocationFilter]);
+    const didInitFromUrl = useRef(false);
+  useEffect(() => {
+    if (didInitFromUrl.current) return;
+    didInitFromUrl.current = true;
+    const search   = searchParams.get("search")   || "";
+    const category = searchParams.get("category") || "all";
+    const filter   = searchParams.get("filter")   || "all";
+    const location = searchParams.get("location") || "all";
+    if (search)              setSearchQuery(search);
+    if (category !== "all")  setCategoryFilter(category as ItemCategory);
+    if (filter   !== "all")  setConditionFilter(filter as ItemCondition);
+    if (location !== "all")  setLocationFilter(location);
+  }, []);
+
+    const updateSearchParams = useCallback((patch: Record<string, string>) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      Object.entries(patch).forEach(([key, value]) => {
+        if (value === "" || value === "all") {
+          next.delete(key);
+        } else {
+          next.set(key, value);
+        }
+      });
+      return next;
+    });
+  }, [setSearchParams]);
+
 
   // Führe Aktionen aus, die von der CommandPalette via URL-Parameter signalisiert werden
   useEffect(() => {
@@ -440,26 +462,26 @@ export default function Inventory() {
       )}
 
       {/* FilterBar – searchRef für Autofokus */}
-      <FilterBar
+        <FilterBar
         searchQuery={searchQuery}
         onSearchChange={(value) => {
           setSearchQuery(value);
-          setSearchParams({ ...Object.fromEntries(searchParams), search: value });
+          updateSearchParams({ search: value });
         }}
         categoryFilter={categoryFilter}
         onCategoryChange={(value) => {
           setCategoryFilter(value);
-          setSearchParams({ ...Object.fromEntries(searchParams), category: value });
+          updateSearchParams({ category: value });
         }}
         conditionFilter={conditionFilter}
         onConditionChange={(value) => {
           setConditionFilter(value);
-          setSearchParams({ ...Object.fromEntries(searchParams), filter: value });
+          updateSearchParams({ filter: value });
         }}
         locationFilter={locationFilter}
         onLocationChange={(value) => {
           setLocationFilter(value);
-          setSearchParams({ ...Object.fromEntries(searchParams), location: value });
+          updateSearchParams({ location: value });
         }}
         onClearFilters={() => {
           clearFilters();
@@ -487,6 +509,11 @@ export default function Inventory() {
           onUpdateItem={updateItem}
           onAddItem={addItem}
           onFilterCategory={(cat) => setCategoryFilter(cat)}
+          searchQuery={searchQuery}
+          hasActiveFilters={categoryFilter !== "all" || conditionFilter !== "all" || locationFilter !== "all" || tagFilter !== "all"}
+          onAddItemClick={handleAddClick}
+          onClearFilters={clearFilters}
+          onClearSearch={() => setSearchQuery("")}
           onEnterSelectionMode={(firstId) => {
             setSelectionMode(true);
             toggleSelection(firstId);

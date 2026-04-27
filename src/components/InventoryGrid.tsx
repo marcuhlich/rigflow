@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { InventoryContextMenu } from "@/components/InventoryContextMenu";
 import { hapticFeedback } from "@/lib/utils";
 import { hapticStop, hapticLongPress } from "@/lib/utils";
+import { EmptyState } from "@/components/EmptyState";
 
 const LONG_PRESS_MS = 1000;
 
@@ -26,6 +27,12 @@ interface InventoryGridProps {
   onAddItem: (item: Omit<InventoryItem, "id"|"user_id"|"created_at"|"updated_at">) => Promise<void>;
   onFilterCategory: (category: string) => void;
   onEnterSelectionMode?: (firstItemId: string) => void;
+  // Empty state
+  searchQuery?: string;
+  hasActiveFilters?: boolean;
+  onAddItemClick?: () => void;
+  onClearFilters?: () => void;
+  onClearSearch?: () => void;
 }
 
 export const InventoryGrid = React.memo(function InventoryGrid({
@@ -40,6 +47,11 @@ export const InventoryGrid = React.memo(function InventoryGrid({
   onAddItem,
   onFilterCategory,
   onEnterSelectionMode,
+  searchQuery = "",
+  hasActiveFilters = false,
+  onAddItemClick,
+  onClearFilters,
+  onClearSearch,
 }: InventoryGridProps) {
   const [qrItemId, setQrItemId] = useState<string | null>(null);
   const [pressingId, setPressingId] = useState<string | null>(null);
@@ -59,7 +71,7 @@ export const InventoryGrid = React.memo(function InventoryGrid({
     animTimer.current = null;
     pressStartPos.current = null;
     setPressingId(null);
-    hapticStop(); // ← laufendes Muster sofort abbrechen
+    hapticStop();
   };
 
   const handlePointerDown = (e: React.PointerEvent, item: InventoryItem) => {
@@ -67,7 +79,6 @@ export const InventoryGrid = React.memo(function InventoryGrid({
     if (e.pointerType === "mouse") return;
     e.currentTarget.setPointerCapture(e.pointerId);
 
-    // Position relativ zur Karte speichern für den Ripple-Ursprung
     const rect = e.currentTarget.getBoundingClientRect();
     pressPosRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
 
@@ -82,11 +93,11 @@ export const InventoryGrid = React.memo(function InventoryGrid({
       didLongPress.current = true;
       hapticFeedback(80);
       setPressingId(null);
-      setCompletingId(item.id); // Bounce-Animation starten
+      setCompletingId(item.id);
       setTimeout(() => {
         setCompletingId(null);
         onEnterSelectionMode?.(item.id);
-      }, 300); // Dauer der Bounce-Animation
+      }, 300);
     }, LONG_PRESS_MS);
   };
 
@@ -94,7 +105,6 @@ export const InventoryGrid = React.memo(function InventoryGrid({
     if (!pressStartPos.current) return;
     const dx = Math.abs(e.clientX - pressStartPos.current.x);
     const dy = Math.abs(e.clientY - pressStartPos.current.y);
-    // Mehr als 8px bewegt → kein Long Press
     if (dx > 8 || dy > 8) cancelPress();
   };
 
@@ -102,20 +112,28 @@ export const InventoryGrid = React.memo(function InventoryGrid({
   const handlePointerLeave = () => cancelPress();
 
   if (items.length === 0) {
+    if (searchQuery.trim()) {
+      return (
+        <EmptyState
+          variant="search"
+          searchQuery={searchQuery}
+          onClearSearch={onClearSearch}
+        />
+      );
+    }
+    if (hasActiveFilters) {
+      return (
+        <EmptyState
+          variant="filtered"
+          onClearFilters={onClearFilters}
+        />
+      );
+    }
     return (
-      <div className="glass-card p-12 text-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="p-4 rounded-full bg-muted/30">
-            <Package className="h-12 w-12 text-muted-foreground" />
-          </div>
-          <div>
-            <h3 className="text-lg font-medium">Keine Items gefunden</h3>
-            <p className="text-muted-foreground text-sm mt-1">
-              Füge dein erstes Item hinzu oder ändere die Filter.
-            </p>
-          </div>
-        </div>
-      </div>
+      <EmptyState
+        variant="empty"
+        onAddItem={onAddItemClick}
+      />
     );
   }
 
@@ -140,13 +158,11 @@ export const InventoryGrid = React.memo(function InventoryGrid({
                   "glass-card group relative flex flex-col overflow-hidden select-none",
                   isSelected && "ring-2 ring-primary bg-primary/5",
                 )}
-
-                // Im style:
                 style={{
                   transform: isPressing
                     ? "translateY(-12px) scale(1.04)"
                     : isCompleting
-                    ? undefined // handled by animation
+                    ? undefined
                     : "translateY(0) scale(1)",
                   boxShadow: isPressing
                     ? "0 24px 60px rgba(0,0,0,0.35), 0 0 40px hsl(var(--primary) / 0.35)"
@@ -168,10 +184,8 @@ export const InventoryGrid = React.memo(function InventoryGrid({
                 onPointerLeave={handlePointerLeave}
                 onPointerCancel={handlePointerLeave}
               >
-                {/* Pulse-Ring: wächst von innen nach außen während des Haltens */}
                 {isPressing && pressPosRef.current && (
                   <>
-                    {/* Ripple vom Fingerpunkt */}
                     <span
                       className="pointer-events-none absolute z-20 rounded-full"
                       style={{
@@ -184,7 +198,6 @@ export const InventoryGrid = React.memo(function InventoryGrid({
                         animation: `longpress-ripple ${LONG_PRESS_MS - 100}ms ease-out forwards`,
                       }}
                     />
-                    {/* Sanfter Glow über die ganze Karte */}
                     <span
                       className="pointer-events-none absolute inset-0 rounded-[inherit] z-10"
                       style={{
@@ -245,14 +258,13 @@ export const InventoryGrid = React.memo(function InventoryGrid({
                   </div>
                 )}
 
-                {/* Card Content */}
                 <div
                   className={cn(
                     "flex flex-col flex-1 p-3 sm:p-4 cursor-pointer",
                     !selectionMode && "sm:pb-9"
                   )}
                   onClick={() => {
-                    cancelPress(); // ← Safety-Net: Animation auf jeden Fall stoppen
+                    cancelPress();
                     if (didLongPress.current) { didLongPress.current = false; return; }
                     selectionMode
                       ? onToggleSelection?.(item.id)

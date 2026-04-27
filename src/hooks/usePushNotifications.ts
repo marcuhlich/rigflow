@@ -119,9 +119,7 @@ export function usePushNotifications() {
     }
   };
 
-  /**
-   * Send sync success notification
-   */
+/* 
   const notifySync = async (itemsCount: number, conflictCount: number = 0): Promise<void> => {
     // Checke Permission vor dem Senden
     if (Notification.permission !== 'granted') {
@@ -143,9 +141,6 @@ export function usePushNotifications() {
     });
   };
 
-  /**
-   * Send offline notification
-   */
   const notifyOffline = async (): Promise<void> => {
     // Checke Permission vor dem Senden
     if (Notification.permission !== 'granted') {
@@ -161,9 +156,6 @@ export function usePushNotifications() {
     });
   };
 
-  /**
-   * Send online notification
-   */
   const notifyOnline = async (): Promise<void> => {
     // Checke Permission vor dem Senden
     if (Notification.permission !== 'granted') {
@@ -178,6 +170,8 @@ export function usePushNotifications() {
       requireInteraction: false,
     });
   };
+  
+*/
 
   /**
    * Send error notification
@@ -231,9 +225,6 @@ export function usePushNotifications() {
     isBackgroundMode,
     requestPermission,
     sendNotification,
-    notifySync,
-    notifyOffline,
-    notifyOnline,
     notifyError,
   };
 }

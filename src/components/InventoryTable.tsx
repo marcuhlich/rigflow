@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Pencil, Trash2, MoreVertical, Package, QrCode } from "lucide-react";
+import { Pencil, Trash2, MoreVertical, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -15,6 +15,7 @@ import { QRCodeDisplay } from "@/components/QRCodeDisplay";
 import { InventoryItem } from "@/types/inventory";
 import { cn } from "@/lib/utils";
 import { InventoryContextMenu } from "@/components/InventoryContextMenu";
+import { EmptyState } from "@/components/EmptyState";
 
 interface InventoryTableProps {
   items: InventoryItem[];
@@ -24,17 +25,20 @@ interface InventoryTableProps {
   selectedIds?: Set<string>;
   onToggleSelection?: (id: string) => void;
   selectionMode?: boolean;
-
   onUpdateItem?: (
     id: string,
     updates: Partial<Omit<InventoryItem, "id" | "user_id" | "created_at" | "updated_at">>
   ) => Promise<void>;
-
   onAddItem?: (
     item: Omit<InventoryItem, "id" | "user_id" | "created_at" | "updated_at">
   ) => Promise<void>;
-
   onFilterCategory?: (category: string) => void;
+  // Empty state
+  searchQuery?: string;
+  hasActiveFilters?: boolean;
+  onAddItemClick?: () => void;
+  onClearFilters?: () => void;
+  onClearSearch?: () => void;
 }
 
 export const InventoryTable = React.memo(function InventoryTable({
@@ -48,25 +52,38 @@ export const InventoryTable = React.memo(function InventoryTable({
   onUpdateItem,
   onAddItem,
   onFilterCategory,
+  searchQuery = "",
+  hasActiveFilters = false,
+  onAddItemClick,
+  onClearFilters,
+  onClearSearch,
 }: InventoryTableProps) {
   const [qrItemId, setQrItemId] = useState<string | null>(null);
   const qrItem = items.find((i) => i.id === qrItemId);
 
   if (items.length === 0) {
+    if (searchQuery.trim()) {
+      return (
+        <EmptyState
+          variant="search"
+          searchQuery={searchQuery}
+          onClearSearch={onClearSearch}
+        />
+      );
+    }
+    if (hasActiveFilters) {
+      return (
+        <EmptyState
+          variant="filtered"
+          onClearFilters={onClearFilters}
+        />
+      );
+    }
     return (
-      <div className="glass-card p-12 text-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="p-4 rounded-full bg-muted/30">
-            <Package className="h-12 w-12 text-muted-foreground" />
-          </div>
-          <div>
-            <h3 className="text-lg font-medium">Keine Items gefunden</h3>
-            <p className="text-muted-foreground text-sm mt-1">
-              Füge dein erstes Item hinzu oder ändere die Filter.
-            </p>
-          </div>
-        </div>
-      </div>
+      <EmptyState
+        variant="empty"
+        onAddItem={onAddItemClick}
+      />
     );
   }
 
@@ -93,13 +110,6 @@ export const InventoryTable = React.memo(function InventoryTable({
             {items.map((item) => {
               const isSelected = selectedIds.has(item.id);
 
-              // FIX: InventoryContextMenu wraps the TableRow as children so the
-              // ContextMenuTrigger has an element to attach to. No duplicate
-              // TableRow inside DropdownMenuTrigger anymore — that was invalid HTML
-              // (a <tr> inside a <td>) and broke the entire table layout.
-              // The dropdown trigger is now a simple icon Button inside a TableCell.
-              // Optional props get no-op fallbacks so InventoryContextMenu always
-              // receives the required non-optional props it expects.
               return (
                 <InventoryContextMenu
                   key={item.id}
@@ -155,8 +165,6 @@ export const InventoryTable = React.memo(function InventoryTable({
                     <TableCell className="text-muted-foreground">{item.location}</TableCell>
 
                     {!selectionMode && (
-                      // stopPropagation so clicking the dropdown doesn't also
-                      // trigger the row's onClick (selectionMode guard above).
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
