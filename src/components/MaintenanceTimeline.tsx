@@ -2,15 +2,20 @@
 import { useState, useRef, useEffect } from 'react';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { cn } from "@/lib/utils"
 import {
   CheckCheck, Wrench, Sparkles, Search,
   Clock, AlertTriangle, CheckCircle2,
-  Plus, Loader2, Trash2, ImageIcon, X,
+  Plus, Loader2, Trash2, ImageIcon, X, CalendarDays,
 } from 'lucide-react';
 import { Button }   from '@/components/ui/button';
 import { Card }     from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input }    from '@/components/ui/input';
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Popover, PopoverTrigger, PopoverContent,
+} from '@/components/ui/popover';
 import {
   MaintenanceRecord, MaintenanceType,
   MAINTENANCE_TYPES, MAINTENANCE_TYPE_LABELS,
@@ -72,6 +77,181 @@ export function MaintenanceTimeline({
   const [deletingId,    setDeletingId]    = useState<string | null>(null);
   const [newEntryId,    setNewEntryId]    = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  function DatePicker({
+    value,
+    onChange,
+  }: {
+    value: Date | undefined;
+    onChange: (d: Date | undefined) => void;
+  }) {
+    const [open, setOpen] = useState(false);
+    const [month, setMonth] = useState(value ?? new Date());
+    const [slideDir, setSlideDir] = useState<'left' | 'right' | null>(null);
+    const prevMonth = useRef(value ?? new Date());
+  
+    const DOW = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+    const MONTHS = ['Januar','Februar','März','April','Mai','Juni',
+                    'Juli','August','September','Oktober','November','Dezember'];
+  
+    const eq = (a: Date, b: Date) =>
+      a.getFullYear() === b.getFullYear() &&
+      a.getMonth() === b.getMonth() &&
+      a.getDate() === b.getDate();
+  
+    const handleMonthChange = (delta: number) => {
+      const next = new Date(month.getFullYear(), month.getMonth() + delta, 1);
+      setSlideDir(delta > 0 ? 'left' : 'right');
+      prevMonth.current = month;
+      setMonth(next);
+      setTimeout(() => setSlideDir(null), 220);
+    };
+  
+    const handleDayClick = (day: Date) => {
+      onChange(day);
+      setTimeout(() => setOpen(false), 120);
+    };
+  
+    const label = value
+      ? format(value, 'dd.MM.yyyy', { locale: de })
+      : 'Datum wählen';
+  
+    // Tage generieren
+    const firstDow = new Date(month.getFullYear(), month.getMonth(), 1).getDay();
+    const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  
+    const cells: (Date | null)[] = [
+      ...Array(firstDow).fill(null),
+      ...Array.from({ length: daysInMonth }, (_, i) =>
+        new Date(month.getFullYear(), month.getMonth(), i + 1)
+      ),
+    ];
+    while (cells.length % 7 !== 0) cells.push(null);
+  
+    const getDayStyle = (day: Date): React.CSSProperties => {
+      const isSelected = value && eq(day, value);
+      const isToday = eq(day, new Date());
+  
+      if (isSelected) {
+        return {
+          background: 'hsl(var(--primary))',
+          color: 'hsl(var(--primary-foreground))',
+          borderRadius: '9999px',
+        };
+      }
+  
+      if (isToday) {
+        return {
+          boxShadow: 'inset 0 0 0 1.5px hsl(var(--primary) / 0.5)',
+          borderRadius: '9999px',
+        };
+      }
+  
+      return {};
+    };
+  
+    return (
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-full justify-start text-left font-normal text-xs h-9 gap-1.5",
+              !value && "text-muted-foreground"
+            )}
+          >
+            <CalendarDays className="h-3.5 w-3.5" />
+            <span className="flex-1">{label}</span>
+  
+            {value && (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange(undefined);
+                }}
+              >
+                <X className="h-3 w-3" />
+              </span>
+            )}
+          </Button>
+        </PopoverTrigger>
+  
+        <PopoverContent className="w-auto p-0" align="start">
+          <div className="p-3 select-none" style={{ width: 280 }}>
+            
+            {/* Header */}
+            <div className="flex items-center justify-between mb-3">
+              <button onClick={() => handleMonthChange(-1)}>
+                ‹
+              </button>
+  
+              <span
+                style={{
+                  animation: slideDir
+                    ? `cal-${slideDir} .2s ease-out`
+                    : undefined,
+                }}
+              >
+                {MONTHS[month.getMonth()]} {month.getFullYear()}
+              </span>
+  
+              <button onClick={() => handleMonthChange(1)}>
+                ›
+              </button>
+            </div>
+  
+            {/* Wochentage */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+              {DOW.map(d => (
+                <div
+                  key={d}
+                  style={{
+                    textAlign: 'center',
+                    fontSize: 11,
+                    color: 'hsl(var(--muted-foreground))',
+                    padding: '2px 0 6px'
+                  }}
+                >
+                  {d}
+                </div>
+              ))}
+            </div>
+  
+            {/* Tage */}
+            <table style={{ width: '100%' }}>
+              <tbody>
+                {Array.from({ length: cells.length / 7 }, (_, row) => (
+                  <tr key={row}>
+                    {cells.slice(row * 7, row * 7 + 7).map((day, col) => (
+                      <td key={col}>
+                        {day && (
+                          <button
+                            onClick={() => handleDayClick(day)}
+                            style={{
+                              width: '100%',
+                              aspectRatio: '1',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 13,
+                              ...getDayStyle(day),
+                            }}
+                            className="hover:bg-muted rounded-full"
+                          >
+                            {day.getDate()}
+                          </button>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </PopoverContent>
+      </Popover>
+    );
+  }
 
   // ── Formular öffnen mit Enter-Animation ───────────────────────────────────
   function openForm() {
@@ -186,8 +366,35 @@ export function MaintenanceTimeline({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="space-y-4">
+
+        {/* Status-Banner Skeleton */}
+        <Skeleton className="h-12 w-full rounded-lg" />
+
+        {/* Buttons */}
+        <div className="flex gap-2">
+          <Skeleton className="h-9 flex-1 rounded-md" />
+          <Skeleton className="h-9 w-24 rounded-md" />
+        </div>
+
+        {/* Timeline Skeleton */}
+        <div className="space-y-4 pt-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex gap-3">
+              
+              {/* Dot + Line */}
+              <div className="flex flex-col items-center">
+                <Skeleton className="w-3 h-3 rounded-full" />
+                <Skeleton className="w-px flex-1 mt-1" />
+              </div>
+
+              {/* Card */}
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-16 w-full rounded-lg" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -323,12 +530,18 @@ export function MaintenanceTimeline({
                 ))}
               </div>
 
-              <Input
-                type="date"
-                value={formDate}
-                onChange={e => setFormDate(e.target.value)}
-                className="text-sm transition-shadow duration-150 focus:shadow-md"
-              />
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  Datum
+                </label>
+
+                <DatePicker
+                  value={formDate ? new Date(formDate) : undefined}
+                  onChange={(date) =>
+                    setFormDate(date ? format(date, "yyyy-MM-dd") : "")
+                  }
+                />
+              </div>
 
               <Textarea
                 placeholder="Notizen (optional)…"

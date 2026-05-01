@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { User, Settings, LogOut } from "lucide-react";
+import posthog from "posthog-js";
 
 export function UserMenu() {
   const { user, signOut } = useAuth();
@@ -23,6 +24,7 @@ export function UserMenu() {
         title: "Abgemeldet",
         description: "Du wurdest erfolgreich abgemeldet.",
       });
+      posthog.capture("user_logged_out");
       navigate("/auth");
     } catch {
       toast({

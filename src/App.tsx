@@ -17,6 +17,7 @@ import { Loader2 } from "lucide-react";
 import { useOverdueReminder } from "@/hooks/useOverdueReminder";
 import { applyStoredAppearance } from "@/lib/appearanceUtils";
 import SettingsGuard from "@/components/SettingsGuard";
+import { PublicPageLayout } from "./components/layout/PublicPageLayout";
 
 const Landing = lazy(() => import("./pages/Landing"));
 const InstallPrompt = lazy(() => import("./pages/InstallPrompt"));
@@ -36,6 +37,8 @@ const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const DMXPatchplan = lazy(() => import("./pages/DMXPatchplan"));
 const Scanner = lazy(() => import("./pages/Scanner"));
 const HelpPage = lazy(() => import("./pages/HelpPage"));
+const Datenschutz = lazy(() => import("./pages/Datenschutz"));
+const Impressum = lazy(() => import("./pages/Impressum"));
 // Settings
 const AccountSettings = lazy(() => import("./pages/AccountSettings"));
 const AccountInfo = lazy(() => import("./pages/settings/AccountInfo"));
@@ -120,6 +123,8 @@ function AppRoutes() {
       <Route path="/reset-password"   element={<ResetPassword />} />
       <Route path="/install"          element={<Install />} />
       <Route path="/install-prompt"   element={<InstallPrompt />} />
+      <Route path="/impressum"        element={<PublicPageLayout><Impressum /></PublicPageLayout>}/>
+      <Route path="/datenschutz"        element={<PublicPageLayout><Datenschutz /></PublicPageLayout>}/>
 
       {/* ── App ────────────────────────────────────────────────────────── */}
       <Route path="/"             element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

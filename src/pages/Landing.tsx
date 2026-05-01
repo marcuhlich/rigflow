@@ -421,8 +421,26 @@ export default function Landing() {
         {/* Footer                                                           */}
         {/* ---------------------------------------------------------------- */}
         <footer className="border-t border-border/50 bg-background/50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-center text-muted-foreground">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-center text-muted-foreground space-y-3">
+
             <p>© 2026 RigFlow. Gebaut für Veranstaltungstechniker.</p>
+
+            <div className="flex justify-center gap-6 text-sm">
+              <a
+                href="/impressum"
+                className="hover:text-foreground transition-colors"
+              >
+                Impressum
+              </a>
+
+              <a
+                href="/datenschutz"
+                className="hover:text-foreground transition-colors"
+              >
+                Datenschutz
+              </a>
+            </div>
+
           </div>
         </footer>
 

@@ -152,7 +152,7 @@ function PackageFormDialog({ open, onClose, onSubmit, initial }: {
                   key={c}
                   type="button"
                   className={cn(
-                    "h-7 w-7 rounded-full transition-all hover:scale-110 focus:outline-none",
+                    "h-7 w-7 rounded-full transition-all hover:scale-110 active:scale-95 focus:outline-none",
                     color === c && "ring-2 ring-offset-2 ring-offset-background ring-white scale-110"
                   )}
                   style={{ backgroundColor: c }}
@@ -170,7 +170,7 @@ function PackageFormDialog({ open, onClose, onSubmit, initial }: {
                   key={value}
                   type="button"
                   className={cn(
-                    "h-9 w-9 rounded-lg flex items-center justify-center border transition-all",
+                    "h-9 w-9 rounded-lg flex items-center justify-center border transition-all active:scale-95",
                     icon === value
                       ? 'border-primary bg-primary/10 text-primary'
                       : 'border-border hover:border-primary/50 text-muted-foreground'
@@ -244,7 +244,7 @@ function SortablePackageItemRow({ item, onRemove, onQtyChange }: {
       />
       <Button
         size="sm" variant="ghost"
-        className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0"
+        className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0 active:scale-95 transition-transform"
         onClick={onRemove}
       >
         <Trash2 className="h-3.5 w-3.5" />
@@ -566,7 +566,7 @@ function PackageCard({ pkg, onOpen, onEdit, onDelete }: {
 
   return (
     <Card
-      className="cursor-pointer hover:border-primary/40 transition-colors group relative overflow-hidden"
+      className="cursor-pointer hover:border-primary/40 hover:shadow-md hover:-translate-y-px active:translate-y-0 transition-all duration-150 group relative overflow-hidden"
       onClick={onOpen}
     >
       <div
@@ -589,14 +589,14 @@ function PackageCard({ pkg, onOpen, onEdit, onDelete }: {
           </div>
           <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
             <Button
-              size="sm" variant="ghost" className="h-7 w-7 p-0"
+              size="sm" variant="ghost" className="h-7 w-7 p-0 active:scale-95 transition-transform"
               onClick={e => { e.stopPropagation(); onEdit(); }}
             >
               <Edit2 className="h-3.5 w-3.5" />
             </Button>
             <Button
               size="sm" variant="ghost"
-              className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+              className="h-7 w-7 p-0 text-destructive hover:text-destructive active:scale-95 transition-transform"
               onClick={e => { e.stopPropagation(); onDelete(); }}
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -720,7 +720,7 @@ export default function PackagesPage({ embedded = false }: PackagesPageProps) {
           <div /> /* Platzhalter damit Button rechts bleibt */
         )}
 
-        <Button onClick={() => setFormOpen(true)} className="gap-1.5 h-9 shrink-0">
+        <Button onClick={() => setFormOpen(true)} className="gap-1.5 h-9 shrink-0 active:scale-95 transition-transform">
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">Neues Paket</span>
           <span className="sm:hidden">Neu</span>
@@ -750,9 +750,10 @@ export default function PackagesPage({ embedded = false }: PackagesPageProps) {
 
           {/* Keine Suchergebnisse */}
           {packages.length > 0 && filtered.length === 0 && (
-            <p className="text-center py-12 text-sm text-muted-foreground">
-              Keine Pakete für „{search}"
-            </p>
+            <div className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
+              <Search className="h-8 w-8 opacity-20" />
+              <p className="text-sm">Keine Pakete für „{search}"</p>
+            </div>
           )}
 
           {/* Grid */}

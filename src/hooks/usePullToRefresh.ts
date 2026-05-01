@@ -13,12 +13,12 @@ export function usePullToRefresh({ onRefresh, threshold = 72, disabled = false }
   const pulling = useRef(false);
   const distRef = useRef(0);
 
-  const setIndicator = (dist: number) => {
-    distRef.current = dist;
-    if (!indicatorRef.current) return;
-    indicatorRef.current.style.height = `${dist}px`;
-    indicatorRef.current.style.opacity = `${Math.min(dist / threshold, 1)}`;
-  };
+  const setIndicator = useCallback((dist: number) => {
+  distRef.current = dist;
+  if (!indicatorRef.current) return;
+  indicatorRef.current.style.height = `${dist}px`;
+  indicatorRef.current.style.opacity = `${Math.min(dist / threshold, 1)}`;
+}, [threshold]);
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     if (disabled || isRefreshing || window.scrollY > 0) return;
@@ -36,7 +36,7 @@ export function usePullToRefresh({ onRefresh, threshold = 72, disabled = false }
     const dy = e.touches[0].clientY - startY.current;
     if (dy < 0) { setIndicator(0); return; }
     setIndicator(Math.min(dy * 0.45, threshold * 1.3));
-  }, [disabled, isRefreshing, threshold]);
+  }, [disabled, isRefreshing, threshold, setIndicator]);
 
   const onTouchEnd = useCallback(async () => {
     if (!pulling.current) return;

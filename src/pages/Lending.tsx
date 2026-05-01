@@ -13,11 +13,14 @@ import {
   Search,
   Package,
   CalendarIcon,
+  CalendarDays,
+  X,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -180,17 +183,192 @@ function LendingCard({
         </div>
         <div className="flex gap-2 shrink-0">
           {!record.returned_at && (
-            <Button size="sm" variant="outline" onClick={() => onReturn(record.id)} className="gap-1.5">
+            <Button size="sm" variant="outline" onClick={() => onReturn(record.id)} className="gap-1.5 active:scale-95 transition-transform">
               <RotateCcw className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Rückgabe</span>
             </Button>
           )}
-          <Button size="sm" variant="ghost" onClick={() => onDelete(record.id)} className="text-destructive hover:text-destructive">
+          <Button size="sm" variant="ghost" onClick={() => onDelete(record.id)} className="text-destructive hover:text-destructive active:scale-95 transition-transform">
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
     </Card>
+  );
+}
+
+function DatePicker({
+  value,
+  onChange,
+}: {
+  value: Date | undefined;
+  onChange: (d: Date | undefined) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [month, setMonth] = useState(value ?? new Date());
+  const [slideDir, setSlideDir] = useState<'left' | 'right' | null>(null);
+  const prevMonth = useRef(value ?? new Date());
+
+  const DOW = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+  const MONTHS = ['Januar','Februar','März','April','Mai','Juni',
+                  'Juli','August','September','Oktober','November','Dezember'];
+
+  const eq = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  const handleMonthChange = (delta: number) => {
+    const next = new Date(month.getFullYear(), month.getMonth() + delta, 1);
+    setSlideDir(delta > 0 ? 'left' : 'right');
+    prevMonth.current = month;
+    setMonth(next);
+    setTimeout(() => setSlideDir(null), 220);
+  };
+
+  const handleDayClick = (day: Date) => {
+    onChange(day);
+    setTimeout(() => setOpen(false), 120);
+  };
+
+  const label = value
+    ? format(value, 'dd.MM.yyyy', { locale: de })
+    : 'Datum wählen';
+
+  // Tage generieren
+  const firstDow = new Date(month.getFullYear(), month.getMonth(), 1).getDay();
+  const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+
+  const cells: (Date | null)[] = [
+    ...Array(firstDow).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) =>
+      new Date(month.getFullYear(), month.getMonth(), i + 1)
+    ),
+  ];
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const getDayStyle = (day: Date): React.CSSProperties => {
+    const isSelected = value && eq(day, value);
+    const isToday = eq(day, new Date());
+
+    if (isSelected) {
+      return {
+        background: 'hsl(var(--primary))',
+        color: 'hsl(var(--primary-foreground))',
+        borderRadius: '9999px',
+      };
+    }
+
+    if (isToday) {
+      return {
+        boxShadow: 'inset 0 0 0 1.5px hsl(var(--primary) / 0.5)',
+        borderRadius: '9999px',
+      };
+    }
+
+    return {};
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "w-full justify-start text-left font-normal text-xs h-9 gap-1.5",
+            !value && "text-muted-foreground"
+          )}
+        >
+          <CalendarDays className="h-3.5 w-3.5" />
+          <span className="flex-1">{label}</span>
+
+          {value && (
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange(undefined);
+              }}
+            >
+              <X className="h-3 w-3" />
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+
+      <PopoverContent className="w-auto p-0" align="start">
+        <div className="p-3 select-none" style={{ width: 280 }}>
+          
+          {/* Header */}
+          <div className="flex items-center justify-between mb-3">
+            <button onClick={() => handleMonthChange(-1)}>
+              ‹
+            </button>
+
+            <span
+              style={{
+                animation: slideDir
+                  ? `cal-${slideDir} .2s ease-out`
+                  : undefined,
+              }}
+            >
+              {MONTHS[month.getMonth()]} {month.getFullYear()}
+            </span>
+
+            <button onClick={() => handleMonthChange(1)}>
+              ›
+            </button>
+          </div>
+
+          {/* Wochentage */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+            {DOW.map(d => (
+              <div
+                key={d}
+                style={{
+                  textAlign: 'center',
+                  fontSize: 11,
+                  color: 'hsl(var(--muted-foreground))',
+                  padding: '2px 0 6px'
+                }}
+              >
+                {d}
+              </div>
+            ))}
+          </div>
+
+          {/* Tage */}
+          <table style={{ width: '100%' }}>
+            <tbody>
+              {Array.from({ length: cells.length / 7 }, (_, row) => (
+                <tr key={row}>
+                  {cells.slice(row * 7, row * 7 + 7).map((day, col) => (
+                    <td key={col}>
+                      {day && (
+                        <button
+                          onClick={() => handleDayClick(day)}
+                          style={{
+                            width: '100%',
+                            aspectRatio: '1',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 13,
+                            ...getDayStyle(day),
+                          }}
+                          className="hover:bg-muted rounded-full"
+                        >
+                          {day.getDate()}
+                        </button>
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -208,6 +386,18 @@ export default function Lending() {
   const [formLentTo, setFormLentTo] = useState("");
   const [formDueDate, setFormDueDate] = useState("");
   const [formNotes, setFormNotes] = useState("");
+
+  const [tabVisible, setTabVisible] = useState(true);
+
+
+  const handleTabChange = (value: string) => {
+    setTabVisible(false);
+    setTimeout(() => {
+      setActiveTab(value);
+      setTabVisible(true);
+    }, 150);
+  };
+
 
   const filteredActive = useMemo(() => {
     if (!search) return activeLoans;
@@ -255,8 +445,17 @@ export default function Lending() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full rounded-lg" />
+          ))}
+        </div>
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-lg" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -279,21 +478,21 @@ export default function Lending() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="p-4 text-center">
+        <Card className="p-4 text-center transition-all duration-150 hover:shadow-md hover:-translate-y-px active:translate-y-0 cursor-default">
           <div className="text-2xl font-bold text-primary">{activeLoans.length}</div>
           <p className="text-xs text-muted-foreground mt-1">Aktiv verliehen</p>
         </Card>
-        <Card className={`p-4 text-center ${overdueLoans.length > 0 ? "border-destructive/50 bg-destructive/5" : ""}`}>
+        <Card className={`p-4 text-center transition-all duration-150 hover:shadow-md hover:-translate-y-px active:translate-y-0 cursor-default ${overdueLoans.length > 0 ? "border-destructive/50 bg-destructive/5" : ""}`}>
           <div className={`text-2xl font-bold ${overdueLoans.length > 0 ? "text-destructive" : "text-muted-foreground"}`}>
             {overdueLoans.length}
           </div>
           <p className="text-xs text-muted-foreground mt-1">Überfällig</p>
         </Card>
-        <Card className="p-4 text-center">
+        <Card className="p-4 text-center transition-all duration-150 hover:shadow-md hover:-translate-y-px active:translate-y-0 cursor-default">
           <div className="text-2xl font-bold text-muted-foreground">{completedLoans.length}</div>
           <p className="text-xs text-muted-foreground mt-1">Zurückgegeben</p>
         </Card>
-        <Card className="p-4 text-center">
+        <Card className="p-4 text-center transition-all duration-150 hover:shadow-md hover:-translate-y-px active:translate-y-0 cursor-default">
           <div className="text-2xl font-bold text-muted-foreground">{records.length}</div>
           <p className="text-xs text-muted-foreground mt-1">Gesamt</p>
         </Card>
@@ -345,9 +544,13 @@ export default function Lending() {
           { value: "history", label: `Historie (${filteredCompleted.length})`, icon: <History className="h-4 w-4" /> },
         ]}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
       />
-
+      <div style={{
+        opacity: tabVisible ? 1 : 0,
+        transform: tabVisible ? "translateY(0)" : "translateY(6px)",
+        transition: "opacity 150ms ease, transform 150ms ease",
+      }}>
       {activeTab === "active" && (
         <div className="space-y-3">
           {filteredActive.length === 0 ? (
@@ -383,6 +586,7 @@ export default function Lending() {
           )}
         </div>
       )}
+      </div>
 
       {/* Add Dialog */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -416,32 +620,12 @@ export default function Lending() {
             </div>
             <div className="space-y-2">
               <Label>Rückgabe bis</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formDueDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formDueDate
-                      ? format(new Date(formDueDate), "dd. MMM yyyy", { locale: de })
-                      : "Datum wählen"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formDueDate ? new Date(formDueDate) : undefined}
-                    onSelect={(date) => setFormDueDate(date ? format(date, "yyyy-MM-dd") : "")}
-                    locale={de}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
+                  <DatePicker
+                    value={formDueDate ? new Date(formDueDate) : undefined}
+                    onChange={(date) =>
+                      setFormDueDate(date ? format(date, "yyyy-MM-dd") : "")
+                    }
                   />
-                </PopoverContent>
-              </Popover>
             </div>
             <div className="space-y-2">
               <Label>Notizen</Label>

@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -363,6 +363,9 @@ const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
 export default function Dashboard() {
   // FIX: Ein einziger useInventory-Call statt drei
   const { allItems, stats, loading, refetch } = useInventory();
+  const handleRefresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
   const { projects } = useProjects();
   const { user } = useAuth();
   const { activeLoans, completedLoans, markReturned, deleteRecord } = useLendingHistory();
@@ -472,7 +475,7 @@ export default function Dashboard() {
 
   return (
     <PullToRefreshWrapper
-      onRefresh={async () => { await refetch(); }}
+      onRefresh={handleRefresh}
       disabled={!isMobile || !isStandalone}
     >
     <div className="space-y-5 sm:space-y-8 pb-24">

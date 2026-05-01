@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
+import posthog from "posthog-js";
 
 function getAuthErrorMessage(rawMessage: string): string {
   const map: Record<string, string> = {
@@ -95,6 +96,7 @@ const LoginStep = ({ onMfaRequired, onSuccess }: LoginStepProps) => {
       if (has2FA) {
         onMfaRequired();
       } else {
+        posthog.capture("user_logged_in");
         toast({ title: "Willkommen zurück!", description: "Du wurdest erfolgreich angemeldet." });
         onSuccess();
       }

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import posthog from "posthog-js";
 
 interface AuthContextType {
   user: User | null;
@@ -67,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Mini-Fallback für PWAs: nach dem Logout sicherstellen, dass Session leer ist
     await supabase.auth.getSession();
+    posthog.capture("user_logged_out");
   };
 
   return (

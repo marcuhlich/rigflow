@@ -7,8 +7,8 @@ import { logger } from '@/lib/logger';
 import { Json } from '@/integrations/supabase/types';
 import { offlineQueue } from '@/lib/offlineQueue';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { useNotifications } from '@/hooks/useNotifications';
 import { hapticFeedback } from '@/lib/utils';
+import posthog from "posthog-js";
 
 const ITEMS_CACHE_KEY = 'inventory_items';
 
@@ -41,7 +41,14 @@ export function useInventory() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isOnline } = useOnlineStatus();
-  const { notifySync, notifyError, notifyOffline, notifyOnline } = useNotifications();
+
+  useEffect(() => {
+  if (user) {
+    posthog.identify(user.id, {
+      email: user.email,
+    });
+  }
+}, [user]);
 
   const logAudit = async (
     action: string,
@@ -69,13 +76,11 @@ export function useInventory() {
   };
 
   // ── Tag-Sync-Hilfsfunktion ────────────────────────────────────────────────
-  const syncItemTags = async (itemId: string, tagNames: string[]) => {  // ← NEU
+  const syncItemTags = async (itemId: string, tagNames: string[]) => {
     if (!user) return;
-    // Erst alle alten item_tags löschen
     await supabase.from('item_tags').delete().eq('item_id', itemId);
     if (!tagNames.length) return;
 
-    // Tags upserten und IDs holen
     const tagRows = tagNames.map(name => ({ user_id: user.id, name: name.trim() }));
     const { data: upserted, error } = await supabase
       .from('tags')
@@ -83,7 +88,6 @@ export function useInventory() {
       .select('id');
     if (error || !upserted?.length) return;
 
-    // item_tags einfügen
     await supabase
       .from('item_tags')
       .insert(upserted.map(t => ({ item_id: itemId, tag_id: t.id })));
@@ -113,14 +117,15 @@ export function useInventory() {
       try {
         const { data, error } = await supabase
           .from('inventory_items')
-          .select(SELECT_WITH_TAGS)                    // ← GEÄNDERT
+          .select(SELECT_WITH_TAGS)
+          .eq('user_id', user.id)
           .is('deleted_at', null)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
 
         if (isMounted) {
-          const typedData = (data as any[]).map(mapRow);  // ← GEÄNDERT
+          const typedData = (data as any[]).map(mapRow);
           setItems(typedData);
           offlineQueue.setCache(ITEMS_CACHE_KEY, typedData);
         }
@@ -147,13 +152,11 @@ export function useInventory() {
 
   const [tagFilter, setTagFilter] = useState<string>('all');
 
-  // availableTags aus allen Items berechnen:
   const availableTags = useMemo(() => {
     return [...new Set(items.flatMap(i => i.tags))].sort();
   }, [items]);
 
-
-  // Trash-Load (unverändert)
+  // Trash-Load
   useEffect(() => {
     if (!user) return;
     const fetchInitialTrashCount = async () => {
@@ -171,17 +174,17 @@ export function useInventory() {
     fetchInitialTrashCount();
   }, [user]);
 
-  // Online/Offline (unverändert)
+  // Online/Offline
   useEffect(() => {
-    const handleOnline = async () => { await notifyOnline(); setTimeout(() => refetch(), 500); };
-    const handleOffline = async () => { await notifyOffline(); };
-    window.addEventListener('online', handleOnline);
+    const handleOnline  = () => { setTimeout(() => refetch(), 500); };
+    const handleOffline = () => {};
+    window.addEventListener('online',  handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
-      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('online',  handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [notifyOffline, notifyOnline]);
+  }, []);
 
   const locations = useMemo(() => {
     return [...new Set(items.map(item => item.location))].filter(Boolean).sort();
@@ -193,11 +196,11 @@ export function useInventory() {
       const matchesSearch = q === '' ||
         item.name.toLowerCase().includes(q) ||
         item.location.toLowerCase().includes(q) ||
-        item.tags.some(t => t.toLowerCase().includes(q));  // ← NEU: Tags durchsuchen
-      const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
+        item.tags.some(t => t.toLowerCase().includes(q));
+      const matchesCategory  = categoryFilter  === 'all' || item.category  === categoryFilter;
       const matchesCondition = conditionFilter === 'all' || item.condition === conditionFilter;
-      const matchesLocation = locationFilter === 'all' || item.location === locationFilter;
-      const matchesTag = tagFilter === 'all' || item.tags.includes(tagFilter);
+      const matchesLocation  = locationFilter  === 'all' || item.location  === locationFilter;
+      const matchesTag       = tagFilter       === 'all' || item.tags.includes(tagFilter);
       return matchesSearch && matchesCategory && matchesCondition && matchesLocation && matchesTag;
     });
   }, [items, searchQuery, categoryFilter, conditionFilter, locationFilter, tagFilter]);
@@ -215,7 +218,7 @@ export function useInventory() {
 
   const addItem = async (item: Omit<InventoryItem, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     if (!user) return;
-    const { tags, ...dbItem } = item;                         // ← GEÄNDERT: tags raus
+    const { tags, ...dbItem } = item;
     const tempId = crypto.randomUUID();
     const newItem: InventoryItem = {
       ...item,
@@ -239,36 +242,44 @@ export function useInventory() {
 
     try {
       const { data, error } = await supabase
-      .from('inventory_items')
-      .insert({ 
-        ...dbItem, 
-        user_id: user.id,
-        attributes: dbItem.attributes as Json ?? null,  // ← cast
-      })
-      .select()
-      .single();
+        .from('inventory_items')
+        .insert({
+          ...dbItem,
+          user_id: user.id,
+          attributes: dbItem.attributes as Json ?? null,
+        })
+        .select()
+        .single();
       if (error) throw error;
 
-      await syncItemTags(data.id, tags ?? []);               // ← NEU
+      await syncItemTags(data.id, tags ?? []);
 
-      // Neu laden mit Tags
       const { data: fresh } = await supabase
         .from('inventory_items')
         .select(SELECT_WITH_TAGS)
         .eq('id', data.id)
         .single();
 
-      const finalItem = fresh ? mapRow(fresh) : { ...data as InventoryItem, tags: tags ?? [] };
+      const finalItem = fresh ? mapRow(fresh) : { ...(data as unknown as InventoryItem), tags: tags ?? [] };
       const finalItems = updatedItems.map(i => i.id === tempId ? finalItem : i);
       setItems(finalItems);
       offlineQueue.setCache(ITEMS_CACHE_KEY, finalItems);
       await logAudit('create', data.id, item.name);
-      await notifySync(1, 0);
+      posthog.capture("item_created", {
+        category: item.category,
+        has_image: !!item.image_url,
+        quantity: item.quantity,
+        has_tags: (item.tags?.length ?? 0) > 0,
+        tags_count: item.tags?.length ?? 0,
+        created_offline: !isOnline,
+      });
     } catch (error) {
       setItems(items);
+      posthog.capture("inventory_size_changed", {
+        total_items: items.length,
+      });
       offlineQueue.setCache(ITEMS_CACHE_KEY, items);
       logger.error('Error adding item:', error);
-      await notifyError('Item konnte nicht hinzugefügt werden', error instanceof Error ? error.message : 'Unbekannter Fehler');
       toast({ title: "Fehler", description: "Item konnte nicht hinzugefügt werden.", variant: "destructive" });
       throw error;
     }
@@ -278,7 +289,7 @@ export function useInventory() {
     const oldItem = items.find(i => i.id === id);
     if (!oldItem) return;
 
-    const { tags, ...dbUpdates } = updates;                   // ← GEÄNDERT: tags raus
+    const { tags, ...dbUpdates } = updates;
     const updatedItem = { ...oldItem, ...updates, updated_at: new Date().toISOString() };
     const updatedItems = items.map(item => item.id === id ? updatedItem : item);
     setItems(updatedItems);
@@ -300,35 +311,35 @@ export function useInventory() {
     try {
       const { data, error } = await supabase
         .from('inventory_items')
-        .update({ 
+        .update({
           ...dbUpdates,
-          attributes: dbUpdates.attributes as Json ?? null,  // ← cast
+          attributes: dbUpdates.attributes as Json ?? null,
         })
         .eq('id', id)
         .select()
         .single();
       if (error) throw error;
 
-      await syncItemTags(id, tags ?? []);                     // ← NEU
+      await syncItemTags(id, tags ?? []);
 
-      const finalItem: InventoryItem = { ...(data as InventoryItem), tags: tags ?? [] };
+      const finalItem: InventoryItem = { ...(data as unknown as InventoryItem), tags: tags ?? [] };
       const finalItems = items.map(item => item.id === id ? finalItem : item);
       setItems(finalItems);
       offlineQueue.setCache(ITEMS_CACHE_KEY, finalItems);
       if (Object.keys(changes).length > 0) await logAudit('update', id, oldItem.name, changes);
-      await notifySync(1, 0);
+      posthog.capture("item_updated", {
+        fields_changed: Object.keys(changes),
+        fields_count: Object.keys(changes).length,
+        updated_offline: !isOnline,
+      });
     } catch (error) {
       setItems(items);
       offlineQueue.setCache(ITEMS_CACHE_KEY, items);
       logger.error('Error updating item:', error);
-      await notifyError('Item konnte nicht aktualisiert werden', error instanceof Error ? error.message : 'Unbekannter Fehler');
       toast({ title: "Fehler", description: "Item konnte nicht aktualisiert werden.", variant: "destructive" });
       throw error;
     }
   };
-
-  // deleteItem, Papierkorb-Funktionen, Selection, Batch — alle unverändert
-  // (komplett übernehmen aus deiner aktuellen Datei)
 
   const deleteItem = async (id: string) => {
     const item = items.find(i => i.id === id);
@@ -337,6 +348,13 @@ export function useInventory() {
     const trashedItem = { ...item, deleted_at: deletedAt };
     const updatedItems = items.filter(i => i.id !== id);
     setItems(updatedItems);
+    posthog.capture("inventory_size_changed", {
+      total_items: updatedItems.length,
+    });
+    posthog.capture("item_deleted", {
+        had_tags: item.tags.length > 0,
+        category: item.category,
+      });
     setTrashedItems(prev => [trashedItem, ...prev]);
     offlineQueue.setCache(ITEMS_CACHE_KEY, updatedItems);
     if (!isOnline) {
@@ -373,7 +391,7 @@ export function useInventory() {
     try {
       const { data, error } = await supabase.from('inventory_items').update({ deleted_at: null } as any).eq('id', id).select().single();
       if (error) throw error;
-      const restored = { ...(data as InventoryItem), tags: [] };
+      const restored = { ...(data as unknown as InventoryItem), tags: [] };
       setItems(prev => [restored, ...prev]);
       setTrashedItems(prev => prev.filter(i => i.id !== id));
       await logAudit('restore', id, item.name);
@@ -416,7 +434,7 @@ export function useInventory() {
   const toggleSelection = (id: string) => {
     setSelectedIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
   };
-  const selectAll    = () => setSelectedIds(new Set(filteredItems.map(i => i.id)));
+  const selectAll      = () => setSelectedIds(new Set(filteredItems.map(i => i.id)));
   const clearSelection = () => setSelectedIds(new Set());
 
   const batchUpdateCondition = async (condition: ItemCondition) => {
@@ -429,7 +447,6 @@ export function useInventory() {
       setItems(items.map(item => selectedIds.has(item.id) ? { ...item, condition } : item));
       const names = items.filter(i => selectedIds.has(i.id)).map(i => i.name).join(', ');
       await logAudit('batch_update', null, `${selectedIds.size} Items`, { condition: { old: 'diverse', new: condition }, items: { old: null, new: names } });
-      await notifySync(selectedIds.size, 0);
       toast({ title: "Batch-Update erfolgreich", description: `${selectedIds.size} Item(s) aktualisiert.` });
       clearSelection();
     } catch (error) {
@@ -448,7 +465,6 @@ export function useInventory() {
       setItems(items.map(item => selectedIds.has(item.id) ? { ...item, location } : item));
       const names = items.filter(i => selectedIds.has(i.id)).map(i => i.name).join(', ');
       await logAudit('batch_update', null, `${selectedIds.size} Items`, { location: { old: 'diverse', new: location }, items: { old: null, new: names } });
-      await notifySync(selectedIds.size, 0);
       toast({ title: "Batch-Update erfolgreich", description: `${selectedIds.size} Item(s) verschoben.` });
       clearSelection();
     } catch (error) {
@@ -465,12 +481,14 @@ export function useInventory() {
     const names = items.filter(i => selectedIds.has(i.id)).map(i => i.name).join(', ');
     const itemsToTrash = items.filter(i => selectedIds.has(i.id)).map(i => ({ ...i, deleted_at: deletedAt }));
     setItems(items.filter(item => !selectedIds.has(item.id)));
+    posthog.capture("inventory_size_changed", {
+      total_items: items.length - selectedIds.size,
+    });
     setTrashedItems(prev => [...itemsToTrash, ...prev]);
     try {
       const { error } = await supabase.from('inventory_items').update({ deleted_at: deletedAt } as any).in('id', ids);
       if (error) throw error;
       await logAudit('batch_soft_delete', null, `${ids.length} Items`, { items: { old: names, new: null } });
-      await notifySync(ids.length, 0);
       hapticFeedback(100);
       toast({ title: "In Papierkorb verschoben", description: `${ids.length} Item(s) in den Papierkorb verschoben.` });
       clearSelection();
@@ -491,20 +509,23 @@ export function useInventory() {
   };
 
   const refetch = async () => {
-    if (!isOnline) { toast({ title: "Offline", description: "Daten können offline nicht neu geladen werden." }); return; }
+    if (!isOnline) {
+      toast({ title: "Offline", description: "Daten können offline nicht neu geladen werden." });
+      return;
+    }
+    if (!user) return;
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('inventory_items')
         .select(SELECT_WITH_TAGS)
+        .eq('user_id', user.id)
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
       if (error) throw error;
       const typedData = (data as any[]).map(mapRow);
       setItems(typedData);
       offlineQueue.setCache(ITEMS_CACHE_KEY, typedData);
-      await notifySync(typedData.length, 0);
-      toast({ title: "Synchronisierung erfolgreich", description: "Alle Daten sind aktuell." });
     } catch (error) {
       logger.error('Error refetching items:', error);
       toast({ title: "Fehler beim Neuladen", description: "Items konnten nicht neu geladen werden.", variant: "destructive" });

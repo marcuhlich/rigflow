@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useInventory } from "@/hooks/useInventory";
 import { useLendingHistory } from "@/hooks/useLendingHistory";
 import { useMaintenanceStatus } from "@/hooks/useMaintenanceStatus";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -148,8 +149,19 @@ export default function ItemDetail() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+      <div className="space-y-6 pt-4">
+        <Skeleton className="h-9 w-24 rounded-md" />
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="md:col-span-2 space-y-4">
+            <Skeleton className="h-48 w-full rounded-lg" />
+            <Skeleton className="h-8 w-48 rounded-md" />
+            <Skeleton className="h-64 w-full rounded-lg" />
+          </div>
+          <div className="space-y-4">
+            <Skeleton className="h-32 w-full rounded-lg" />
+            <Skeleton className="h-24 w-full rounded-lg" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -197,7 +209,7 @@ export default function ItemDetail() {
           <Button
             variant="ghost"
             onClick={() => navigate("/inventory")}
-            className="gap-2 self-start transition-transform duration-150 hover:-translate-x-0.5 active:translate-x-0"
+            className="group gap-2 self-start transition-transform duration-150 hover:-translate-x-0.5 active:translate-x-0"
           >
             <ChevronLeft className="h-4 w-4 transition-transform duration-150 group-hover:-translate-x-0.5" />
             Zurück

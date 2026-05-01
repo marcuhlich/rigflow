@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Eye, EyeOff, ChevronRight, ChevronLeft, Lock, Hash, Type, QrCode, Wifi, Package, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import posthog from "posthog-js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Phase = 'intro' | 'stories' | 'form' | 'finale';
@@ -288,8 +289,8 @@ export default function RegisterPage() {
           data: { full_name: formData.name, warehouse_name: formData.warehouse },
         },
       });
+      posthog.capture("user_signed_up");
       if (signUpError) throw signUpError;
-
       setRippleActive(false);
       setTimeout(() => {
         setFinaleState('check-email');

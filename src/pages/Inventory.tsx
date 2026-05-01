@@ -65,7 +65,6 @@ export default function Inventory() {
   const { categoryNames, dmxCategories, categories } = useCategories();
   const history = useInventoryHistory();
   const undoRedoCtx = useUndoRedoContext();
-  const { refetch } = useInventory();
   const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
 
 
@@ -91,7 +90,7 @@ export default function Inventory() {
   const { addRecord } = useLendingHistory();
 
   const {
-    items, allItems, loading,
+    items, allItems, loading, refetch,
     searchQuery, setSearchQuery,
     categoryFilter, setCategoryFilter,
     conditionFilter, setConditionFilter,
@@ -133,6 +132,17 @@ export default function Inventory() {
     });
   }, [setSearchParams]);
 
+  const [contentVisible, setContentVisible] = useState(true);
+
+  const handleViewChange = (next: ViewMode) => {
+    if (next === viewMode) return;
+    setContentVisible(false);
+    setTimeout(() => {
+      setViewMode(next);
+      setContentVisible(true);
+    }, 150);
+  };
+
 
   // Führe Aktionen aus, die von der CommandPalette via URL-Parameter signalisiert werden
   useEffect(() => {
@@ -151,14 +161,6 @@ export default function Inventory() {
     navigate({ search: newParams.toString() }, { replace: true });
   }, [searchParams, navigate]);
 
-    const filteredItems = allItems.filter(item => {
-    return (
-      (conditionFilter === "all" || item.condition === conditionFilter) &&
-      (categoryFilter === "all" || item.category === categoryFilter) &&
-      (locationFilter === "all" || item.location === locationFilter) &&
-      (searchQuery === "" || item.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
-  });
 
   const handleExportSheets = async () => {
     try {
@@ -384,8 +386,8 @@ export default function Inventory() {
           {!isMobile && (
             <div className="flex rounded-md border border-border overflow-hidden h-9">
               <button
-                onClick={() => setViewMode("grid")}
-                className={`px-2.5 flex items-center transition-colors ${
+                onClick={() => handleViewChange("grid")}
+                className={`px-2.5 flex items-center transition-all active:scale-95 ${
                   viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/50"
                 }`}
                 title="Kachelansicht"
@@ -393,8 +395,8 @@ export default function Inventory() {
                 <LayoutGrid className="h-4 w-4" />
               </button>
               <button
-                onClick={() => setViewMode("table")}
-                className={`px-2.5 flex items-center border-l border-border transition-colors ${
+                onClick={() => handleViewChange("table")}
+                className={`px-2.5 flex items-center border-l border-border transition-all active:scale-95 ${
                   viewMode === "table" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/50"
                 }`}
                 title="Listenansicht"
@@ -497,6 +499,11 @@ export default function Inventory() {
       />
 
       {/* ── Content ── */}
+      <div style={{
+        opacity: contentVisible ? 1 : 0,
+        transform: contentVisible ? "translateY(0)" : "translateY(6px)",
+        transition: "opacity 150ms ease, transform 150ms ease",
+      }}>
       {viewMode === "grid" || isMobile ? (
         <InventoryGrid
           items={items}
@@ -531,8 +538,15 @@ export default function Inventory() {
           onUpdateItem={updateItem}
           onAddItem={addItem}
           onFilterCategory={(cat) => setCategoryFilter(cat)}
+          searchQuery={searchQuery}
+          hasActiveFilters={categoryFilter !== "all" || conditionFilter !== "all" || locationFilter !== "all" || tagFilter !== "all"}
+          onAddItemClick={handleAddClick}
+          onClearFilters={clearFilters}
+          onClearSearch={() => setSearchQuery("")}
         />
       )}
+
+      </div>
 
       <AuditLogPanel />
 

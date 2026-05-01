@@ -146,7 +146,7 @@ export function ProjectDMXTab({
   }
 
   return (
-    <div className="space-y-4 w-full overflow-x-hidden">
+    <div className="space-y-4 w-full">
       <style>{`
         @keyframes dmxTabCardIn {
           from { opacity: 0; transform: translateY(8px); }
@@ -294,14 +294,18 @@ export function ProjectDMXTab({
       )}
 
       {/* ── Hauptinhalt mit Fade beim View-Wechsel ───────────────────────── */}
-      <div
-        style={{
-          opacity: contentVisible ? 1 : 0,
-          transform: contentVisible ? 'translateY(0)' : 'translateY(6px)',
-          transition: 'opacity 150ms ease, transform 150ms ease',
-        }}
-      >
-        {viewMode === 'timeline' ? (
+
+      {/* Timeline: overflow-x-visible damit der interne dmx-scroll-container
+          der DMXTimeline horizontal scrollen kann. Das outer overflow-x-hidden
+          des Elterndivs wird dadurch für diesen Block ignoriert, weil kein
+          zusätzlicher Stacking-Context geöffnet wird (kein transform/position). */}
+      {viewMode === 'timeline' && (
+        <div
+          style={{
+            opacity: contentVisible ? 1 : 0,
+            transition: 'opacity 150ms ease',
+          }}
+        >
           <DMXTimeline
             rows={patchplan}
             conflicts={conflicts}
@@ -310,15 +314,28 @@ export function ProjectDMXTab({
             onInstanceChange={isReadonly ? undefined : updateInstanceDMX}
             onResetInstance={isReadonly ? undefined : resetInstanceDMX}
           />
-        ) : (
+        </div>
+      )}
+
+      {/* Table: eigener overflow-x-auto Wrapper — Tabelle scrollt intern,
+          bricht nie aus dem Viewport heraus. */}
+      {viewMode === 'table' && (
+        <div
+          className="overflow-x-auto rounded-lg"
+          style={{
+            opacity: contentVisible ? 1 : 0,
+            transition: 'opacity 150ms ease',
+            WebkitOverflowScrolling: 'touch',
+          } as React.CSSProperties}
+        >
           <DMXPatchplanTable
             rows={patchplan}
             conflicts={conflicts}
             onInstanceChange={isReadonly ? undefined : updateInstanceDMX}
             onAutoAssign={isReadonly ? undefined : autoAssignNextAvailable}
           />
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ── Isolations-Hinweis ───────────────────────────────────────────── */}
       <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-border/50 text-xs text-muted-foreground">

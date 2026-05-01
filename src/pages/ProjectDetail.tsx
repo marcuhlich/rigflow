@@ -148,7 +148,7 @@ function SlidingTabsList({ tabs, value, onChange }: {
           ref={el => { itemRefs.current[i] = el; }}
           onClick={() => onChange(tab.value)}
           className={cn(
-            "relative z-10 flex items-center gap-1.5 px-3 py-1 rounded-md text-xs sm:text-sm font-medium transition-colors duration-200 whitespace-nowrap",
+            "relative z-10 flex items-center gap-1.5 px-3 py-1 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap active:scale-95",
             value === tab.value
               ? "text-foreground"
               : "text-muted-foreground hover:text-foreground"
@@ -792,7 +792,7 @@ function EditQuantityDialog({
             <Label>Menge <span className="text-muted-foreground font-normal">(max. {maxQty})</span></Label>
             <div className="flex items-center gap-2">
               <button
-                className="h-8 w-8 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors text-lg leading-none"
+                className="h-8 w-8 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 text-lg leading-none active:scale-95 transition-transform"
                 onClick={() => setQty(q => Math.max(1, q - 1))}
                 disabled={qty <= 1}
               >
@@ -805,7 +805,7 @@ function EditQuantityDialog({
                 className="h-8 text-center w-16 tabular-nums"
               />
               <button
-                className="h-8 w-8 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors text-lg leading-none"
+                className="h-8 w-8 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 text-lg leading-none active:scale-95 transition-transform"
                 onClick={() => setQty(q => Math.min(maxQty, q + 1))}
                 disabled={qty >= maxQty}
               >
@@ -1082,7 +1082,7 @@ function ItemRow({
         <div className="flex items-center gap-0.5 shrink-0">
           {onEdit && (
             <button
-              className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+              className="p-1 text-muted-foreground hover:text-foreground transition-all active:scale-90"
               onClick={onEdit}
               title="Menge bearbeiten"
             >
@@ -1090,7 +1090,7 @@ function ItemRow({
             </button>
           )}
           <button
-            className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+            className="p-1 text-muted-foreground hover:text-destructive transition-all active:scale-90"
             onClick={onRemove}
             title="Entfernen"
           >
@@ -1121,7 +1121,7 @@ function PackageGroupSection({ group, status, conflicts, conditions, isReadonly,
 
   return (
     <div className="rounded-lg border border-border overflow-hidden">
-      <button className="w-full flex items-center gap-3 px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
+      <button className="w-full flex items-center gap-3 px-4 py-3 bg-muted/30 hover:bg-muted/50 active:bg-muted/70 transition-colors text-left"
         onClick={() => setCollapsed(v => !v)}>
         <div className="h-7 w-7 rounded-md flex items-center justify-center shrink-0"
           style={{ backgroundColor: group.package.color + '25' }}>
@@ -1800,7 +1800,7 @@ export default function ProjectDetail() {
   return (
     <>
       <style>{`
-        @keyframes tab-in { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:translateY(0) } }
+        @keyframes tab-in { from { opacity: 0; } to { opacity: 1; } }
         .tab-in { animation: tab-in 0.18s ease forwards }
       `}</style>
 
@@ -1809,17 +1809,17 @@ export default function ProjectDetail() {
         {/* Top-Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <Button variant="ghost" onClick={() => navigate('/projects')}
-            className="gap-2 self-start hover:-translate-x-0.5 transition-transform">
+            className="group gap-2 self-start hover:-translate-x-0.5 transition-transform">
             <ChevronLeft className="h-4 w-4" /> Zurück
           </Button>
           {!isReadonly && (
             <div className="flex gap-2 flex-wrap">
-              <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none"
+              <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none active:scale-95 transition-transform"
                 onClick={() => setEditOpen(true)}>
                 <Edit2 className="h-4 w-4" /> Bearbeiten
               </Button>
               <Button variant="outline" size="sm"
-                className="gap-2 flex-1 sm:flex-none text-destructive hover:text-destructive"
+                className="gap-2 flex-1 sm:flex-none text-destructive hover:text-destructive active:scale-95 transition-transform"
                 onClick={() => setDeleteOpen(true)}>
                 <Trash2 className="h-4 w-4" /> Löschen
               </Button>
@@ -1831,7 +1831,7 @@ export default function ProjectDetail() {
         <div className="grid gap-6 md:grid-cols-3">
 
           {/* ── Main Column ── */}
-          <div className="md:col-span-2 space-y-4">
+          <div className="md:col-span-2 space-y-4 min-w-0">
 
             {/* Header-Card */}
             <Card className="p-5">
@@ -1855,7 +1855,7 @@ export default function ProjectDetail() {
                     )}
                   </div>
                 </div>
-                <button onClick={toggleFavorite} className="p-1.5 shrink-0 mt-0.5" disabled={isReadonly}>
+                <button onClick={toggleFavorite} className="p-1.5 shrink-0 mt-0.5 active:scale-90 transition-transform" disabled={isReadonly}>
                   <Star className={cn("h-5 w-5 transition-colors",
                     project.is_favorite
                       ? "fill-yellow-400 text-yellow-400"
@@ -1947,7 +1947,7 @@ export default function ProjectDetail() {
                   onAdd={addTodo} onToggle={toggleTodo} onDelete={deleteTodo} onReorder={reorderTodos} />
               </TabsContent>
 
-              <TabsContent value="dmx" className="mt-4 tab-in">
+              <TabsContent value="dmx" className="mt-4 min-w-0 overflow-x-hidden tab-in">
                 <ProjectDMXTab projectId={id!} projectName={project.name} allItems={allItems} isReadonly={isReadonly} />
               </TabsContent>
 
