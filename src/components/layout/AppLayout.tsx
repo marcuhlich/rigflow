@@ -8,7 +8,7 @@ import { useUndoRedoContext } from "@/contexts/UndoRedoContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { injectSpeedInsights } from '@vercel/speed-insights';
-import { ScanLine } from "lucide-react";
+import { Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { hapticFeedback } from "@/lib/utils";
 
@@ -139,7 +139,7 @@ function LiquidGlassNav() {
                 to={item.to}
                 end={item.to === "/"}
                 ref={(el) => { itemRefs.current[i] = el; }}
-                onClick={() => hapticFeedback(8)} // Navigation feedback
+                onClick={() => hapticFeedback(8)}
                 className={cn(
                   "relative z-10 flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-[16px] text-[10px] font-medium transition-all duration-300 min-w-[52px]",
                   isActive ? "text-primary" : "text-muted-foreground/70 active:scale-95"
@@ -185,11 +185,19 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { canUndo, canRedo, onUndo, onRedo } = useUndoRedoContext();
   const isMobile = useIsMobile();
   const showUndoRedo = onUndo !== null && onRedo !== null;
+  const location = useLocation();
+  const isSettingsRoute = location.pathname.startsWith("/settings");
+  const isActive = isSettingsRoute;
 
   return (
     <div className="h-screen flex flex-col relative overflow-hidden">
       {/* ── Header ── */}
-      <header className="shrink-0 top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40 pt-[env(safe-area-inset-top)]">
+      <header
+          className="shrink-0 top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40 pt-[env(safe-area-inset-top)]"
+          style={{
+            '--header-h': 'calc(3rem + env(safe-area-inset-top))',
+          } as React.CSSProperties}
+        >
         <div className="max-w-7xl mx-auto px-3 sm:px-6 h-12 lg:h-14 flex items-center justify-between gap-2">
 
           {/* Left: Logo */}
@@ -250,7 +258,19 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <div className="w-px h-4 bg-border/60 mx-1" />
               </>
             )}
-            <UserMenu />
+            {isMobile ? (
+              <button
+                onClick={() => navigate("/settings")}
+                className={cn(
+                  "p-2 rounded-lg transition-all active:scale-90",
+                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Settings className="h-5 w-5" />
+              </button>
+            ) : (
+              <UserMenu />
+            )}
           </div>
         </div>
       </header>
@@ -259,8 +279,28 @@ export function AppLayout({ children }: AppLayoutProps) {
       <LiquidGlassNav />
 
       {/* Main Content */}
-      <main className="flex-1 px-3 sm:px-4 lg:px-8 overflow-x-hidden pb-24 lg:pb-8">
-        <div className="max-w-7xl mx-auto w-full">{children}</div>
+      <main
+        className={cn(
+          "flex-1 overflow-x-hidden pb-24 lg:pb-8",
+          // Settings routes own their own layout — no padding or max-w centering here.
+          // SettingsLayout takes full width and positions itself flush to the viewport.
+          !isSettingsRoute && "px-3 sm:px-4 lg:px-8"
+        )}
+      >
+        {isSettingsRoute ? (
+          // Render settings children directly — SettingsLayout handles its own
+          // animated Outlet wrapper, so we don't add a key/transform here.
+          // This prevents SettingsLayout (and its sidebar) from remounting on
+          // every sub-page navigation.
+          children
+        ) : (
+          <div
+            key={location.pathname}
+            className="max-w-7xl mx-auto w-full animate-page"
+          >
+            <div className="max-w-7xl mx-auto w-full">{children}</div>
+          </div>
+        )}
       </main>
 
       <OfflineIndicator />

@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
-  ChevronLeft,
   Check,
   X,
   Pencil,
@@ -42,7 +41,7 @@ interface InlineFieldProps {
   onSave: (v: string) => Promise<string | null>;
   disabled?: boolean;
   disabledReason?: string;
-  hint?: React.ReactNode; // ← neu: optionaler Hinweis unter dem Feld
+  hint?: React.ReactNode;
 }
 
 const InlineField = ({
@@ -164,7 +163,6 @@ const InlineField = ({
         </button>
       )}
 
-      {/* Optionaler Hinweis unter dem Feld (z. B. "Bestätigung ausstehend") */}
       {!editing && hint && (
         <div className="mt-1.5">{hint}</div>
       )}
@@ -388,10 +386,7 @@ const AccountInfo = () => {
   const email = user?.email ?? "";
   const phone = user?.phone ?? "";
 
-  // Neue, noch unbestätigte E-Mail-Adresse (von Supabase gesetzt, bis Bestätigung erfolgt)
   const pendingEmail = (user as any)?.new_email ?? null;
-
-  // ── Save handlers ──
 
   const saveName = async (value: string): Promise<string | null> => {
     const { error } = await supabase.auth.updateUser({
@@ -421,7 +416,6 @@ const AccountInfo = () => {
     return null;
   };
 
-  // ── Pending-E-Mail-Hinweis ──
   const emailHint = pendingEmail ? (
     <p className="text-xs text-amber-400/90 flex items-center gap-1.5 px-0.5 animate-in fade-in duration-300">
       <Clock className="h-3 w-3 shrink-0" />
@@ -430,24 +424,11 @@ const AccountInfo = () => {
     </p>
   ) : null;
 
+  // ── No sub-header here — SettingsLayout renders it above the animated
+  // Outlet wrapper, keeping position:fixed relative to the viewport. ──
+
   return (
     <div className="min-h-screen">
-      {/* ── Sticky Header ── */}
-        <div className="fixed top-12 lg:top-14 left-0 right-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/40 lg:hidden">
-        <div className="px-3 sm:px-4 lg:px-8 h-11 flex items-center justify-center relative">
-            <Link
-            to="/settings"
-            className="absolute left-3 sm:left-4 lg:left-8 inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
-            >
-            <ChevronLeft className="h-4 w-4" />
-            <span className="text-sm hidden sm:inline">Einstellungen</span>
-            </Link>
-            <span className="text-sm font-medium text-foreground">Kontoinformationen</span>
-        </div>
-        </div>
-
-        <div className="h-11 mb-2 lg:hidden" />
-
       <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
 
         {/* Avatar Card */}

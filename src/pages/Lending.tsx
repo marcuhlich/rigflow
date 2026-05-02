@@ -468,7 +468,7 @@ export default function Lending() {
         icon={HandCoins}
         actions={
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <Button onClick={() => setIsAddOpen(true)} className="gap-2 self-start">
+            <Button onClick={() => setIsAddOpen(true)} className="gap-2 self-start active:scale-95">
               <Plus className="h-4 w-4" />
               Neuer Verleih
             </Button>

@@ -1,5 +1,6 @@
-import { Outlet, NavLink, Link } from "react-router-dom";
+import { Outlet, NavLink, Link, useLocation } from "react-router-dom";
 import {
+  ChevronLeft,
   User, Bell, Shield, Palette, Settings2,
   LogOut, ExternalLink, Loader2,
 } from "lucide-react";
@@ -17,11 +18,22 @@ const NAV_ITEMS = [
   { to: "/settings/appearance",       label: "Erscheinungsbild",         icon: Palette             },
 ];
 
+const SUB_PAGE_TITLES: Record<string, string> = {
+  "/settings/account-info":     "Kontoinformationen",
+  "/settings/notifications":    "Benachrichtigungen",
+  "/settings/privacy-security": "Datenschutz & Sicherheit",
+  "/settings/appearance":       "Erscheinungsbild",
+};
+
 export default function SettingsLayout() {
   const { signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [loggingOut, setLoggingOut] = useState(false);
+
+  const subTitle = SUB_PAGE_TITLES[location.pathname];
+  const isSubPage = !!subTitle;
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -37,13 +49,43 @@ export default function SettingsLayout() {
   };
 
   return (
-    // Bricht aus AppLayouts px-Padding und max-w-Wrapper aus
-    <div className="-mx-3 sm:-mx-4 lg:-mx-8 flex min-h-[calc(100vh-3.5rem)]">
+    <div className="flex min-h-[calc(100dvh-var(--header-h))]">
 
-      {/* ── Sidebar: fixed left-0 → immer flush am Rand, nie scrollend ── */}
-      <aside className="hidden lg:flex flex-col fixed left-0 top-14 bottom-0 w-60 xl:w-64 border-r border-border/40 bg-background z-20">
+      {/* ── Mobile Sub-Header ─────────────────────────────────────────────
+          Rendered here — outside any animated/transformed wrapper — so that
+          position:fixed is always relative to the viewport.
+          Sub-page components (AccountInfo, Notifications, etc.) must NOT
+          render their own sub-header or spacer any more. */}
+      {isSubPage && (
+        <div
+          className="fixed left-0 right-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/40 lg:hidden"
+          style={{ top: "var(--header-h)" }}
+        >
+          <div className="px-3 sm:px-4 h-11 flex items-center justify-center relative">
+            <Link
+              to="/settings"
+              className="absolute left-3 sm:left-4 inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="text-sm hidden sm:inline">Einstellungen</span>
+            </Link>
+            <span className="text-sm font-medium text-foreground">{subTitle}</span>
+          </div>
+        </div>
+      )}
 
-        {/* Nav-Bereich: füllt verbleibenden Platz, scrollt bei Bedarf */}
+      {/* ── Desktop Sidebar ───────────────────────────────────────────────
+          Uses position:fixed so top:var(--header-h) is relative to the
+          viewport directly.  The old sticky approach had a double-offset
+          bug: sticky top:N is measured from the scroll container (main),
+          which itself already starts N px below the header, putting the
+          sidebar N px too low on scrollable pages.  Fixed + an explicit
+          spacer div below is the clean solution. */}
+      <aside
+        className="hidden lg:flex flex-col fixed w-60 xl:w-64 border-r border-border/40 bg-background z-20 overflow-y-auto"
+        style={{ top: "var(--header-h)", bottom: 0, left: 0 }}
+      >
+        {/* Nav */}
         <div className="flex-1 overflow-y-auto px-3 pt-6 pb-2">
           <p className="text-[11px] font-semibold text-muted-foreground/50 uppercase tracking-widest mb-3 px-2">
             Einstellungen
@@ -70,7 +112,7 @@ export default function SettingsLayout() {
           </nav>
         </div>
 
-        {/* Footer: shrink-0 → klebt immer am unteren Rand */}
+        {/* Footer */}
         <div className="shrink-0 px-3 py-4 border-t border-border/40">
           <div className="px-2 pb-3 space-y-2">
             <Link
@@ -84,16 +126,19 @@ export default function SettingsLayout() {
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-              >
+            >
               Informationen zur App
               <ExternalLink className="h-2.5 w-2.5 shrink-0" />
             </a>
-            <button
-              onClick={() => toast({ title: "Nutzungsbedingungen", description: "Diese Funktion kommt bald." })}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-            >
+            <Link to="/agb" className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
               Nutzungsbedingungen
-            </button>
+            </Link>
+            <Link to="/impressum" className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
+              Impressum
+            </Link>
+            <Link to="/datenschutz" className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
+              Datenschutzerklärung
+            </Link>
           </div>
 
           <button
@@ -110,12 +155,21 @@ export default function SettingsLayout() {
         </div>
       </aside>
 
-      {/* Spacer hält exakt den Platz frei den die fixed Sidebar belegt */}
+      {/* ── Desktop spacer ────────────────────────────────────────────────
+          Reserves the sidebar's width in the flex row so the content
+          column starts to the right of the fixed sidebar. */}
       <div className="hidden lg:block w-60 xl:w-64 shrink-0" />
 
-      {/* Content — nur dieser Bereich scrollt */}
+      {/* ── Content ───────────────────────────────────────────────────────
+          Only the Outlet re-animates on navigation. Sidebar and sub-header
+          stay mounted. */}
       <div className="flex-1 min-w-0 px-3 sm:px-4 lg:px-8">
-        <Outlet />
+        {/* Mobile spacer: pushes content below the fixed sub-header */}
+        {isSubPage && <div className="h-11 mb-2 lg:hidden" />}
+
+        <div key={location.pathname} className="animate-page">
+          <Outlet />
+        </div>
       </div>
 
     </div>

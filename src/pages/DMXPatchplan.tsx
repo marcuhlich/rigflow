@@ -65,15 +65,10 @@ export default function DMXPatchplan() {
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   // Steuert ob der Content-Bereich gerade zwischen den Views übergeblendet wird
   const [contentVisible, setContentVisible] = useState(true);
-  const [fakeLoading, setFakeLoading] = useState(true);
+  const [setFakeLoading] = useState(true);
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const t = setTimeout(() => setFakeLoading(false), 500);
-    return () => clearTimeout(t);
-  }, []);
 
   // ── View-Toggle mit Fade-Übergang ─────────────────────────────────────────
   const handleViewChange = (next: "timeline" | "table") => {
@@ -100,7 +95,7 @@ export default function DMXPatchplan() {
   const handlePrint = () => printPatchplan(patchplan, conflicts);
 
   // ── Loading ───────────────────────────────────────────────────────────────
-  if (loading || fakeLoading) {
+  if (loading) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import {
   LogOut,
   Trash2,
-  User,
+  Info,
   AlertTriangle,
   Loader2,
   Zap,
@@ -32,6 +32,8 @@ import {
   FileText,
   Moon,
   Sun,
+  Gavel,
+  LockKeyhole,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation } from "react-router-dom";
@@ -127,9 +129,13 @@ const handleDeleteAccount = async () => {
     <div className="space-y-4 pb-20">
 
       {/* ── Profile Header ── */}
-      <div className="flex flex-col items-center pt-6 pb-2 gap-3">
-        {/* Avatar Circle */}
-        <div className="relative">
+      <div className="
+        flex items-center gap-4 px-6 py-5  /* Mobile: horizontal */
+        md:flex-col md:items-center md:gap-3 md:pt-6 md:pb-2 md:px-0 md:py-0 /* Desktop: alt */
+      ">
+
+        {/* Avatar */}
+        <div className="relative shrink-0">
           <div
             className="w-20 h-20 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg"
             style={{ background: "hsl(var(--primary))" }}
@@ -137,9 +143,18 @@ const handleDeleteAccount = async () => {
             {displayName.charAt(0).toUpperCase()}
           </div>
         </div>
-        <div className="text-center">
-          <h2 className="text-xl font-bold tracking-tight">{displayName}</h2>
-          <p className="text-sm text-muted-foreground">{user?.email}</p>
+
+        {/* User Info */}
+        <div className="
+          flex flex-col justify-center min-w-0
+          md:text-center
+        ">
+          <h2 className="text-xl font-bold tracking-tight truncate">
+            {displayName}
+          </h2>
+          <p className="text-sm text-muted-foreground truncate">
+            {user?.email}
+          </p>
         </div>
       </div>
 
@@ -148,7 +163,7 @@ const handleDeleteAccount = async () => {
         {[
           { icon: Settings, label: "Kontoinformationen", to: "/settings/account-info" },
           { icon: Bell, label: "Benachrichtigungen", to: "/settings/notifications" },
-          { icon: Shield, label: "Datenschutz & Sicherheit", to: "/settings/privacy-security" },
+          { icon: LockKeyhole, label: "Datenschutz & Sicherheit", to: "/settings/privacy-security" },
           {
             icon: Palette,
             label: "Erscheinungsbild",
@@ -188,8 +203,7 @@ const handleDeleteAccount = async () => {
           ))}
       </Card>
 
-      {/* ── General Settings Info Box ── */}
-      <Card className="glass-card p-4">
+      <Card className="hidden md:block glass-card p-4">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
           Allgemein
         </p>
@@ -209,9 +223,10 @@ const handleDeleteAccount = async () => {
           Support & Rechtliches
         </p>
         {[
-          { icon: FileText, label: "Nutzungsbedingungen", to: null },
-          { icon: FileText, label: "Anleitung öffnen", to: "/help" },
-          { icon: FileText, label: "Informationen zur App", to: "https://github.com/marcuhlich/rigflow", external: true },
+          { icon: Info, label: "Über Rigflow", to: "https://github.com/marcuhlich/rigflow", external: true },
+          { icon: FileText, label: "Impressum", to: "/impressum" },
+          { icon: Shield, label: "Datenschutzerklärung", to: "/datenschutz" },
+          { icon: Gavel, label: "Nutzungsbedingungen", to: "/agb" },
         ].map((item, idx, arr) => (
           <div key={item.label}>
             {item.to ? (

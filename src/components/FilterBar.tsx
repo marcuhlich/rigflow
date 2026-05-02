@@ -281,7 +281,7 @@ export function FilterBar({
               )}
               <DrawerClose asChild>
                 <Button
-                  className="flex-1"
+                  className="flex-1 active:scale-95"
                   onClick={() => {
                     if (navigator.vibrate) navigator.vibrate(8);
                   }}

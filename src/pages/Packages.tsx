@@ -356,7 +356,11 @@ function PackageEditorSheet({ pkg, open, onClose, inventoryItems, onAddItem, onR
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
   );
 
-  if (!pkg) return null;
+  if (!pkg) return (
+    <Sheet open={open} onOpenChange={v => !v && onClose()}>
+      <SheetContent />
+    </Sheet>
+  );
 
   const addedIds   = new Set(localItems.map(i => i.inventory_item_id));
   const filteredInv = inventoryItems.filter(i =>
@@ -823,7 +827,7 @@ export default function PackagesPage({ embedded = false }: PackagesPageProps) {
 
       <PackageEditorSheet
         pkg={editorData}
-        open={!!editorData}
+        open={!!editorPkg}
         onClose={() => setEditorPkg(null)}
         inventoryItems={inventoryItems}
         onAddItem={(id, qty) => editorData ? addItemToPackage(editorData.id, id, qty) : Promise.resolve()}

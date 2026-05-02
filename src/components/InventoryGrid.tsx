@@ -61,12 +61,14 @@ export const InventoryGrid = React.memo(function InventoryGrid({
   const didLongPress = useRef(false);
   const pressPosRef = useRef<{ x: number; y: number } | null>(null);
   const [completingId, setCompletingId] = useState<string | null>(null);
+  const hapticTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const qrItem = items.find((i) => i.id === qrItemId);
 
   const cancelPress = () => {
     if (pressTimer.current) clearTimeout(pressTimer.current);
     if (animTimer.current) clearTimeout(animTimer.current);
+    if (hapticTimer.current) { clearTimeout(hapticTimer.current); hapticTimer.current = null; }
     pressTimer.current = null;
     animTimer.current = null;
     pressStartPos.current = null;
@@ -85,7 +87,9 @@ export const InventoryGrid = React.memo(function InventoryGrid({
     didLongPress.current = false;
     pressStartPos.current = { x: e.clientX, y: e.clientY };
 
-    hapticLongPress(LONG_PRESS_MS);
+    hapticTimer.current = setTimeout(() => {
+      hapticLongPress(LONG_PRESS_MS - 150);
+    }, 150);
 
     animTimer.current = setTimeout(() => setPressingId(item.id), 50);
 

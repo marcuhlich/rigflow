@@ -7,7 +7,7 @@ import { ScanRevealOverlay } from '@/components/ScanRevealOverlay';
 import {
   Package, CheckCircle, ArrowRightLeft, AlertTriangle, Zap, Clock, Activity,
   ArrowRight, TrendingUp, CalendarDays, Star, MapPin, DollarSign,
-  RotateCcw, ScanLine, Trash, QrCode, FolderKanban, Bell,
+  RotateCcw, ScanLine, Trash, QrCode, FolderKanban, ChevronRight,
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
@@ -627,10 +627,15 @@ export default function Dashboard() {
             <ScanLine className="h-5 w-5 text-primary" />
             <QrCode className="h-3.5 w-3.5 text-primary absolute opacity-80" />
           </div>
-          <div className="min-w-0">
+
+          <div className="min-w-0 flex-1">
             <p className="font-semibold text-sm">Scanner</p>
-            <p className="text-xs text-muted-foreground truncate">Verleih, Aufbau, Abbau</p>
+            <p className="text-xs text-muted-foreground truncate">
+              Verleih, Aufbau, Abbau
+            </p>
           </div>
+
+          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
         </button>
       </div>
 

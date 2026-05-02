@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { RealtimeChannel } from "@supabase/supabase-js";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface AuditLogEntry {
   id: string;
@@ -180,8 +181,15 @@ export function AuditLogPanel() {
         )}
       </button>
 
-      {isExpanded && (
-        <div className="border-t border-border/30">
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="border-t border-border/30 overflow-hidden"
+          >
           {loading ? (
             <div className="p-4 text-center text-sm text-muted-foreground">
               <RefreshCw className="h-4 w-4 animate-spin inline mr-2" />
@@ -229,8 +237,9 @@ export function AuditLogPanel() {
               </div>
             </ScrollArea>
           )}
-        </div>
-      )}
+            </motion.div>
+          )}
+        </AnimatePresence>
     </div>
   );
 }

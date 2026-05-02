@@ -1363,7 +1363,7 @@ function EquipmentTab({
 
       {/* ── Equipment hinzufügen ── */}
       {!isLocked && !isReadonly && (
-        <Button variant="outline" size="sm" className="gap-1.5 w-full" onClick={() => setPickerOpen(true)}>
+        <Button variant="outline" size="sm" className="gap-1.5 w-full active:scale-95" onClick={() => setPickerOpen(true)}>
           <Plus className="h-4 w-4" /> Equipment hinzufügen
         </Button>
       )}

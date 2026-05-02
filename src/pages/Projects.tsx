@@ -68,7 +68,7 @@ function SlidingTabsList({ tabs, value, onChange }: {
       {tabs.map((tab, i) => (
         <button key={tab.value} ref={el => { itemRefs.current[i] = el; }}
           onClick={() => onChange(tab.value)}
-          className={cn("relative z-10 flex items-center gap-1.5 px-3 py-1 rounded-md text-xs sm:text-sm font-medium transition-colors duration-200 whitespace-nowrap",
+          className={cn("relative z-10 flex items-center gap-1.5 px-3 py-1 rounded-md text-xs sm:text-sm font-medium transition-colors duration-200 whitespace-nowrap active:scale-95",
             value === tab.value ? "text-foreground" : "text-muted-foreground hover:text-foreground")}>
           {tab.label}
         </button>
@@ -559,12 +559,12 @@ function ProjectCard({ project, onEdit, onDelete, onStatusChange, onToggleFavori
 
   return (
     <Card
-      className="group relative hover:border-primary/40 transition-colors cursor-pointer"
+      className="group relative hover:border-primary/40 hover:shadow-md hover:-translate-y-px active:translate-y-0 transition-all duration-150 cursor-pointer"
       onClick={() => navigate(`/projects/${project.id}`)}
     >
       {/* Favorite */}
       <button
-        className="absolute top-3 right-3 z-10 p-1"
+        className="absolute top-3 right-3 z-10 p-1 active:scale-90 transition-transform"
         onClick={e => { e.stopPropagation(); onToggleFavorite(project.id); }}
       >
         <Star className={cn(
@@ -581,14 +581,15 @@ function ProjectCard({ project, onEdit, onDelete, onStatusChange, onToggleFavori
           {/* Edit/Delete — immer sichtbar auf Mobile, hover auf Desktop */}
           <div className="flex gap-1 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
             <Button
-              size="sm" variant="ghost" className="h-7 w-7 p-0"
+              variant="ghost"
+              className="h-7 w-7 p-0 active:scale-95 transition-transform"
               onClick={e => { e.stopPropagation(); onEdit(); }}
             >
               <Edit2 className="h-3.5 w-3.5" />
             </Button>
             <Button
               size="sm" variant="ghost"
-              className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+              className="h-7 w-7 p-0 text-destructive hover:text-destructive active:scale-95 transition-transform"
               onClick={e => { e.stopPropagation(); onDelete(); }}
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -749,7 +750,7 @@ function ProjectsTab() {
 
         {/* Zeile 1: Neu-Button + Suche */}
         <div className="flex gap-2 flex-1">
-          <Button onClick={() => setFormOpen(true)} className="gap-1.5 h-9 shrink-0" size="sm">
+          <Button onClick={() => setFormOpen(true)} className="gap-1.5 h-9 shrink-0 active:scale-95 transition-transform" size="sm">
             <Plus className="h-4 w-4" />
             <span>Neues Projekt</span>
           </Button>
@@ -818,7 +819,10 @@ function ProjectsTab() {
       )}
 
       {projects.length > 0 && filtered.length === 0 && (
-        <p className="text-center py-12 text-sm text-muted-foreground">Keine Projekte gefunden.</p>
+        <div className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
+          <Search className="h-8 w-8 opacity-20" />
+          <p className="text-sm">Keine Projekte gefunden.</p>
+        </div>
       )}
 
       {/* Grid */}
@@ -912,6 +916,16 @@ export default function ProjectsPage() {
     setSearchParams(value === 'projects' ? {} : { tab: value }, { replace: true });
   };
 
+  const [tabVisible, setTabVisible] = useState(true);
+
+  const handleTabChange = (value: string) => {
+    setTabVisible(false);
+    setTimeout(() => {
+      setTab(value);
+      setTabVisible(true);
+    }, 150);
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6 pb-24">
       <PageHeader
@@ -923,21 +937,27 @@ export default function ProjectsPage() {
       <Tabs value={tab} onValueChange={setTab}>
         <SlidingTabsList
           value={tab}
-          onChange={setTab}
+          onChange={handleTabChange}
           tabs={[
             { value: 'projects', label: 'Projekte' },
             { value: 'packages', label: 'Pakete'   },
           ]}
         />
 
-        <TabsContent value="projects" className="mt-4">
-          <ProjectsTab />
-        </TabsContent>
+        <div style={{
+          opacity: tabVisible ? 1 : 0,
+          transform: tabVisible ? "translateY(0)" : "translateY(6px)",
+          transition: "opacity 150ms ease, transform 150ms ease",
+        }}>
+          <TabsContent value="projects" className="mt-4">
+            <ProjectsTab />
+          </TabsContent>
 
-        <TabsContent value="packages" className="mt-4">
-          {/* embedded=true → kein eigener Seitentitel, Desktop zeigt Sidebar-Info */}
-          <PackagesPage embedded />
-        </TabsContent>
+          <TabsContent value="packages" className="mt-4">
+            {/* embedded=true → kein eigener Seitentitel, Desktop zeigt Sidebar-Info */}
+            <PackagesPage embedded />
+          </TabsContent>
+        </div>
       </Tabs>
     </div>
   );

@@ -405,12 +405,12 @@ export default function Inventory() {
               </button>
             </div>
           )}
-          <Button variant={selectionMode ? "default" : "outline"} onClick={toggleSelectionMode} className="gap-1 flex-1 sm:flex-none px-2 sm:px-4 h-9 text-xs sm:text-sm">
+          <Button variant={selectionMode ? "default" : "outline"} onClick={toggleSelectionMode} className="gap-1 flex-1 sm:flex-none px-2 sm:px-4 h-9 text-xs sm:text-sm active:scale-95">
             {selectionMode ? <CheckSquare className="h-3.5 w-3.5 shrink-0" /> : <Square className="h-3.5 w-3.5 shrink-0" />}
             <span className="hidden sm:inline">{selectionMode ? "Auswahl beenden" : "Mehrfachauswahl"}</span>
             <span className="sm:hidden">{selectionMode ? "Fertig" : "Auswahl"}</span>
           </Button>
-          <Button onClick={handleAddClick} className="gap-1 flex-1 sm:flex-none px-2 sm:px-4 h-9 text-xs sm:text-sm">
+          <Button onClick={handleAddClick} className="gap-1 flex-1 sm:flex-none px-2 sm:px-4 h-9 text-xs sm:text-sm active:scale-95">
             <Plus className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden sm:inline">Neues Item</span>
             <span className="sm:hidden">Item</span>
@@ -435,7 +435,7 @@ export default function Inventory() {
           <Button
             variant="outline"
             size="sm"
-            className="gap-1.5 h-9 text-xs sm:text-sm relative"
+            className="gap-1.5 h-9 text-xs sm:text-sm relative active:scale-95"
             onClick={() => setTrashOpen(true)}
             title="Papierkorb"
           >
