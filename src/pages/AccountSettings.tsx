@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import { isNative } from "@/services/platform";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -80,58 +81,58 @@ useEffect(() => {
   }
 }, [location.state]);
 
-const handleDeleteAccount = async () => {
-  if (deleteConfirmEmail !== user?.email) {
-    toast({
-      title: "E-Mail stimmt nicht überein",
-      description: "Bitte gib deine korrekte E-Mail-Adresse ein.",
-      variant: "destructive",
-    });
-    return;
-  }
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmEmail !== user?.email) {
+      toast({
+        title: "E-Mail stimmt nicht überein",
+        description: "Bitte gib deine korrekte E-Mail-Adresse ein.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  setIsDeleting(true);
+    setIsDeleting(true);
 
-  try {
-    const { data, error } = await supabase.functions.invoke("delete-account");
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-account");
 
-    if (error) throw error;
-    if (data?.error) throw new Error(data.error);
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-    // Sofortiger Logout nach erfolgreicher Löschung
-    await signOut();
+      // Sofortiger Logout nach erfolgreicher Löschung
+      await signOut();
 
-    toast({
-      title: "Konto gelöscht",
-      description: "Dein Konto wurde permanent gelöscht.",
-    });
+      toast({
+        title: "Konto gelöscht",
+        description: "Dein Konto wurde permanent gelöscht.",
+      });
 
-    // replace verhindert "zurück"-Navigation
-    navigate("/auth", { replace: true });
+      // replace verhindert "zurück"-Navigation
+      navigate("/auth", { replace: true });
 
-  } catch (error) {
-    toast({
-      title: "Fehler",
-      description:
-        error instanceof Error
-          ? error.message
-          : "Konto konnte nicht gelöscht werden",
-      variant: "destructive",
-    });
-  } finally {
-    setIsDeleting(false);
-    setShowDeleteDialog(false);
-    setDeleteConfirmEmail("");
-  }
-};
+    } catch (error) {
+      toast({
+        title: "Fehler",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Konto konnte nicht gelöscht werden",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+      setDeleteConfirmEmail("");
+    }
+  };
 
   return (
     <div className="space-y-4 pb-20">
 
       {/* ── Profile Header ── */}
       <div className="
-        flex items-center gap-4 px-6 py-5  /* Mobile: horizontal */
-        md:flex-col md:items-center md:gap-3 md:pt-6 md:pb-2 md:px-0 md:py-0 /* Desktop: alt */
+        flex items-center gap-4 px-6 py-5
+        md:flex-col md:items-center md:gap-3 md:pt-6 md:pb-2 md:px-0 md:py-0
       ">
 
         {/* Avatar */}
@@ -258,16 +259,18 @@ const handleDeleteAccount = async () => {
       </Card>
 
       {/* ── App installieren ── */}
-      <Card className="glass-card overflow-hidden p-0">
-        <Link
-          to="/install"
-          className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors"
-        >
-          <Download className="h-5 w-5 text-primary shrink-0" />
-          <span className="flex-1 text-sm font-medium">App installieren</span>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        </Link>
-      </Card>
+      {!isNative() && (
+        <Card className="glass-card overflow-hidden p-0">
+          <Link
+            to="/install"
+            className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors"
+          >
+            <Download className="h-5 w-5 text-primary shrink-0" />
+            <span className="flex-1 text-sm font-medium">App installieren</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+        </Card>
+      )}
 
       {/* ── Abmelden ── */}
       <Card className="glass-card overflow-hidden p-0 lg:hidden">

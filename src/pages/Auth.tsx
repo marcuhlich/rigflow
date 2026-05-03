@@ -7,8 +7,10 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { isNative } from "@/services/platform";
 import { z } from "zod";
 import posthog from "posthog-js";
+import { ONBOARDING_DONE_KEY } from '@/pages/NativeOnboarding';
 
 function getAuthErrorMessage(rawMessage: string): string {
   const map: Record<string, string> = {
@@ -26,6 +28,15 @@ const authSchema = z.object({
   email: z.string().email("Ungültige E-Mail-Adresse"),
   password: z.string().min(6, "Passwort muss mindestens 6 Zeichen lang sein"),
 });
+
+function getPostLoginRoute(): string {
+  if (isNative()) return '/native-onboarding';
+  return '/install-prompt';
+  if (isNative() && !localStorage.getItem(ONBOARDING_DONE_KEY)) {
+    return '/native-onboarding';
+  }
+  return '/install-prompt';
+}
 
 // ─── Logo Header ──────────────────────────────────────────────────────────────
 
@@ -193,12 +204,14 @@ const LoginStep = ({ onMfaRequired, onSuccess }: LoginStepProps) => {
           Noch kein Konto? Registrieren.
         </Link>
       </div>
-      <div className="mt-4 text-center">
-        <Link to="/install" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <Download className="h-3.5 w-3.5" />
-          App installieren
-        </Link>
-      </div>
+      {!isNative() && (
+        <div className="mt-4 text-center">
+          <Link to="/install" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Download className="h-3.5 w-3.5" />
+            App installieren
+          </Link>
+        </div>
+      )}
     </>
   );
 };
@@ -407,7 +420,7 @@ const Auth = () => {
       if (!loading && user) {
         const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
         if (data?.currentLevel === "aal2") {
-          navigate("/install-prompt");
+          navigate(getPostLoginRoute())
         }
       }
     };
@@ -434,7 +447,7 @@ const Auth = () => {
           {step === "login" ? (
             <LoginStep
               onMfaRequired={() => setStep("mfa")}
-              onSuccess={() => navigate("/install-prompt")}
+              onSuccess={() => navigate(getPostLoginRoute())}
             />
           ) : (
             <MfaStep
@@ -443,7 +456,7 @@ const Auth = () => {
                   // Nach Recovery-Code-Login direkt zu 2FA-Einstellungen
                   navigate("/settings/privacy-security");
                 } else {
-                  navigate("/install-prompt");
+                  navigate(getPostLoginRoute());
                 }
               }}
               onBack={() => setStep("login")}

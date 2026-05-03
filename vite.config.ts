@@ -40,7 +40,7 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,md}"],
         navigateFallbackDenylist: [/^\/~oauth/, /^\/.well-known/],
-        globIgnores: ["**/node_modules/**/*", ".git/**/*"],
+        globIgnores: ["**/node_modules/**/*", ".git/**/*", "**/favicon.ico"],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
         cleanupOutdatedCaches: true,
         runtimeCaching: [

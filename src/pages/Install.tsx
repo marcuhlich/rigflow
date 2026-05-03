@@ -8,6 +8,7 @@ import { PushService } from "@/lib/pushService";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import { useLatestRelease, formatFileSize } from "@/hooks/useLatestRelease";
+import { isNative } from "@/services/platform";
 
 export default function Install() {
   const { canInstall, isInstalled, install } = useInstallPrompt();
@@ -18,6 +19,12 @@ export default function Install() {
   const [isRequestingNotification, setIsRequestingNotification] = useState(false);
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isNative()) {
+      navigate('/');
+    }
+  }, [navigate]);
 
   // Online/offline Status & Notification permission
   useEffect(() => {

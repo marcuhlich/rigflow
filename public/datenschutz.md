@@ -6,7 +6,7 @@ Diese App wird von einem privaten Betreiber bereitgestellt. Der Schutz Ihrer Dat
 Verantwortlich ist:
 [Name des Elternteils]
 [Adresse]
-E-Mail: [Kontakt-E-Mail]
+E-Mail: rigflow.app@gmail.com
 
 ## 2. Erhobene Daten
 
@@ -53,7 +53,7 @@ Daten werden nur so lange gespeichert, wie sie für die Nutzung der App erforder
 
 ## 10. Kontakt
 
-Bei Fragen zum Datenschutz: [E-Mail-Adresse]
+Bei Fragen zum Datenschutz: rigflow.app@gmail.com
 
 ---
 

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
+import { isNative } from '@/services/platform';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -71,6 +72,12 @@ export default function InstallPrompt() {
   const navigate = useNavigate();
   const { isMobile, os } = useDeviceDetection();
   const isAndroid = isMobile && os === 'android';
+
+  useEffect(() => {
+    if (isNative()) {
+      navigate('/');
+    }
+  }, [navigate]);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {

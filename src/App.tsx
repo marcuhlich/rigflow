@@ -19,6 +19,8 @@ import { applyStoredAppearance } from "@/lib/appearanceUtils";
 import SettingsGuard from "@/components/SettingsGuard";
 import { PublicPageLayout } from "./components/layout/PublicPageLayout";
 import { isNative } from '@/services/platform';
+import BackButtonHandler from "./components/BackButtonHandler";
+import { App as CapApp } from '@capacitor/app';
 
 const Landing = lazy(() => import("./pages/Landing"));
 const InstallPrompt = lazy(() => import("./pages/InstallPrompt"));
@@ -40,6 +42,7 @@ const Scanner = lazy(() => import("./pages/Scanner"));
 const HelpPage = lazy(() => import("./pages/HelpPage"));
 const Datenschutz = lazy(() => import("./pages/Datenschutz"));
 const Impressum = lazy(() => import("./pages/Impressum"));
+const NativeOnboarding = lazy(() => import("./pages/NativeOnboarding"));
 // Settings
 const AccountSettings = lazy(() => import("./pages/AccountSettings"));
 const AccountInfo = lazy(() => import("./pages/settings/AccountInfo"));
@@ -124,6 +127,7 @@ function AppRoutes() {
       <Route path="/reset-password"   element={<ResetPassword />} />
       <Route path="/install"          element={<Install />} />
       <Route path="/install-prompt"   element={<InstallPrompt />} />
+      <Route path="/native-onboarding" element={<NativeOnboarding />} />
       <Route path="/impressum"        element={<PublicPageLayout><Impressum /></PublicPageLayout>}/>
       <Route path="/datenschutz"        element={<PublicPageLayout><Datenschutz /></PublicPageLayout>}/>
 
@@ -160,6 +164,7 @@ function AppRoutes() {
 }
 
 function AppInitializer() {
+  // PushService / Service Worker Init
   useEffect(() => {
     const init = async () => {
       // Auf nativen Plattformen kein Service Worker
@@ -181,6 +186,16 @@ function AppInitializer() {
             }
           }
         }
+      }
+
+      if (isNative()) {
+        const listener = await CapApp.addListener('appUrlOpen', ({ url }) => {
+          const urlObj = new URL(url);
+          if (urlObj.pathname.includes('/auth/callback')) {
+            window.location.href = '/auth/callback' + urlObj.hash;
+          }
+        });
+        return () => { listener.remove(); };
       }
 
       // Initialize push service
@@ -242,8 +257,6 @@ function AppInitializer() {
 
     init();
 
-    // Offline / Online Notifications wurden entfernt, da sie oft mehr stören als nützen. Stattdessen setzen wir auf regelmäßige SW-Update-Checks, um die App aktuell zu halten.
-
     // SW Update Check bei Visibility Change
     const handleVisibilityChange = async () => {
       if (isNative()) return;
@@ -278,6 +291,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
+              <BackButtonHandler />
               <AppInitializer />
               <OverdueReminderInit />
               <CommandPalette />

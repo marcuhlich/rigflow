@@ -11,7 +11,7 @@ Deutschland
 
 ## Kontakt
 
-E-Mail: [deine Kontakt-E-Mail]
+E-Mail: rigflow.app@gmail.com
 
 ## Haftung für Inhalte
 Die Inhalte dieser App wurden mit größter Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität der Inhalte wird jedoch keine Gewähr übernommen.

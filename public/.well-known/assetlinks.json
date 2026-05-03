@@ -1,8 +1,18 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "app.vercel.rigflow.twa",
-        "sha256_cert_fingerprints": ["9D:93:7E:30:92:61:26:F4:95:12:53:86:48:03:40:AF:39:AC:BE:3D:32:08:18:55:0C:66:82:C4:95:B3:B3:68"]
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.vercel.rigflow.twa",
+      "sha256_cert_fingerprints": ["9D:93:7E:30:92:61:26:F4:95:12:53:86:48:03:40:AF:39:AC:BE:3D:32:08:18:55:0C:66:82:C4:95:B3:B3:68"]
       }
-    }]
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.rigflow.app",
+      "sha256_cert_fingerprints": ["70:DE:C8:B6:45:E4:B6:E2:B7:07:03:17:B2:0C:EF:8D:3A:AE:DC:12:E7:98:E4:A3:D7:FF:38:9F:97:CC:B7:C0"]
+    }
+  }
+]

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
+import { isNative } from '@/services/platform';
 
 
 // ---------------------------------------------------------------------------
@@ -52,6 +53,10 @@ const ANIM_CSS = `
     92%  { opacity: 1; }
     100% { top: 83%; opacity: 0; }
   }
+  @keyframes nativeSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 
   /* Header slide-down on mount */
   .rig-header { animation: rigHeaderIn 0.5s cubic-bezier(0.22,1,0.36,1) both; }
@@ -62,6 +67,11 @@ const ANIM_CSS = `
   .d1 { animation-delay: 130ms; }
   .d2 { animation-delay: 260ms; }
   .d3 { animation-delay: 390ms; }
+
+  /* Native Welcome Screen animations */
+  .native-animate-0 { animation: nativeSlideUp 0.6s cubic-bezier(0.22,1,0.36,1) both; animation-delay: 0ms; }
+  .native-animate-1 { animation: nativeSlideUp 0.6s cubic-bezier(0.22,1,0.36,1) both; animation-delay: 120ms; }
+  .native-animate-2 { animation: nativeSlideUp 0.6s cubic-bezier(0.22,1,0.36,1) both; animation-delay: 240ms; }
 
   /* Floating mockup cards */
   .rig-float { animation: rigFloat 5s ease-in-out infinite; }
@@ -117,12 +127,115 @@ const ANIM_CSS = `
     transform: translateY(-5px) scale(1.015);
     box-shadow: 0 22px 55px rgba(0,0,0,0.3);
   }
+
+  /* Page transition: slide + fade out */
+  @keyframes pageSlideOut {
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(20px); }
+  }
+
+  /* Page transition: slide + fade in */
+  @keyframes pageSlideIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .page-exit { animation: pageSlideOut 0.3s ease forwards; }
+  .page-enter { animation: pageSlideIn 0.4s ease forwards; }
 `;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Native Welcome Screen (ersetzt Landing komplett in der APK)
+// ─────────────────────────────────────────────────────────────────────────────
+function NativeWelcome() {
+  const navigate = useNavigate();
+
+  return (
+    <>
+      <style>{ANIM_CSS}</style>
+      <div className="h-screen bg-gradient-to-b from-background via-background to-primary/5 flex flex-col items-center px-6 overflow-hidden relative page-enter">
+
+        {/* Animated background accent */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-20 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-32 left-0 w-96 h-96 bg-primary/3 rounded-full blur-3xl" />
+        </div>
+
+        {/* Main Content - centered with better spacing */}
+        <div className="flex-1 flex flex-col items-center justify-center text-center max-w-sm w-full relative z-10 py-8">
+
+          {/* LOGO */}
+          <div className="mb-8 native-animate-0">
+            <div className="relative inline-block">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-2xl blur-2xl" />
+              <img
+                src="/logo-transparent.png"
+                alt="RigFlow"
+                className="h-28 w-28 object-contain drop-shadow-2xl relative"
+              />
+            </div>
+          </div>
+
+          {/* HEADLINE */}
+          <div className="space-y-4 mb-8 native-animate-1">
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight text-white leading-tight">
+                Dein Event-Gear
+              </h1>
+            </div>
+            <div>
+              <h2 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary via-primary to-primary/80 bg-clip-text text-transparent leading-tight">
+                vollständig im Griff
+              </h2>
+            </div>
+            <p className="text-xs text-muted-foreground pt-1 font-medium">
+              Verwalte dein komplettes Inventar offline und in Echtzeit
+            </p>
+          </div>
+
+          {/* CTA */}
+          <div className="flex flex-col items-center gap-4 w-full native-animate-2">
+
+            <Button
+              size="lg"
+              className="w-full text-base font-semibold py-6 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.01]"
+              onClick={() => navigate('/register')}
+            >
+              Kostenlos Registrieren
+            </Button>
+
+            {/* Secondary Action */}
+            <button
+              onClick={() => navigate('/auth?step=login')}
+              className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors duration-200"
+            >
+              Du hast bereits ein Konto? Melde dich an
+            </button>
+
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-6 text-xs text-muted-foreground relative z-10 pb-6">
+          <a href="/impressum" className="hover:text-foreground transition-colors duration-200 font-medium">
+            Impressum
+          </a>
+          <a href="/datenschutz" className="hover:text-foreground transition-colors duration-200 font-medium">
+            Datenschutz
+          </a>
+        </div>
+
+      </div>
+    </>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 export default function Landing() {
+  if (isNative()) return <NativeWelcome />;
+
   const navigate = useNavigate();
   const { canInstall, isInstalled, install, deviceType } = useInstallPrompt();
   const featuresRef = useRef<HTMLDivElement>(null);          // scroll-to target
@@ -184,12 +297,12 @@ export default function Landing() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
             <div className="text-xl sm:text-2xl font-bold gradient-text">RigFlow</div>
             <div className="flex gap-1.5 sm:gap-2">
-              {!isInstalled && (
+              {!isInstalled && !isNative() && (
                 <Button variant="outline" size="icon" onClick={handleInstallApp} className="sm:hidden">
                   <Download className="h-4 w-4" />
                 </Button>
               )}
-              {!isInstalled && (
+              {!isInstalled && !isNative() && (
                 <Button variant="outline" size="sm" onClick={handleInstallApp} className="hidden sm:inline-flex gap-1.5">
                   <Download className="h-4 w-4" />
                   App installieren
@@ -253,7 +366,7 @@ export default function Landing() {
                 Jetzt entdecken
                 <ChevronRight className="h-4 w-4" />
               </Button>
-              {!isInstalled && (
+              {!isInstalled && !isNative() && (
                 <Button size="lg" variant="outline" onClick={handleInstallApp} className="gap-2">
                   <Download className="h-4 w-4" />
                   App herunterladen
