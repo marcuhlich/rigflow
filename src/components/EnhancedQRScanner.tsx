@@ -188,7 +188,11 @@ export function EnhancedQRScanner({
                   <video
                     ref={videoRef}
                     className="w-full rounded-lg border-2 border-border bg-black"
-                    style={{ maxHeight: '400px', objectFit: 'cover' }}
+                    style={{ maxHeight: '400px', objectFit: 'cover', opacity: 0, transition: 'opacity 0.2s' }}
+                    autoPlay
+                    muted
+                    playsInline
+                    onPlaying={(e) => (e.currentTarget.style.opacity = '1')}
                   />
                   <canvas ref={canvasRef} style={{ display: 'none' }} />
 

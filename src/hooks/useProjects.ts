@@ -3,16 +3,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Project, ProjectStatus } from '@/types/project';
+import { offlineQueue } from '@/lib/offlineQueue';
+
+const PROJECTS_CACHE_KEY = 'projects';
 
 export const STATUS_ORDER: ProjectStatus[] = [
   'draft', 'planned', 'packed', 'transit', 'live', 'returning',
 ];
 
-/** Warnung nötig wenn rückwärts von transit oder später */
 export function isWarningJump(from: ProjectStatus, to: ProjectStatus): boolean {
   const fi = STATUS_ORDER.indexOf(from);
   const ti = STATUS_ORDER.indexOf(to);
-  // archived kann kein Warning-Jump auslösen
   if (fi === -1 || ti === -1) return false;
   return ti < fi && fi >= 3;
 }
@@ -25,6 +26,20 @@ export function useProjects() {
 
   const fetchProjects = useCallback(async () => {
     if (!user) { setProjects([]); setLoading(false); return; }
+
+    // Cache sofort zeigen
+    const cached = offlineQueue.getCache<Project[]>(PROJECTS_CACHE_KEY);
+    if (cached && cached.length > 0) {
+      setProjects(cached);
+      setLoading(false);
+    }
+
+    // Offline → Cache nutzen, kein Toast
+    if (!navigator.onLine) {
+      if (!cached) { setProjects([]); setLoading(false); }
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('projects')
@@ -33,9 +48,18 @@ export function useProjects() {
         .order('is_favorite', { ascending: false })
         .order('created_at',  { ascending: false });
       if (error) throw error;
-      setProjects((data ?? []) as unknown as Project[]);
-    } catch {
-      toast({ title: 'Fehler', description: 'Projekte konnten nicht geladen werden.', variant: 'destructive' });
+      const typed = (data ?? []) as unknown as Project[];
+      setProjects(typed);
+      offlineQueue.setCache(PROJECTS_CACHE_KEY, typed);
+    } catch (err: any) {
+      const isNetworkError = err?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        toast({
+          title: 'Fehler',
+          description: 'Projekte konnten nicht geladen werden.',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -77,7 +101,6 @@ export function useProjects() {
     await fetchProjects();
   };
 
-  /** Soft-Delete */
   const deleteProject = async (id: string) => {
     const { error } = await supabase
       .from('projects')

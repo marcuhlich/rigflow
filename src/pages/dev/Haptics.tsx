@@ -21,64 +21,29 @@ export default function HapticsTest() {
 
   const PATTERNS: { label: string; desc: string; fn: () => void }[] = [
     {
-      label: "hapticFeedback(30)",
-      desc: "Sehr kurz — Tap",
-      fn: () => hapticFeedback(30),
-    },
-    {
-      label: "hapticFeedback(50)",
-      desc: "Kurz — Standard",
-      fn: () => hapticFeedback(50),
-    },
-    {
-      label: "hapticFeedback(80)",
-      desc: "Mittel — Long-Press-End",
-      fn: () => hapticFeedback(80),
-    },
-    {
-      label: "hapticFeedback(100)",
-      desc: "Stark — Delete",
-      fn: () => hapticFeedback(100),
-    },
-    {
-      label: "hapticFeedback(200)",
-      desc: "Lang — Fehler",
-      fn: () => hapticFeedback(200),
-    },
-    {
-      label: "navigator.vibrate([30,50,30])",
+      label: "hapticFeedback([30,50,30])",
       desc: "Doppelt-Tap",
-      fn: () => navigator.vibrate?.([30, 50, 30]),
+      fn: () => hapticFeedback([30, 50, 30]),
     },
     {
-      label: "navigator.vibrate([50,30,50,30,50])",
+      label: "hapticFeedback([50,30,50,30,50])",
       desc: "Triple — Erfolg",
-      fn: () => navigator.vibrate?.([50, 30, 50, 30, 50]),
+      fn: () => hapticFeedback([50, 30, 50, 30, 50]),
     },
     {
-      label: "navigator.vibrate([6,40,12])",
+      label: "hapticFeedback([6,40,12])",
       desc: "Swipe-Reveal (wie Lending)",
-      fn: () => navigator.vibrate?.([6, 40, 12]),
+      fn: () => hapticFeedback([6, 40, 12]),
     },
     {
-      label: "navigator.vibrate(8)",
+      label: "hapticFeedback(8)",
       desc: "Card-Press (wie Bento)",
-      fn: () => navigator.vibrate?.(8),
+      fn: () => hapticFeedback(8),
     },
     {
-      label: "hapticLongPress(1000)",
-      desc: "Long-Press-Muster starten (1s)",
-      fn: () => hapticLongPress(1000),
-    },
-    {
-      label: "hapticStop()",
-      desc: "Laufendes Muster stoppen",
-      fn: () => hapticStop(),
-    },
-    {
-      label: "navigator.vibrate([100,50,100,50,200])",
+      label: "hapticFeedback([100,50,100,50,200])",
       desc: "Fehler / Warnung",
-      fn: () => navigator.vibrate?.([100, 50, 100, 50, 200]),
+      fn: () => hapticFeedback([100, 50, 100, 50, 200]),
     },
   ];
 

@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { createPortal } from "react-dom";
+import { isNative } from '@/services/platform';
+import { pickImage } from '@/services/native';
 
 interface ImageUploadProps {
   currentImageUrl?: string | null;
@@ -41,7 +43,7 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
 
       const { error: uploadError } = await supabase.storage
         .from('item-images')
-        .upload(fileName, file, { upsert: true, contentType: file.type || 'image/jpeg' });
+        .upload(fileName, file, { contentType: file.type || 'image/jpeg' });
 
       if (uploadError) throw uploadError;
 
@@ -73,6 +75,27 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
     onImageChange(null);
     sessionStorage.removeItem(PENDING_UPLOAD_KEY);
   }, [onImageChange]);
+
+  // Neue Funktion einfügen (nach handleRemove):
+  const handleButtonClick = useCallback(async () => {
+    if (isNative()) {
+      // Native: Capacitor Camera Plugin
+      try {
+        setUploading(true);
+        const result = await pickImage();
+        if (!result) return;
+
+        setPreview(result.objectUrl);
+        void uploadFile(result.file); // uploadFile setzt uploading wieder auf false
+      } catch (err) {
+        console.error('Native image pick error:', err);
+        setUploading(false);
+      }
+    } else {
+      // Web: normaler File-Input
+      fileInputRef.current?.click();
+    }
+  }, [uploadFile]);
 
   const fileInput = (
     <input
@@ -114,7 +137,7 @@ export function ImageUpload({ currentImageUrl, onImageChange, className }: Image
           variant="outline"
           size="sm"
           className="w-full gap-1.5 h-9 text-xs"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={handleButtonClick}
           disabled={uploading}
         >
           {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}

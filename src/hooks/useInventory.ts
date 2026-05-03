@@ -131,7 +131,6 @@ export function useInventory() {
         }
       } catch (error) {
         if (isMounted) {
-          logger.error('Error fetching items:', error);
           const cachedItems = offlineQueue.getCache<InventoryItem[]>(ITEMS_CACHE_KEY);
           if (!cachedItems) {
             toast({

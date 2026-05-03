@@ -23,6 +23,8 @@ import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { PullToRefreshWrapper } from "@/components/PullToRefreshWrapper";
+import { hapticFeedback, hapticStop } from '@/lib/utils';
+import { isNative } from '@/services/platform';
 
 // ─── Smooth Tooltip ──────────────────────────────────────────────────────────
 const useSmoothTooltipPosition = (coordinate: any) => {
@@ -121,7 +123,7 @@ const MobileBentoStats = ({ stats, totalValue, activeLoansCount }: MobileBentoSt
 
   const press = (id: string) => {
     setPressedCard(id);
-    if (navigator.vibrate) navigator.vibrate(8);
+    hapticFeedback(8)
     setTimeout(() => setPressedCard(null), 150);
   };
 
@@ -249,11 +251,11 @@ const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
     if (offsetX < -THRESHOLD) {
       setOffsetX(-ACTION_WIDTH);
       setRevealed(true);
-      if (navigator.vibrate) navigator.vibrate([6, 40, 12]);
+      hapticFeedback([6, 40, 12]);
     } else {
       setOffsetX(0);
       setRevealed(false);
-      if (navigator.vibrate) navigator.vibrate(4);
+      hapticFeedback(6);
     }
   };
 
@@ -374,7 +376,7 @@ export default function Dashboard() {
   // FIX: reaktiver Hook statt einmaligem window.innerWidth-Snapshot
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
+  const isStandalone = isNative() || window.matchMedia("(display-mode: standalone)").matches;
 
   useEffect(() => {
     const t = setTimeout(() => setChartsVisible(true), 100);
@@ -817,7 +819,7 @@ export default function Dashboard() {
               onRemind={async (id) => {
                 // onRemind sendet eine Erinnerung — deleteRecord bleibt für echtes Löschen
                 // Hier kannst du später push notification / toast ergänzen
-                if (navigator.vibrate) navigator.vibrate([10, 50, 10]);
+                hapticFeedback([10, 50, 10]);
               }}
             />
           ))}

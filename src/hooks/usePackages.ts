@@ -43,7 +43,9 @@ export function usePackages() {
       }));
       setPackages(enriched);
     } catch {
-      toast({ title: 'Fehler', description: 'Pakete konnten nicht geladen werden.', variant: 'destructive' });
+      if (navigator.onLine) {
+        toast({ title: 'Fehler', description: 'Pakete konnten nicht geladen werden.', variant: 'destructive' });
+      }
     } finally {
       setLoading(false);
     }

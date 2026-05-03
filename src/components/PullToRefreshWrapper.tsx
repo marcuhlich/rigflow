@@ -10,7 +10,7 @@ interface Props {
 
 export function PullToRefreshWrapper({ onRefresh, children, disabled }: Props) {
   const THRESHOLD = 72;
-  const { indicatorRef, isRefreshing, onTouchStart, onTouchMove, onTouchEnd } =
+  const { indicatorRef, isRefreshing, onTouchStart, onTouchMove, onTouchEnd, onTouchCancel } =
     usePullToRefresh({ onRefresh, threshold: THRESHOLD, disabled });
 
   return (
@@ -18,9 +18,10 @@ export function PullToRefreshWrapper({ onRefresh, children, disabled }: Props) {
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchCancel}
       style={{ userSelect: "none" }}
     >
-      {/* Indicator — wird direkt per DOM manipuliert, kein Re-render */}
+      {/* Indicator */}
       <div
         ref={indicatorRef}
         style={{
@@ -48,7 +49,6 @@ export function PullToRefreshWrapper({ onRefresh, children, disabled }: Props) {
           </div>
         )}
       </div>
-
       {children}
     </div>
   );

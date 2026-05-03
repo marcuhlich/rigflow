@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/lib/logger';
 import { Json } from '@/integrations/supabase/types';
+import { useToast } from '@/hooks/use-toast';
 
 export interface AuditLogEntry {
   id: string;
@@ -18,7 +19,7 @@ export function useAuditLog() {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-
+  const { toast } = useToast();
   const fetchLogs = async () => {
     if (!user) {
       setLogs([]);
@@ -35,8 +36,15 @@ export function useAuditLog() {
 
       if (error) throw error;
       setLogs(data as AuditLogEntry[]);
-    } catch (error) {
-      logger.error('AuditLog', 'Error fetching audit logs', error);
+      } catch (err: any) {
+        const isNetworkError = err?.message?.includes('Failed to fetch');
+        if (!isNetworkError) {
+          toast({
+            title: 'Fehler',
+            description: 'Projekte konnten nicht geladen werden.',
+            variant: 'destructive',
+          });
+        }
     } finally {
       setLoading(false);
     }

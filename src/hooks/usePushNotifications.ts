@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react';
 import { logger } from '@/lib/logger';
+import { isNative } from '@/services/platform';
+import {
+  checkNativeNotificationPermission,
+  requestNativeNotificationPermission,
+  showNativeNotification,
+} from '@/services/native/notifications';
 
 export interface PushNotificationOptions {
   title: string;
@@ -21,24 +27,50 @@ export function usePushNotifications() {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [error, setError] = useState<string | null>(null);
 
-  // Check if push notifications are supported and listen for permission changes
+  // ── Init ──────────────────────────────────────────────────────────────────
   useEffect(() => {
+    if (isNative()) {
+      // Native: LocalNotifications immer verfügbar
+      setIsSupported(true);
+      checkNativeNotificationPermission().then(setPermission);
+      return;
+    }
+
+    // Web/PWA: Service Worker + Notification API
     const supported = 'serviceWorker' in navigator && 'Notification' in window;
     setIsSupported(supported);
-
     if (supported) {
-      // Set initial permission
       setPermission(Notification.permission);
-      
-      // Log permission status
-      console.log('[usePushNotifications] Permission:', Notification.permission);
     }
   }, []);
 
-  /**
-   * Request notification permission from user
-   */
+  // ── requestPermission ─────────────────────────────────────────────────────
   const requestPermission = async (): Promise<boolean> => {
+    // ── Native ──
+    if (isNative()) {
+      try {
+        const result = await requestNativeNotificationPermission();
+        setPermission(result);
+        if (result === 'granted') {
+          setTimeout(() => {
+            showNativeNotification({
+              title: 'RigFlow',
+              body: 'Benachrichtigungen sind aktiviert! 🎉',
+              tag: 'welcome',
+            });
+          }, 500);
+        }
+        return result === 'granted';
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Fehler beim Anfordern der Permission';
+        setError(message);
+        logger.error('usePushNotifications', 'Native permission error', err);
+        return false;
+      }
+    }
+
+    // ── Web ──
     if (!isSupported) {
       const msg = 'Push-Benachrichtigungen werden nicht unterstützt';
       setError(msg);
@@ -47,15 +79,9 @@ export function usePushNotifications() {
     }
 
     try {
-      console.log('[usePushNotifications] Requesting permission...');
       const result = await Notification.requestPermission();
-      console.log('[usePushNotifications] Permission result:', result);
-      
       setPermission(result);
-      
       if (result === 'granted') {
-        logger.info('usePushNotifications', 'Permission granted');
-        // Kurz warten dann Notification testen
         setTimeout(() => {
           sendNotification({
             title: 'RigFlow',
@@ -64,36 +90,50 @@ export function usePushNotifications() {
           });
         }, 500);
       }
-      
       return result === 'granted';
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Fehler beim Anfordern der Permission';
+      const message =
+        err instanceof Error ? err.message : 'Fehler beim Anfordern der Permission';
       setError(message);
-      logger.error('usePushNotifications', 'Permission request error', err);
+      logger.error('usePushNotifications', 'Web permission error', err);
       return false;
     }
   };
 
-  /**
-   * Send a local notification
-   */
+  // ── sendNotification ──────────────────────────────────────────────────────
   const sendNotification = async (options: PushNotificationOptions): Promise<void> => {
-    // Immer aktuelles Permission checken
-    const currentPermission = Notification.permission;
-    
-    if (!isSupported) {
-      logger.warn('usePushNotifications', 'Notifications not supported');
+    // ── Native ──
+    if (isNative()) {
+      if (permission !== 'granted') {
+        logger.warn('usePushNotifications', 'Native: permission not granted');
+        return;
+      }
+      try {
+        await showNativeNotification({
+          title: options.title,
+          body: options.body,
+          tag: options.tag,
+          requireInteraction: options.requireInteraction,
+        });
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Fehler beim Senden der Notification';
+        setError(message);
+        logger.error('usePushNotifications', 'Native send error', err);
+      }
       return;
     }
 
-    if (currentPermission !== 'granted') {
-      logger.warn('usePushNotifications', 'Notification permission not granted', { currentPermission });
+    // ── Web ──
+    const currentPermission = Notification.permission;
+    if (!isSupported || currentPermission !== 'granted') {
+      logger.warn('usePushNotifications', 'Web: notifications not available', {
+        currentPermission,
+      });
       return;
     }
 
     try {
-      console.log('[usePushNotifications] Sending notification:', options.title);
-
       const notificationOptions: NotificationOptions = {
         body: options.body,
         icon: options.icon || '/pwa-192x192.png',
@@ -102,86 +142,24 @@ export function usePushNotifications() {
         requireInteraction: options.requireInteraction || false,
       };
 
-      // Use service worker registration's showNotification (works in foreground AND background)
       if ('serviceWorker' in navigator) {
         const registration = await navigator.serviceWorker.ready;
-        console.log('[usePushNotifications] Using SW registration.showNotification');
         await registration.showNotification(options.title, notificationOptions);
       } else {
-        // Fallback: direct Notification constructor (foreground only)
-        console.log('[usePushNotifications] Fallback: new Notification()');
         new Notification(options.title, notificationOptions);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Fehler beim Senden der Notification';
+      const message =
+        err instanceof Error ? err.message : 'Fehler beim Senden der Notification';
       setError(message);
-      logger.error('usePushNotifications', 'Send notification error', err);
+      logger.error('usePushNotifications', 'Web send error', err);
     }
   };
 
-/* 
-  const notifySync = async (itemsCount: number, conflictCount: number = 0): Promise<void> => {
-    // Checke Permission vor dem Senden
-    if (Notification.permission !== 'granted') {
-      console.log('[usePushNotifications] Skipping notifySync - no permission');
-      return;
-    }
-
-    const hasConflicts = conflictCount > 0;
-    
-    await sendNotification({
-      title: hasConflicts ? '⚠️ Synchronisierung mit Konflikten' : '✅ Synchronisiert',
-      body: hasConflicts
-        ? `${itemsCount} Artikel synchronisiert, ${conflictCount} Konflikt(e) müssen aufgelöst werden.`
-        : `${itemsCount} Artikel erfolgreich synchronisiert.`,
-      tag: 'sync',
-      icon: '/pwa-192x192.png',
-      badge: '/favicon-32x32.png',
-      requireInteraction: hasConflicts,
-    });
-  };
-
-  const notifyOffline = async (): Promise<void> => {
-    // Checke Permission vor dem Senden
-    if (Notification.permission !== 'granted') {
-      console.log('[usePushNotifications] Skipping notifyOffline - no permission');
-      return;
-    }
-
-    await sendNotification({
-      title: '🔌 Offline',
-      body: 'Du bist jetzt offline. Änderungen werden synchronisiert, wenn du wieder online bist.',
-      tag: 'offline',
-      requireInteraction: false,
-    });
-  };
-
-  const notifyOnline = async (): Promise<void> => {
-    // Checke Permission vor dem Senden
-    if (Notification.permission !== 'granted') {
-      console.log('[usePushNotifications] Skipping notifyOnline - no permission');
-      return;
-    }
-
-    await sendNotification({
-      title: '🟢 Online',
-      body: 'Du bist wieder online. Synchronisierung läuft...',
-      tag: 'online',
-      requireInteraction: false,
-    });
-  };
-  
-*/
-
-  /**
-   * Send error notification
-   */
+  // ── notifyError ───────────────────────────────────────────────────────────
   const notifyError = async (title: string, message: string): Promise<void> => {
-    // Checke Permission vor dem Senden
-    if (Notification.permission !== 'granted') {
-      console.log('[usePushNotifications] Skipping notifyError - no permission');
-      return;
-    }
+    const currentPermission = isNative() ? permission : Notification.permission;
+    if (currentPermission !== 'granted') return;
 
     await sendNotification({
       title: `❌ ${title}`,
@@ -191,32 +169,21 @@ export function usePushNotifications() {
     });
   };
 
-  /**
-   * Listen for messages from service worker
-   */
+  // ── SW Message Listener (Web only) ────────────────────────────────────────
   useEffect(() => {
-    if (!('serviceWorker' in navigator)) return;
+    if (isNative() || !('serviceWorker' in navigator)) return;
 
-    const handleServiceWorkerMessage = (event: MessageEvent) => {
-      console.log('[usePushNotifications] SW Message:', event.data.type);
-      if (event.data.type === 'NOTIFICATION_CLICK') {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'NOTIFICATION_CLICK') {
         logger.info('usePushNotifications', 'Notification clicked', event.data);
       }
     };
 
-    navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
-
-    return () => {
-      navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
-    };
+    navigator.serviceWorker.addEventListener('message', handleMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', handleMessage);
   }, []);
 
-  /**
-   * Check if app is in background
-   */
-  const isBackgroundMode = (): boolean => {
-    return !document.hasFocus();
-  };
+  const isBackgroundMode = (): boolean => !document.hasFocus();
 
   return {
     isSupported,

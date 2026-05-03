@@ -19,6 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CONDITIONS, CONDITION_LABELS, ItemCategory, ItemCondition } from "@/types/inventory";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { hapticFeedback, hapticStop } from '@/lib/utils';
 
 interface FilterBarProps {
   searchQuery: string;
@@ -163,7 +164,7 @@ export function FilterBar({
             size="icon"
             className="relative glass-input shrink-0 h-10 w-10"
             onClick={() => {
-              if (navigator.vibrate) navigator.vibrate(6);
+              hapticFeedback(6)
               setDrawerOpen(true);
               setSnapRatio(1);
             }}
@@ -272,7 +273,7 @@ export function FilterBar({
                   className="flex-1 text-muted-foreground"
                   onClick={() => {
                     onClearFilters();
-                    if (navigator.vibrate) navigator.vibrate(6);
+                    hapticFeedback(6)
                   }}
                 >
                   <X className="h-4 w-4 mr-2" />
@@ -283,7 +284,7 @@ export function FilterBar({
                 <Button
                   className="flex-1 active:scale-95"
                   onClick={() => {
-                    if (navigator.vibrate) navigator.vibrate(8);
+                    hapticFeedback(8)
                   }}
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />

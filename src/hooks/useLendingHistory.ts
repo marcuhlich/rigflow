@@ -24,6 +24,7 @@ export function useLendingHistory() {
 
   const fetchRecords = useCallback(async () => {
     if (!user) return;
+    if (!navigator.onLine) return;
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -34,8 +35,15 @@ export function useLendingHistory() {
 
       if (error) throw error;
       setRecords((data as LendingRecord[]) || []);
-    } catch (err) {
-      console.error('Failed to fetch lending history', err);
+    } catch (err: any) {
+      const isNetworkError = err?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        toast({
+          title: 'Fehler',
+          description: 'Projekte konnten nicht geladen werden.',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setLoading(false);
     }

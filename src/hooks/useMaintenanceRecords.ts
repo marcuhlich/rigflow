@@ -117,7 +117,7 @@ export function useMaintenanceRecords(itemId: string) {
 
       const { error: uploadErr } = await supabase.storage
         .from('item-images')
-        .upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+        .upload(path, blob, { contentType: 'image/jpeg' });
 
       if (uploadErr) {
         console.error('[uploadPhoto]', uploadErr.message);

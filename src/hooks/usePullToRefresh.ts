@@ -14,36 +14,49 @@ export function usePullToRefresh({ onRefresh, threshold = 72, disabled = false }
   const distRef = useRef(0);
 
   const setIndicator = useCallback((dist: number) => {
-  distRef.current = dist;
-  if (!indicatorRef.current) return;
-  indicatorRef.current.style.height = `${dist}px`;
-  indicatorRef.current.style.opacity = `${Math.min(dist / threshold, 1)}`;
-}, [threshold]);
+    distRef.current = dist;
+    if (!indicatorRef.current) return;
+    indicatorRef.current.style.height = `${dist}px`;
+    indicatorRef.current.style.opacity = `${Math.min(dist / threshold, 1)}`;
+  }, [threshold]);
+
+  const reset = useCallback(() => {
+    pulling.current = false;
+    distRef.current = 0;
+    if (indicatorRef.current) {
+      indicatorRef.current.style.transition = "height 0.3s cubic-bezier(0.34,1.56,0.64,1)";
+      indicatorRef.current.style.height = "0px";
+      indicatorRef.current.style.opacity = "0";
+    }
+  }, []);
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
-    if (disabled || isRefreshing || window.scrollY > 0) return;
+    if (disabled || isRefreshing) return;
     startY.current = e.touches[0].clientY;
     pulling.current = true;
+    // Transition entfernen während des Ziehens
+    if (indicatorRef.current) {
+      indicatorRef.current.style.transition = "none";
+    }
   }, [disabled, isRefreshing]);
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
     if (!pulling.current || disabled || isRefreshing) return;
-    if (window.scrollY > 0) {
-      pulling.current = false;
+    const dy = e.touches[0].clientY - startY.current;
+    if (dy <= 0) {
+      // Negativ = nach oben scrollen → Indicator ausblenden aber pulling NICHT abbrechen
       setIndicator(0);
       return;
     }
-    const dy = e.touches[0].clientY - startY.current;
-    if (dy < 0) { setIndicator(0); return; }
     setIndicator(Math.min(dy * 0.45, threshold * 1.3));
   }, [disabled, isRefreshing, threshold, setIndicator]);
 
   const onTouchEnd = useCallback(async () => {
     if (!pulling.current) return;
+    const dist = distRef.current;
     pulling.current = false;
 
-    if (distRef.current >= threshold) {
-      // Eingerastet auf threshold-Höhe
+    if (dist >= threshold) {
       if (indicatorRef.current) {
         indicatorRef.current.style.transition = "height 0.2s ease";
         indicatorRef.current.style.height = `${threshold}px`;
@@ -53,22 +66,17 @@ export function usePullToRefresh({ onRefresh, threshold = 72, disabled = false }
         await onRefresh();
       } finally {
         setIsRefreshing(false);
-        if (indicatorRef.current) {
-          indicatorRef.current.style.transition = "height 0.3s cubic-bezier(0.34,1.56,0.64,1)";
-          indicatorRef.current.style.height = "0px";
-          indicatorRef.current.style.opacity = "0";
-        }
-        distRef.current = 0;
+        reset();
       }
     } else {
-      if (indicatorRef.current) {
-        indicatorRef.current.style.transition = "height 0.3s cubic-bezier(0.34,1.56,0.64,1)";
-        indicatorRef.current.style.height = "0px";
-        indicatorRef.current.style.opacity = "0";
-      }
-      distRef.current = 0;
+      reset();
     }
-  }, [threshold, onRefresh]);
+  }, [threshold, onRefresh, reset]);
 
-  return { indicatorRef, isRefreshing, onTouchStart, onTouchMove, onTouchEnd };
+  // Wichtig: TouchCancel abfangen (Android feuert das manchmal statt TouchEnd)
+  const onTouchCancel = useCallback(() => {
+    reset();
+  }, [reset]);
+
+  return { indicatorRef, isRefreshing, onTouchStart, onTouchMove, onTouchEnd, onTouchCancel };
 }

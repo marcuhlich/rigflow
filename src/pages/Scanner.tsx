@@ -32,6 +32,7 @@ import { useProjects } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { InventoryItem, ItemCondition } from "@/types/inventory";
+import { hapticFeedback, hapticStop } from '@/lib/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -224,7 +225,7 @@ export default function Scanner() {
 
     if (entries.some(e => e.item.id === itemId)) {
       toast({ title: "Bereits gescannt", description: `${item.name} ist schon in der Liste.`, variant: "destructive" });
-      if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+      hapticFeedback([50, 30, 50]);
       return;
     }
 
@@ -239,7 +240,7 @@ export default function Scanner() {
     const inSet = hasProject ? projectItemIds.has(itemId) : undefined;
 
     setEntries(prev => [...prev, { item, scannedAt: new Date(), targetStatus, inSet }]);
-    if (navigator.vibrate) navigator.vibrate(60);
+    hapticFeedback(60);
     toast({
       title: `✓ ${item.name}`,
       description: inSet === false ? "⚠ Nicht im gewählten Projekt" : undefined,

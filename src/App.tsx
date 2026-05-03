@@ -18,6 +18,7 @@ import { useOverdueReminder } from "@/hooks/useOverdueReminder";
 import { applyStoredAppearance } from "@/lib/appearanceUtils";
 import SettingsGuard from "@/components/SettingsGuard";
 import { PublicPageLayout } from "./components/layout/PublicPageLayout";
+import { isNative } from '@/services/platform';
 
 const Landing = lazy(() => import("./pages/Landing"));
 const InstallPrompt = lazy(() => import("./pages/InstallPrompt"));
@@ -161,6 +162,8 @@ function AppRoutes() {
 function AppInitializer() {
   useEffect(() => {
     const init = async () => {
+      // Auf nativen Plattformen kein Service Worker
+      if (isNative()) return;
       // Alten leeren /sw.js deregistrieren falls noch vorhanden
       if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
@@ -243,7 +246,8 @@ function AppInitializer() {
 
     // SW Update Check bei Visibility Change
     const handleVisibilityChange = async () => {
-      if (document.visibilityState === "visible") {
+      if (isNative()) return;
+      if (document.visibilityState === 'visible') {
         logger.info("App", "App visible, checking for SW updates");
         try {
           const registration = await navigator.serviceWorker.getRegistration();

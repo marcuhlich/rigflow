@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Eye, EyeOff, ChevronRight, ChevronLeft, Lock, Hash, Type, QrCode, Wifi, Package, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import posthog from "posthog-js";
+import { hapticFeedback, hapticStop } from '@/lib/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Phase = 'intro' | 'stories' | 'form' | 'finale';
@@ -49,7 +50,7 @@ const FORM_STEPS: FormStep[] = ['name', 'email', 'password', 'warehouse'];
 // ─── Haptic helper ────────────────────────────────────────────────────────────
 function hapticDouble() {
   if ('vibrate' in navigator) {
-    navigator.vibrate([60, 80, 120]);
+    hapticFeedback([60, 80, 120]);
   }
 }
 

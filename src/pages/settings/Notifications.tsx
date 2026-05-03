@@ -11,6 +11,11 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { isNative } from '@/services/platform';
+import {
+  checkNativeNotificationPermission,
+  requestNativeNotificationPermission,
+} from '@/services/native/notifications';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -144,26 +149,50 @@ const Notifications = () => {
   }, [user]);
 
   // ── Check push permission ──
-  useEffect(() => {
-    if ("Notification" in window) {
-      setPushGranted(Notification.permission === "granted");
+useEffect(() => {
+  const check = async () => {
+    if (isNative()) {
+      const p = await checkNativeNotificationPermission();
+      setPushGranted(p === 'granted');
+    } else if ('Notification' in window) {
+      setPushGranted(Notification.permission === 'granted');
     } else {
       setPushGranted(false);
     }
-  }, []);
+  };
+  check();
+}, []);
 
-  const requestPushPermission = async () => {
-    if (!("Notification" in window)) return;
-    const result = await Notification.requestPermission();
-    setPushGranted(result === "granted");
-    if (result !== "granted") {
+const requestPushPermission = async () => {
+  if (isNative()) {
+    const result = await requestNativeNotificationPermission();
+    setPushGranted(result === 'granted');
+    if (result !== 'granted') {
       toast({
-        title: "Benachrichtigungen blockiert",
-        description: "Bitte erlaube Benachrichtigungen in deinen Browser-Einstellungen.",
-        variant: "destructive",
+        title: 'Benachrichtigungen blockiert',
+        description:
+          result === 'denied'
+            ? 'Bitte erlaube Benachrichtigungen in den App-Einstellungen deines Geräts.'
+            : 'Berechtigung wurde nicht erteilt.',
+        variant: 'destructive',
       });
     }
-  };
+    return;
+  }
+
+  // Web (unverändert):
+  if (!('Notification' in window)) return;
+  const result = await Notification.requestPermission();
+  setPushGranted(result === 'granted');
+  if (result !== 'granted') {
+    toast({
+      title: 'Benachrichtigungen blockiert',
+      description:
+        'Bitte erlaube Benachrichtigungen in deinen Browser-Einstellungen.',
+      variant: 'destructive',
+    });
+  }
+};
 
   // ── Toggle handler – saves immediately ──
   const handleToggle = async (key: keyof NotificationPrefs, value: boolean) => {

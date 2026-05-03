@@ -167,7 +167,9 @@ export function useProjectDetail(projectId: string | undefined) {
 
       setTodos((todosRes.data ?? []) as unknown as ProjectTodo[]);
     } catch (err) {
-      toast({ title: 'Fehler', description: 'Projekt konnte nicht geladen werden.', variant: 'destructive' });
+      if (navigator.onLine) {
+        toast({ title: 'Fehler', description: 'Projekt konnte nicht geladen werden.', variant: 'destructive' });
+      }
     } finally {
       setLoading(false);
     }
