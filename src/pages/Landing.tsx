@@ -2,7 +2,9 @@ import { useRef, useEffect, useState } from 'react';
 import {
   ChevronRight, Zap, Lock, Smartphone, ArrowRight, Download,
   Wifi, QrCode, CheckSquare, Radio, SlidersHorizontal, ClipboardList,
-  ScanLine, Speaker, Lightbulb, Mic, Cable
+  ScanLine, Speaker, Lightbulb, Mic, Cable, Shield, FileDown,
+  Package, FolderKanban, Activity, Wrench, Database,
+  ChevronDown, ExternalLink, Truck, RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -57,6 +59,22 @@ const ANIM_CSS = `
     from { opacity: 0; transform: translateY(20px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+  @keyframes mockupFloat {
+    0%, 100% { transform: translateY(0px) rotate(-1deg); }
+    50%       { transform: translateY(-10px) rotate(-1deg); }
+  }
+  @keyframes phoneFloat {
+    0%, 100% { transform: translateY(0px) rotate(2deg); }
+    50%       { transform: translateY(-14px) rotate(2deg); }
+  }
+  @keyframes statusBlink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+  }
+  @keyframes scanBar {
+    0%   { transform: translateY(0); opacity: 0.8; }
+    100% { transform: translateY(120px); opacity: 0; }
+  }
 
   /* Header slide-down on mount */
   .rig-header { animation: rigHeaderIn 0.5s cubic-bezier(0.22,1,0.36,1) both; }
@@ -67,11 +85,16 @@ const ANIM_CSS = `
   .d1 { animation-delay: 130ms; }
   .d2 { animation-delay: 260ms; }
   .d3 { animation-delay: 390ms; }
+  .d4 { animation-delay: 520ms; }
 
   /* Native Welcome Screen animations */
   .native-animate-0 { animation: nativeSlideUp 0.6s cubic-bezier(0.22,1,0.36,1) both; animation-delay: 0ms; }
   .native-animate-1 { animation: nativeSlideUp 0.6s cubic-bezier(0.22,1,0.36,1) both; animation-delay: 120ms; }
   .native-animate-2 { animation: nativeSlideUp 0.6s cubic-bezier(0.22,1,0.36,1) both; animation-delay: 240ms; }
+
+  /* Floating mockup */
+  .rig-mockup-float { animation: mockupFloat 6s ease-in-out infinite; }
+  .rig-phone-float  { animation: phoneFloat 5s ease-in-out infinite; animation-delay: 0.8s; }
 
   /* Floating mockup cards */
   .rig-float { animation: rigFloat 5s ease-in-out infinite; }
@@ -84,6 +107,19 @@ const ANIM_CSS = `
     background: linear-gradient(to right, transparent, hsl(var(--primary)), transparent);
     box-shadow: 0 0 10px hsl(var(--primary) / 0.7);
     animation: rigScan 2.4s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* Status dot blink */
+  .rig-blink { animation: statusBlink 2s ease-in-out infinite; }
+
+  /* Scan bar in phone mockup */
+  .rig-scanbar {
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(to right, transparent, hsl(var(--primary)), transparent);
+    animation: scanBar 1.8s ease-in-out infinite;
     pointer-events: none;
   }
 
@@ -128,6 +164,17 @@ const ANIM_CSS = `
     box-shadow: 0 22px 55px rgba(0,0,0,0.3);
   }
 
+  /* Sub-feature card hover */
+  .rig-subcard {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+  }
+  .rig-subcard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.25);
+    border-color: hsl(var(--primary) / 0.5);
+  }
+
   /* Page transition: slide + fade out */
   @keyframes pageSlideOut {
     from { opacity: 1; transform: translateY(0); }
@@ -142,6 +189,24 @@ const ANIM_CSS = `
 
   .page-exit { animation: pageSlideOut 0.3s ease forwards; }
   .page-enter { animation: pageSlideIn 0.4s ease forwards; }
+
+  /* Footer columns */
+  .footer-col-header {
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: hsl(var(--muted-foreground));
+    margin-bottom: 0.75rem;
+  }
+  .footer-link {
+    display: block;
+    font-size: 0.875rem;
+    color: hsl(var(--muted-foreground));
+    transition: color 0.18s ease;
+    margin-bottom: 0.4rem;
+  }
+  .footer-link:hover { color: hsl(var(--foreground)); }
 `;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -231,6 +296,107 @@ function NativeWelcome() {
 }
 
 // ---------------------------------------------------------------------------
+// Hero Device Mockup (Desktop + Phone)
+// ---------------------------------------------------------------------------
+function HeroMockup() {
+  return (
+    <div className="relative w-full max-w-2xl mx-auto h-72 sm:h-96">
+
+      {/* Desktop Browser Mockup */}
+      <div className="rig-mockup-float absolute left-0 top-0 w-[75%] z-10">
+        <div className="rounded-xl border border-border/60 bg-background/90 shadow-2xl overflow-hidden backdrop-blur-sm">
+          {/* Browser chrome */}
+          <div className="flex items-center gap-1.5 px-3 py-2.5 bg-muted/40 border-b border-border/40">
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-500/70" />
+            <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
+            <div className="flex-1 mx-3 h-5 bg-background/60 rounded border border-border/30 flex items-center px-2">
+              <span className="text-[9px] text-muted-foreground/60 truncate">app.rigflow.de/inventory</span>
+            </div>
+          </div>
+          {/* Content preview */}
+          <div className="p-3 bg-background/60 space-y-2">
+            {/* Header bar */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xs font-bold gradient-text">RigFlow</div>
+              <div className="flex gap-1">
+                <div className="h-4 w-12 rounded bg-primary/20" />
+                <div className="h-4 w-16 rounded bg-primary/80" />
+              </div>
+            </div>
+            {/* Table rows */}
+            {[
+              { name: 'JBL EON 615',     status: 'verfügbar', col: 'bg-green-500' },
+              { name: 'Moving Head 250W', status: 'verliehen',  col: 'bg-amber-500' },
+              { name: 'SM58 Mikrofon',    status: 'verfügbar', col: 'bg-green-500' },
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-2 p-1.5 rounded bg-muted/20 border border-border/20">
+                <div className={`w-1.5 h-1.5 rounded-full ${item.col} flex-shrink-0`} />
+                <span className="text-[10px] flex-1 truncate">{item.name}</span>
+                <span className="text-[9px] text-muted-foreground">{item.status}</span>
+                <QrCode className="h-3 w-3 text-muted-foreground/30" />
+              </div>
+            ))}
+            {/* DMX mini table */}
+            <div className="mt-2 p-2 rounded border border-primary/20 bg-primary/5 space-y-1">
+              <div className="text-[9px] text-primary font-semibold mb-1">DMX Universe 1</div>
+              {[{ ch: '001', name: 'Spot A', mode: '16ch' }, { ch: '017', name: 'Spot B', mode: '16ch' }].map((r, i) => (
+                <div key={i} className="flex gap-2 text-[9px] text-muted-foreground">
+                  <span className="w-6 text-primary/70 font-mono">{r.ch}</span>
+                  <span className="flex-1">{r.name}</span>
+                  <span>{r.mode}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Phone Mockup */}
+      <div className="rig-phone-float absolute right-0 bottom-0 w-[38%] z-20">
+        <div className="rounded-[22px] border-2 border-border/50 bg-background/95 shadow-2xl overflow-hidden">
+          {/* Phone notch */}
+          <div className="bg-muted/30 py-2 flex justify-center">
+            <div className="w-10 h-1 rounded-full bg-border/60" />
+          </div>
+          {/* Screen content */}
+          <div className="px-2 pb-3 space-y-1.5 bg-background/80">
+            <div className="text-[9px] font-bold text-center py-1 gradient-text">Inventar</div>
+            {/* QR scan area */}
+            <div className="relative rounded-lg bg-muted/20 aspect-square flex items-center justify-center overflow-hidden border border-border/30">
+              <div className="absolute top-2 left-2  w-3 h-3 border-t-2 border-l-2 border-primary rounded-tl" />
+              <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-primary rounded-tr" />
+              <div className="absolute bottom-2 left-2  w-3 h-3 border-b-2 border-l-2 border-primary rounded-bl" />
+              <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-primary rounded-br" />
+              <div className="rig-scanbar" />
+              <QrCode className="h-6 w-6 text-primary/20" />
+            </div>
+            {/* Push notification badge */}
+            <div className="rounded-lg bg-primary/10 border border-primary/20 p-1.5 flex items-start gap-1.5">
+              <div className="rig-blink w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <div className="text-[8px] font-semibold">Rückgabe überfällig</div>
+                <div className="text-[7px] text-muted-foreground">Moving Head – Projekt Berlin</div>
+              </div>
+            </div>
+          </div>
+          {/* Home bar */}
+          <div className="pb-2 flex justify-center">
+            <div className="w-8 h-1 rounded-full bg-border/40" />
+          </div>
+        </div>
+      </div>
+
+      {/* Glow effects */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-40 h-40 bg-primary/8 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-32 h-32 bg-primary/6 rounded-full blur-2xl" />
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 export default function Landing() {
@@ -238,31 +404,24 @@ export default function Landing() {
 
   const navigate = useNavigate();
   const { canInstall, isInstalled, install, deviceType } = useInstallPrompt();
-  const featuresRef = useRef<HTMLDivElement>(null);          // scroll-to target
-  const [qrRef,   qrVisible]   = useScrollReveal();
-  const [invRef,  invVisible]  = useScrollReveal();
-  const [featRef, featVisible] = useScrollReveal();
-  const [ctaRef,  ctaVisible]  = useScrollReveal();
+  const featuresRef = useRef<HTMLDivElement>(null);
+  const [qrRef,    qrVisible]    = useScrollReveal();
+  const [invRef,   invVisible]   = useScrollReveal();
+  const [projRef,  projVisible]  = useScrollReveal();
+  const [techRef,  techVisible]  = useScrollReveal();
+  const [secRef,   secVisible]   = useScrollReveal();
+  const [featRef,  featVisible]  = useScrollReveal();
+  const [ctaRef,   ctaVisible]   = useScrollReveal();
 
   const handleInstallApp = async () => {
-    // Desktop → immer zum Windows-Installer
-    if (deviceType === "desktop") {
-      navigate("/install");
-      return;
-    }
-
-    // Android mit nativem Prompt → direkt installieren
+    if (deviceType === "desktop") { navigate("/install"); return; }
     if (deviceType === "android" && canInstall) {
       const accepted = await install();
-      if (!accepted) navigate("/install"); // User hat abgelehnt → Anleitung zeigen
+      if (!accepted) navigate("/install");
       return;
     }
-
-    // iOS oder Android ohne Prompt → Installationsanleitung
     navigate("/install");
   };
-
-  const [debugInfo, setDebugInfo] = useState<string>("waiting...");
 
   const scrollToFeatures = () => {
     featuresRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -273,14 +432,14 @@ export default function Landing() {
     { title: 'QR-Code Management',   description: 'Generiere und scanne QR-Codes. Schnelle Erfassung deiner Ausrüstung.',         Icon: QrCode },
     { title: 'Event-Checklisten',    description: 'Plane deine Gigs mit intelligenten Checklisten und Equipment-Paketen.',          Icon: CheckSquare },
     { title: 'Echtzeit-Sync',        description: 'Alle deine Geräte sind immer aktuell. Cloud-sicher und schnell.',               Icon: Radio },
-    { title: 'DMX-Konfiguration',    description: 'Verwalte deine DMX-Kanäle und Universe direkt in der App.',                     Icon: SlidersHorizontal },
+    { title: 'DMX-Konfiguration',    description: 'Verwalte deine DMX-Kanäle und Universen direkt in der App.',                     Icon: SlidersHorizontal },
     { title: 'Audit-Log',            description: 'Nachverfolgung aller Änderungen. Wer hat was und wann gemacht?',                 Icon: ClipboardList },
   ];
 
   const invItems = [
-    { icon: Speaker,   name: 'JBL EON 615',       status: 'verfügbar', color: 'text-green-500' },
-    { icon: Lightbulb, name: 'Moving Head 250W',   status: 'verliehen', color: 'text-amber-500' },
-    { icon: Mic,       name: 'SM58 Mikrofon',       status: 'verfügbar', color: 'text-green-500' },
+    { icon: Speaker,   name: 'JBL EON 615',       status: 'verfügbar',  color: 'text-green-500' },
+    { icon: Lightbulb, name: 'Moving Head 250W',   status: 'verliehen',  color: 'text-amber-500' },
+    { icon: Mic,       name: 'SM58 Mikrofon',       status: 'verfügbar',  color: 'text-green-500' },
     { icon: Cable,     name: 'XLR 10m (x8)',        status: 'in-einsatz', color: 'text-blue-500' },
   ];
 
@@ -298,7 +457,7 @@ export default function Landing() {
             <div className="text-xl sm:text-2xl font-bold gradient-text">RigFlow</div>
             <div className="flex gap-1.5 sm:gap-2">
               {!isInstalled && !isNative() && (
-                <Button variant="outline" size="icon" onClick={handleInstallApp} className="sm:hidden">
+                <Button variant="outline" size="icon" onClick={handleInstallApp} className="sm:hidden" title="App installieren">
                   <Download className="h-4 w-4" />
                 </Button>
               )}
@@ -315,7 +474,7 @@ export default function Landing() {
                 Anmelden
               </Button>
               <Button size="sm" onClick={() => navigate('/register')}>
-                <span className="hidden sm:inline">Registrieren</span>
+                <span className="hidden sm:inline">Kostenlos starten</span>
                 <span className="sm:hidden">Start</span>
               </Button>
             </div>
@@ -328,51 +487,52 @@ export default function Landing() {
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 space-y-12">
           <div className="text-center space-y-6">
 
-            {/* Title – fades up immediately on mount */}
-            <h1 className="rig-hero-el d0 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
-              Deine Event-Gear
+{/*
+            <div className="rig-hero-el d0 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-xs font-medium text-primary">
+              <span className="rig-blink w-1.5 h-1.5 rounded-full bg-primary" />
+              Jetzt in Beta – kostenlos testen
+            </div> */}
+
+            {/* Title – pain-first headline */}
+            <h1 className="rig-hero-el d0 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight">
+              Nie wieder fehlendes
               <br />
-              <span className="gradient-text">vollständig im Griff</span>
+              <span className="gradient-text">Equipment beim Gig.</span>
             </h1>
 
-            {/* Subtitle */}
+            {/* Real scenario subtitle */}
             <p className="rig-hero-el d1 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
-              Verwalte dein Inventar offline, synchronisiere automatisch, und behalte den
-              Überblick über jeden Gig.
+              Perfekt für Verleiher, DJs und kleine Event-Teams, die den Überblick über ihr
+              Equipment behalten wollen – ohne Excel-Chaos und manuelle Listen.
             </p>
 
-            {/* Value Props – stagger wrapper */}
-            <div className="rig-hero-el d2 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 my-10">
-              <Card className="rig-card-lift glass-card p-5 text-center">
-                <Zap className="h-7 w-7 text-primary mx-auto mb-3" />
-                <h3 className="font-semibold mb-1">Schnell & Mobil</h3>
-                <p className="text-sm text-muted-foreground">Offline-First, lädt in Millisekunden</p>
-              </Card>
-              <Card className="rig-card-lift glass-card p-5 text-center">
-                <Lock className="h-7 w-7 text-primary mx-auto mb-3" />
-                <h3 className="font-semibold mb-1">Deine Daten</h3>
-                <p className="text-sm text-muted-foreground">Sichere Cloud-Synchronisierung</p>
-              </Card>
-              <Card className="rig-card-lift glass-card p-5 text-center">
-                <Smartphone className="h-7 w-7 text-primary mx-auto mb-3" />
-                <h3 className="font-semibold mb-1">App-Like</h3>
-                <p className="text-sm text-muted-foreground">Native App-Erfahrung als PWA</p>
-              </Card>
-            </div>
-
             {/* CTA Buttons */}
-            <div className="rig-hero-el d3 flex flex-col sm:flex-row gap-3 justify-center">
-              <Button size="lg" onClick={scrollToFeatures} className="gap-2">
-                Jetzt entdecken
-                <ChevronRight className="h-4 w-4" />
+            <div className="rig-hero-el d2 flex flex-col sm:flex-row gap-3 justify-center">
+              <Button size="lg" onClick={() => navigate('/register')} className="gap-2 text-base px-8">
+                Kostenlos starten
+                <ArrowRight className="h-4 w-4" />
               </Button>
               {!isInstalled && !isNative() && (
                 <Button size="lg" variant="outline" onClick={handleInstallApp} className="gap-2">
                   <Download className="h-4 w-4" />
-                  App herunterladen
+                  App installieren
                 </Button>
               )}
+              <Button size="lg" variant="ghost" onClick={scrollToFeatures} className="gap-2 text-muted-foreground">
+                Features ansehen
+                <ChevronDown className="h-4 w-4" />
+              </Button>
             </div>
+
+            {/* Social proof hint */}
+            <p className="rig-hero-el d3 text-xs text-muted-foreground/60">
+              Kein Kreditkarte. Keine Verpflichtung. Sofort loslegen.
+            </p>
+          </div>
+
+          {/* Device Mockup */}
+          <div className="rig-hero-el d4">
+            <HeroMockup />
           </div>
 
           {/* -------------------------------------------------------------- */}
@@ -380,7 +540,6 @@ export default function Landing() {
           {/* -------------------------------------------------------------- */}
           <div ref={qrRef} className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center py-8">
 
-            {/* Text slides in from the left */}
             <div className={`rig-reveal-l space-y-4 ${qrVisible ? 'rig-vis' : ''}`}>
               <h2 className="text-2xl sm:text-3xl font-bold">QR-Code Scanning</h2>
               <p className="text-muted-foreground text-base sm:text-lg">
@@ -402,20 +561,17 @@ export default function Landing() {
               </ul>
             </div>
 
-            {/* Mockup slides in from the right, then floats */}
             <div className={`rig-reveal-r ${qrVisible ? 'rig-vis' : ''}`}
                  style={{ transitionDelay: qrVisible ? '80ms' : '0ms' }}>
               <Card className="rig-float glass-card p-6 aspect-[4/3] flex items-center justify-center overflow-hidden relative">
                 <div className="w-full max-w-[240px] mx-auto relative">
                   <div className="rounded-2xl border-2 border-border bg-background/80 p-3 shadow-xl">
                     <div className="rounded-lg bg-muted/30 aspect-square flex items-center justify-center relative overflow-hidden">
-                      {/* Viewfinder corners */}
                       <div className="absolute inset-4 border-2 border-primary/40 rounded-lg" />
                       <div className="absolute top-4 left-4  w-5 h-5 border-t-2 border-l-2 border-primary rounded-tl-md" />
                       <div className="absolute top-4 right-4 w-5 h-5 border-t-2 border-r-2 border-primary rounded-tr-md" />
                       <div className="absolute bottom-4 left-4  w-5 h-5 border-b-2 border-l-2 border-primary rounded-bl-md" />
                       <div className="absolute bottom-4 right-4 w-5 h-5 border-b-2 border-r-2 border-primary rounded-br-md" />
-                      {/* Animated scan line — moves vertically instead of just pulsing */}
                       <div className="rig-scan-line" />
                       <QrCode className="h-12 w-12 text-primary/30" />
                     </div>
@@ -434,7 +590,6 @@ export default function Landing() {
           {/* -------------------------------------------------------------- */}
           <div ref={invRef} className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center py-8">
 
-            {/* Mockup slides in from the left, then floats; items stagger inside */}
             <div className={`rig-reveal-l order-2 md:order-1 ${invVisible ? 'rig-vis' : ''}`}>
               <Card className="rig-float glass-card p-6 aspect-[4/3] flex items-center justify-center overflow-hidden">
                 <div className="w-full max-w-[280px] space-y-2">
@@ -458,7 +613,6 @@ export default function Landing() {
               </Card>
             </div>
 
-            {/* Text slides in from the right */}
             <div className={`rig-reveal-r space-y-4 order-1 md:order-2 ${invVisible ? 'rig-vis' : ''}`}
                  style={{ transitionDelay: invVisible ? '100ms' : '0ms' }}>
               <h2 className="text-2xl sm:text-3xl font-bold">Inventar-Übersicht</h2>
@@ -484,12 +638,297 @@ export default function Landing() {
         </section>
 
         {/* ---------------------------------------------------------------- */}
+        {/* NEW: Projekt- & Pack-Management                                  */}
+        {/* ---------------------------------------------------------------- */}
+        <section className="bg-muted/10 border-y border-border/30">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+            <div ref={projRef} className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
+
+              {/* Text */}
+              <div className={`rig-reveal-l space-y-5 ${projVisible ? 'rig-vis' : ''}`}>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary">
+                  <FolderKanban className="h-3.5 w-3.5" />
+                  Projekt- &amp; Pack-Management
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold">
+                  Packlisten, die mitdenken.
+                </h2>
+                <p className="text-muted-foreground text-base">
+                  Stell dein Material für Projekte zusammen und behalte beim Packen den Überblick.
+                  RigFlow zeigt dir in Echtzeit, was bereits verladen ist und was noch fehlt.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                  {[
+                    { icon: ClipboardList, label: 'Projekt-Reports', desc: 'Generiere Reports pro Event' },
+                    { icon: Package,       label: 'Set-Listen',      desc: 'Packages schnell verwalten' },
+                    { icon: Activity,      label: 'Echtzeit',        desc: 'Verfügbarkeit live sehen' },
+                  ].map((f, i) => (
+                    <div key={i} className="flex flex-col gap-1.5 p-3 rounded-lg bg-background/50 border border-border/40">
+                      <f.icon className="h-4 w-4 text-primary" />
+                      <div className="text-sm font-semibold">{f.label}</div>
+                      <div className="text-xs text-muted-foreground">{f.desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mockup */}
+              <div className={`rig-reveal-r ${projVisible ? 'rig-vis' : ''}`}
+                   style={{ transitionDelay: projVisible ? '100ms' : '0ms' }}>
+                <Card className="rig-float glass-card p-5 space-y-3">
+                  {/* Project header */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-bold">Projekt: Open Air Berlin</div>
+                      <div className="text-xs text-muted-foreground">15. Juni 2025 · 3 Packages</div>
+                    </div>
+                    <div className="px-2 py-1 rounded-full bg-green-500/15 text-green-500 text-xs font-medium">aktiv</div>
+                  </div>
+                  <div className="border-t border-border/30 pt-3 space-y-2">
+                    {[
+                      { name: 'PA System',    items: 8, done: 8  },
+                      { name: 'Licht-Rig',   items: 12, done: 10 },
+                      { name: 'Backline',    items: 5,  done: 5  },
+                    ].map((pkg, i) => (
+                      <div key={i} className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <Package className="h-3 w-3 text-primary" />
+                            <span className="font-medium">{pkg.name}</span>
+                          </div>
+                          <span className="text-muted-foreground">{pkg.done}/{pkg.items} bereit</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-primary/70"
+                            style={{ width: `${(pkg.done / pkg.items) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="pt-1 border-t border-border/30">
+                    <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Activity className="h-3 w-3 text-primary" />
+                      <span>23 von 25 Artikeln verfügbar</span>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ---------------------------------------------------------------- */}
+        {/* NEW: Technik-Features – Das Herzstück (3-Spalten)                */}
+        {/* ---------------------------------------------------------------- */}
+        <section>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 space-y-12">
+            <div ref={techRef} className={`text-center space-y-3 rig-reveal ${techVisible ? 'rig-vis' : ''}`}>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary">
+                <Zap className="h-3.5 w-3.5" />
+                Das Herzstück
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-bold">Mehr als nur eine Liste.</h2>
+              <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
+                RigFlow geht tiefer als andere Tools – mit Features, die du im täglichen
+                Event-Betrieb wirklich brauchst.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                {
+                  icon: SlidersHorizontal,
+                  title: 'DMX-Patchplan',
+                  tag: 'Licht & Technik',
+                  description:
+                    'Plane dein Universum. Verwalte Startadressen und Modi direkt am Gerät – Konflikte werden automatisch erkannt.',
+                  link: '/features/dmx',
+                  linkLabel: 'DMX-Workflow ansehen',
+                  preview: (
+                    <div className="space-y-1 pt-2">
+                      {[
+                        { ch: '001', name: 'Spot A', mode: '16ch', ok: true },
+                        { ch: '017', name: 'Spot B', mode: '16ch', ok: true },
+                        { ch: '033', name: 'Hazer',  mode: '4ch',  ok: false },
+                      ].map((r, i) => (
+                        <div key={i} className={`flex items-center gap-2 px-2 py-1 rounded text-xs ${r.ok ? 'bg-muted/20' : 'bg-red-500/10 border border-red-500/20'}`}>
+                          <span className="font-mono text-primary/80 w-7">{r.ch}</span>
+                          <span className="flex-1">{r.name}</span>
+                          <span className="text-muted-foreground">{r.mode}</span>
+                          {!r.ok && <span className="text-red-400 text-[10px]">Konflikt</span>}
+                        </div>
+                      ))}
+                    </div>
+                  ),
+                },
+                {
+                  icon: Wrench,
+                  title: 'Wartung & Service',
+                  tag: 'DGUV V3 konform',
+                  description:
+                    'Tracke Prüfzyklen und reparierte Mängel in der Maintenance-Historie. Kein Gerät fällt durch die Prüfung.',
+                  link: '/features/service',
+                  linkLabel: 'Service-Features ansehen',
+                  preview: (
+                    <div className="space-y-2 pt-2">
+                      {[
+                        { name: 'SM58 #3',       date: '12.03.25', status: 'geprüft',   col: 'text-green-400' },
+                        { name: 'Moving Head A', date: '01.06.25', status: 'fällig',    col: 'text-amber-400' },
+                        { name: 'Endstufe Crown', date: '—',      status: 'Mangel',    col: 'text-red-400' },
+                      ].map((r, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs bg-muted/20 px-2 py-1.5 rounded">
+                          <Wrench className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          <span className="flex-1 truncate">{r.name}</span>
+                          <span className="text-muted-foreground">{r.date}</span>
+                          <span className={r.col}>{r.status}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ),
+                },
+                {
+                  icon: ScanLine,
+                  title: 'QR-Scanner Workflow',
+                  tag: 'Kern-Feature',
+                  description:
+                    'Verleih, Aufbau, Abbau, Inventur – vier Modi, ein Wizard. Ein Scan aktualisiert den Status und bucht gegen dein Projekt.',
+                  link: '/features/scanner',
+                  linkLabel: 'Scanner-Workflow ansehen',
+                  preview: (
+                    <div className="space-y-1.5 pt-2">
+                      {[
+                        { icon: Truck,        label: 'Verleih',         col: 'text-blue-400',    bg: 'bg-blue-400/10'    },
+                        { icon: Package,      label: 'Aufbau',          col: 'text-primary',     bg: 'bg-primary/10'     },
+                        { icon: RotateCcw,    label: 'Abbau/Rückgabe',  col: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+                        { icon: ClipboardList,label: 'Inventur',        col: 'text-muted-foreground', bg: 'bg-muted/20'  },
+                      ].map((r, i) => (
+                        <div key={i} className={`flex items-center gap-2 text-xs px-2 py-1.5 rounded border border-border/30 ${r.bg}`}>
+                          <r.icon className={`h-3 w-3 ${r.col} flex-shrink-0`} />
+                          <span className={`font-medium ${r.col}`}>{r.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ),
+                },
+              ].map((card, i) => (
+                <div
+                  key={i}
+                  className={`rig-reveal ${techVisible ? 'rig-vis' : ''}`}
+                  style={{ transitionDelay: techVisible ? `${i * 100}ms` : '0ms' }}
+                >
+                  <Card
+                    className="rig-subcard glass-card p-6 space-y-4 h-full flex flex-col border border-border/50"
+                    onClick={() => navigate(card.link)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <card.icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary/80 border border-primary/20">
+                        {card.tag}
+                      </span>
+                    </div>
+                    <div className="space-y-1.5">
+                      <h3 className="font-semibold text-base">{card.title}</h3>
+                      <p className="text-muted-foreground text-sm">{card.description}</p>
+                    </div>
+                    {/* Mini preview */}
+                    <div className="flex-1 rounded-lg bg-background/40 border border-border/30 p-2 overflow-hidden">
+                      {card.preview}
+                    </div>
+                    <button
+                      className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors font-medium mt-auto"
+                      onClick={(e) => { e.stopPropagation(); navigate(card.link); }}
+                    >
+                      {card.linkLabel}
+                      <ExternalLink className="h-3 w-3" />
+                    </button>
+                  </Card>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ---------------------------------------------------------------- */}
+        {/* NEW: Sicherheit auf Enterprise-Level                             */}
+        {/* ---------------------------------------------------------------- */}
+        <section className="bg-muted/10 border-y border-border/30">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+            <div ref={secRef} className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
+
+              <div className={`rig-reveal-l space-y-5 ${secVisible ? 'rig-vis' : ''}`}>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary">
+                  <Shield className="h-3.5 w-3.5" />
+                  Sicherheit &amp; Datenschutz
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold">
+                  Sicherheit auf<br />Enterprise-Level.
+                </h2>
+                <p className="text-muted-foreground text-base">
+                  Deine Daten gehören dir. Mit Multi-Faktor-Authentisierung (MFA),
+                  regelmäßigen Backups und DSGVO-konformem Hosting ist dein Inventar
+                  jederzeit sicher.
+                </p>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Multi-Faktor-Authentisierung (MFA)',  desc: 'Kein unbefugter Zugriff auf dein Konto' },
+                    { label: 'DSGVO-konformes Hosting',  desc: 'Daten in europäischen Rechenzentren' },
+                    { label: 'Automatische Backups',                desc: 'Dein Inventar ist immer gesichert' },
+                    { label: 'Account-Löschung jederzeit',          desc: 'Volle Kontrolle über deine Daten' },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <div className="h-5 w-5 rounded-full bg-green-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">{item.label}</div>
+                        <div className="text-xs text-muted-foreground">{item.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Import / Export side */}
+              <div className={`rig-reveal-r space-y-5 ${secVisible ? 'rig-vis' : ''}`}
+                   style={{ transitionDelay: secVisible ? '120ms' : '0ms' }}>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary">
+                  <FileDown className="h-3.5 w-3.5" />
+                  Import &amp; Export
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold">
+                  Kein<br />Vendor Lock-in.
+                </h2>
+                <p className="text-muted-foreground text-base">
+                  Exportiere deine Daten jederzeit als CSV oder synchronisiere sie direkt
+                  mit Google Sheets – dein Inventar bleibt immer portabel.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <Card className="glass-card p-4 space-y-2 border border-border/50">
+                    <FileDown className="h-5 w-5 text-primary" />
+                    <div className="text-sm font-semibold">CSV-Export</div>
+                    <div className="text-xs text-muted-foreground">Alle Daten als Datei herunterladen</div>
+                  </Card>
+                  <Card className="glass-card p-4 space-y-2 border border-border/50">
+                    <Database className="h-5 w-5 text-primary" />
+                    <div className="text-sm font-semibold">Google Sheets</div>
+                    <div className="text-xs text-muted-foreground">Direkte Synchronisierung</div>
+                  </Card>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ---------------------------------------------------------------- */}
         {/* Features Grid Section                                            */}
         {/* ---------------------------------------------------------------- */}
         <section ref={featuresRef} className="bg-muted/20 border-y border-border/30">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 space-y-10">
 
-            {/* Section heading triggers the reveal */}
             <div ref={featRef} className={`text-center space-y-3 rig-reveal ${featVisible ? 'rig-vis' : ''}`}>
               <h2 className="text-3xl sm:text-4xl font-bold">Das bekommst du mit RigFlow</h2>
               <p className="text-muted-foreground text-base sm:text-lg">
@@ -497,10 +936,8 @@ export default function Landing() {
               </p>
             </div>
 
-            {/* Feature cards: staggered fade-up + hover lift */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {features.map((feature, i) => (
-                // Wrapper handles reveal; Card handles hover — no transform conflict
                 <div
                   key={i}
                   className={`rig-reveal ${featVisible ? 'rig-vis' : ''}`}
@@ -520,38 +957,65 @@ export default function Landing() {
             {/* CTA */}
             <div ref={ctaRef} className={`rig-reveal text-center space-y-4 pt-6 ${ctaVisible ? 'rig-vis' : ''}`}>
               <p className="text-lg text-muted-foreground">
-                Bereit, dein Inventar zu revolutionieren?
+                Bereit, dein Inventar-Chaos zu beenden?
               </p>
-              <Button size="lg" onClick={() => navigate('/register')} className="gap-2">
-                Konto erstellen & loslegen
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button size="lg" onClick={() => navigate('/register')} className="gap-2">
+                  Inventar jetzt organisieren
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground/60">Kostenlos. Kein Kreditkarte. Sofort starten.</p>
             </div>
           </div>
         </section>
 
         {/* ---------------------------------------------------------------- */}
-        {/* Footer                                                           */}
+        {/* Footer – 4-column layout                                         */}
         {/* ---------------------------------------------------------------- */}
         <footer className="border-t border-border/50 bg-background/50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-center text-muted-foreground space-y-3">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
-            <p>© 2026 RigFlow. Gebaut für Veranstaltungstechniker.</p>
+            {/* 4-column grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
 
-            <div className="flex justify-center gap-6 text-sm">
-              <a
-                href="/impressum"
-                className="hover:text-foreground transition-colors"
-              >
-                Impressum
-              </a>
+              {/* Brand */}
+              <div className="col-span-2 md:col-span-1 space-y-3">
+                <div className="text-xl font-bold gradient-text">RigFlow</div>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Das Inventar-Management für Veranstaltungstechniker.
+                </p>
+              </div>
 
-              <a
-                href="/datenschutz"
-                className="hover:text-foreground transition-colors"
-              >
-                Datenschutz
-              </a>
+              {/* Produkt */}
+              <div>
+                <div className="footer-col-header">Produkt</div>
+                <a href="#" onClick={(e) => { e.preventDefault(); scrollToFeatures(); }} className="footer-link">Features</a>
+                <a href="/install" className="footer-link">App installieren</a>
+                <a href="/register" className="footer-link">Jetzt starten</a>
+                <a href="/features/dmx" className="footer-link">DMX-Workflow</a>
+              </div>
+
+              {/* Rechtliches */}
+              <div>
+                <div className="footer-col-header">Rechtliches</div>
+                <a href="/impressum" className="footer-link">Impressum</a>
+                <a href="/datenschutz" className="footer-link">Datenschutz</a>
+                <a href="/nutzungsbedingungen" className="footer-link">Nutzungsbedingungen</a>
+              </div>
+
+              {/* Kontakt */}
+              <div>
+                <div className="footer-col-header">Kontakt</div>
+                <a href="mailto:rigflow.app@gmail.com" className="footer-link">rigflow.app@gmail.com</a>
+              </div>
+
+            </div>
+
+            {/* Bottom bar */}
+            <div className="border-t border-border/30 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p className="text-xs text-muted-foreground">© 2026 RigFlow. Gebaut für Veranstaltungstechniker.</p>
+              <p className="text-xs text-muted-foreground/50">Made with ❤️ for the live events industry.</p>
             </div>
 
           </div>

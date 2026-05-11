@@ -7,6 +7,9 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https'
   },
+  android: {
+    allowMixedContent: true,
+  },
   plugins: {
     LocalNotifications: {
       smallIcon: 'ic_stat_rigflow',

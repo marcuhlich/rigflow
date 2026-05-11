@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
-export default function HelpPage() {
+export default function Datenschutz() {
   const [markdown, setMarkdown] = useState("");
   const navigate = useNavigate();
 
@@ -32,7 +32,7 @@ export default function HelpPage() {
       </Button>
 
       <Card className="p-4 sm:p-6 md:p-8 lg:p-10 glass-card bg-background/80">
-        <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:text-foreground">
+        <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:text-foreground user-select-text">
           <ReactMarkdown
             components={{
               h1: ({ node, ...props }) => (

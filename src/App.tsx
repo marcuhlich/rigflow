@@ -42,6 +42,7 @@ const Scanner = lazy(() => import("./pages/Scanner"));
 const HelpPage = lazy(() => import("./pages/HelpPage"));
 const Datenschutz = lazy(() => import("./pages/Datenschutz"));
 const Impressum = lazy(() => import("./pages/Impressum"));
+const Nutzungsbedingungen = lazy(() => import("./pages/Nutzungsbedingungen"));
 const NativeOnboarding = lazy(() => import("./pages/NativeOnboarding"));
 // Settings
 const AccountSettings = lazy(() => import("./pages/AccountSettings"));
@@ -49,6 +50,12 @@ const AccountInfo = lazy(() => import("./pages/settings/AccountInfo"));
 const Notifications = lazy(() => import("./pages/settings/Notifications"));
 const PrivacySecurity = lazy(() => import("./pages/settings/PrivacySecurity"));
 const Appearance = lazy(() => import("./pages/settings/Appearance"));
+const AboutRigFlow = lazy(() => import("./pages/settings/AboutRigFlow"));
+const WunschlisteTab = lazy(() => import("./pages/settings/WunschlisteTab"));
+// Features
+const DMX = lazy(() => import("./pages/features/DMXWorkflow"));
+const ScannerWorkflow = lazy(() => import("./pages/features/ScannerWorkflow"));
+const Service = lazy(() => import("./pages/features/ServiceInstandhaltung"));
 // Dev
 const NotificationTest = lazy(() => import("./pages/dev/NotificationTest"));
 const HapticsTest = lazy(() => import("./pages/dev/Haptics"));
@@ -130,6 +137,7 @@ function AppRoutes() {
       <Route path="/native-onboarding" element={<NativeOnboarding />} />
       <Route path="/impressum"        element={<PublicPageLayout><Impressum /></PublicPageLayout>}/>
       <Route path="/datenschutz"        element={<PublicPageLayout><Datenschutz /></PublicPageLayout>}/>
+      <Route path="/nutzungsbedingungen"        element={<PublicPageLayout><Nutzungsbedingungen /></PublicPageLayout>}/>
 
       {/* ── App ────────────────────────────────────────────────────────── */}
       <Route path="/"             element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -142,6 +150,11 @@ function AppRoutes() {
       <Route path="/scanner"      element={<ProtectedRoute><Scanner /></ProtectedRoute>} />
       <Route path="/help"         element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
 
+      {/* ── Features ──────────────────────────────────────────────────── */}
+      <Route path="/features/dmx"          element={<DMX />} />
+      <Route path="/features/scanner"       element={<ScannerWorkflow />} />
+      <Route path="/features/service"      element={<Service />} />
+
       {/* ── Settings ───────────────────────────────────────────────────── */}
       <Route element={<ProtectedRoute><SettingsGuard /></ProtectedRoute>}>
         <Route path="/settings"                    element={<AccountSettings />} />
@@ -149,6 +162,8 @@ function AppRoutes() {
         <Route path="/settings/notifications"      element={<Notifications />} />
         <Route path="/settings/privacy-security"   element={<PrivacySecurity />} />
         <Route path="/settings/appearance"         element={<Appearance />} />
+        <Route path="/settings/about"              element={<AboutRigFlow />} />
+        <Route path="/settings/wunschliste"         element={<WunschlisteTab />} />
       </Route>
 
       {/* ── Dev (nur Admin) ────────────────────────────────────────────── */}
@@ -164,12 +179,27 @@ function AppRoutes() {
 }
 
 function AppInitializer() {
-  // PushService / Service Worker Init
+  // ── Native: App Links ──────────────────────────────────────────────────
   useEffect(() => {
+    if (!isNative()) return;
+
+    let listener: any;
+    CapApp.addListener('appUrlOpen', ({ url }) => {
+      const urlObj = new URL(url);
+      if (urlObj.pathname.includes('/auth/callback')) {
+        window.location.href = '/auth/callback' + urlObj.hash;
+      }
+    }).then(l => { listener = l; });
+
+    return () => { listener?.remove(); };
+  }, []);
+
+  // ── Web/PWA: Service Worker + Push ────────────────────────────────────
+  useEffect(() => {
+    if (isNative()) return;
+
     const init = async () => {
-      // Auf nativen Plattformen kein Service Worker
-      if (isNative()) return;
-      // Alten leeren /sw.js deregistrieren falls noch vorhanden
+      // Alten leeren /sw.js deregistrieren
       if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
         for (const reg of registrations) {
@@ -181,44 +211,24 @@ function AppInitializer() {
                 await reg.unregister();
                 logger.info('App', 'Alten leeren SW deregistriert');
               }
-            } catch (e) {
-              // ignore
-            }
+            } catch (e) { /* ignore */ }
           }
         }
       }
 
-      if (isNative()) {
-        const listener = await CapApp.addListener('appUrlOpen', ({ url }) => {
-          const urlObj = new URL(url);
-          if (urlObj.pathname.includes('/auth/callback')) {
-            window.location.href = '/auth/callback' + urlObj.hash;
-          }
-        });
-        return () => { listener.remove(); };
-      }
-
-      // Initialize push service
+      // Push Service
       try {
         const initialized = await PushService.initialize({
           enableNotifications: true,
           enableBackground: true,
         });
-
         if (initialized) {
           logger.info("App", "Push service initialized");
-
           PushService.onMessage((message) => {
             logger.info("App", "Message from SW:", message.type);
             switch (message.type) {
-              case "SW_UPDATE_AVAILABLE":
-                logger.info("App", "Service worker update available");
-                break;
-              case "SYNC_START":
-                logger.info("App", "Background sync started");
-                break;
-              default:
-                break;
+              case "SW_UPDATE_AVAILABLE": logger.info("App", "SW update available"); break;
+              case "SYNC_START": logger.info("App", "Background sync started"); break;
             }
           });
         }
@@ -227,29 +237,21 @@ function AppInitializer() {
       }
 
       // SW Update Handling
-      if ("serviceWorker" in navigator) {
+      if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then((registration) => {
           if (registration.waiting) {
-            logger.info("App", "New SW waiting, forcing activation");
-            registration.waiting.postMessage({ type: "SKIP_WAITING" });
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
           }
         });
 
         let refreshing = false;
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-          if (!refreshing) {
-            refreshing = true;
-            logger.info("App", "SW controller changed, reloading");
-            window.location.reload();
-          }
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!refreshing) { refreshing = true; window.location.reload(); }
         });
 
-        navigator.serviceWorker.addEventListener("message", (event) => {
-          if (event.data?.type === "FORCE_RELOAD") {
-            logger.info("App", "SW requested force reload");
-            setTimeout(() => {
-              window.location.href = window.location.href.split("?")[0];
-            }, 200);
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data?.type === 'FORCE_RELOAD') {
+            setTimeout(() => { window.location.href = window.location.href.split('?')[0]; }, 200);
           }
         });
       }
@@ -257,11 +259,8 @@ function AppInitializer() {
 
     init();
 
-    // SW Update Check bei Visibility Change
     const handleVisibilityChange = async () => {
-      if (isNative()) return;
       if (document.visibilityState === 'visible') {
-        logger.info("App", "App visible, checking for SW updates");
         try {
           const registration = await navigator.serviceWorker.getRegistration();
           if (registration) await registration.update();
@@ -271,11 +270,11 @@ function AppInitializer() {
       }
     };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     handleVisibilityChange();
 
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 

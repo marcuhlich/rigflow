@@ -247,6 +247,11 @@
 }
 
 @layer components {
+  .user-select-text,
+  .user-select-text * {
+    user-select: text !important;
+  }
+
   .glass-card {
     @apply relative overflow-hidden rounded-xl;
     background: linear-gradient(

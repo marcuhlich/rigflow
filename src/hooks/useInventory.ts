@@ -9,8 +9,17 @@ import { offlineQueue } from '@/lib/offlineQueue';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { hapticFeedback } from '@/lib/utils';
 import posthog from "posthog-js";
+import { ANALYTICS_CONSENT_KEY } from '@/lib/constants';
 
 const ITEMS_CACHE_KEY = 'inventory_items';
+
+// ── Helper: Analytics mit Consent-Prüfung ─────────────────────────────────────
+function captureEvent(eventName: string, properties?: Record<string, any>) {
+  const consent = localStorage.getItem(ANALYTICS_CONSENT_KEY);
+  if (consent === 'true') {
+    posthog.capture(eventName, properties);
+  }
+}
 
 // ── Hilfsfunktion: Raw-DB-Row → InventoryItem mit tags[] ─────────────────────
 function mapRow(row: any): InventoryItem {
@@ -44,9 +53,7 @@ export function useInventory() {
 
   useEffect(() => {
   if (user) {
-    posthog.identify(user.id, {
-      email: user.email,
-    });
+    posthog.identify(user.id);
   }
 }, [user]);
 
@@ -264,7 +271,7 @@ export function useInventory() {
       setItems(finalItems);
       offlineQueue.setCache(ITEMS_CACHE_KEY, finalItems);
       await logAudit('create', data.id, item.name);
-      posthog.capture("item_created", {
+      captureEvent("item_created", {
         category: item.category,
         has_image: !!item.image_url,
         quantity: item.quantity,
@@ -274,7 +281,7 @@ export function useInventory() {
       });
     } catch (error) {
       setItems(items);
-      posthog.capture("inventory_size_changed", {
+      captureEvent("inventory_size_changed", {
         total_items: items.length,
       });
       offlineQueue.setCache(ITEMS_CACHE_KEY, items);
@@ -326,7 +333,7 @@ export function useInventory() {
       setItems(finalItems);
       offlineQueue.setCache(ITEMS_CACHE_KEY, finalItems);
       if (Object.keys(changes).length > 0) await logAudit('update', id, oldItem.name, changes);
-      posthog.capture("item_updated", {
+      captureEvent("item_updated", {
         fields_changed: Object.keys(changes),
         fields_count: Object.keys(changes).length,
         updated_offline: !isOnline,
@@ -347,10 +354,10 @@ export function useInventory() {
     const trashedItem = { ...item, deleted_at: deletedAt };
     const updatedItems = items.filter(i => i.id !== id);
     setItems(updatedItems);
-    posthog.capture("inventory_size_changed", {
+    captureEvent("inventory_size_changed", {
       total_items: updatedItems.length,
     });
-    posthog.capture("item_deleted", {
+    captureEvent("item_deleted", {
         had_tags: item.tags.length > 0,
         category: item.category,
       });
@@ -480,7 +487,7 @@ export function useInventory() {
     const names = items.filter(i => selectedIds.has(i.id)).map(i => i.name).join(', ');
     const itemsToTrash = items.filter(i => selectedIds.has(i.id)).map(i => ({ ...i, deleted_at: deletedAt }));
     setItems(items.filter(item => !selectedIds.has(item.id)));
-    posthog.capture("inventory_size_changed", {
+    captureEvent("inventory_size_changed", {
       total_items: items.length - selectedIds.size,
     });
     setTrashedItems(prev => [...itemsToTrash, ...prev]);

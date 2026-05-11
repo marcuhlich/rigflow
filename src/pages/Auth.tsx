@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isNative } from "@/services/platform";
 import { z } from "zod";
 import posthog from "posthog-js";
-import { ONBOARDING_DONE_KEY } from '@/pages/NativeOnboarding';
+import { ONBOARDING_DONE_KEY, ANALYTICS_CONSENT_KEY } from '@/lib/constants';
 
 function getAuthErrorMessage(rawMessage: string): string {
   const map: Record<string, string> = {
@@ -30,8 +30,6 @@ const authSchema = z.object({
 });
 
 function getPostLoginRoute(): string {
-  if (isNative()) return '/native-onboarding';
-  return '/install-prompt';
   if (isNative() && !localStorage.getItem(ONBOARDING_DONE_KEY)) {
     return '/native-onboarding';
   }
@@ -107,7 +105,10 @@ const LoginStep = ({ onMfaRequired, onSuccess }: LoginStepProps) => {
       if (has2FA) {
         onMfaRequired();
       } else {
-        posthog.capture("user_logged_in");
+        const consent = localStorage.getItem(ANALYTICS_CONSENT_KEY);
+        if (consent === 'true') {
+          posthog.capture("user_logged_in");
+        }
         toast({ title: "Willkommen zurück!", description: "Du wurdest erfolgreich angemeldet." });
         onSuccess();
       }

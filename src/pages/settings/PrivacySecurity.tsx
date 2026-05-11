@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { isNative } from '@/services/platform';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { Camera } from '@capacitor/camera';
+import { NativeSettings, AndroidSettings } from 'capacitor-native-settings';
 import {
   ChevronLeft,
   ShieldCheck,
@@ -7,7 +11,7 @@ import {
   ShieldOff,
   LogOut,
   Smartphone,
-  Camera,
+  Camera as CameraIcon,
   MapPin,
   Bell,
   Download,
@@ -24,11 +28,13 @@ import {
   LifeBuoy,
   Eye,
   EyeOff,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast, useToast } from "@/hooks/use-toast";
+import { ANALYTICS_CONSENT_KEY } from "@/lib/constants";
 import QRCode from "qrcode";
 import { createPortal } from "react-dom";
 import { useExportUserData } from "@/hooks/useExportUserData";
@@ -112,7 +118,6 @@ function RecoveryCodesOverlay({ codes, onClose, isRegeneration = false }: Recove
   };
 
   return createPortal(
-    (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/90 backdrop-blur-md">
       <div className="glass-card w-full max-w-sm p-6 space-y-5 animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
 
@@ -211,8 +216,7 @@ function RecoveryCodesOverlay({ codes, onClose, isRegeneration = false }: Recove
           Fertig – Codes gesichert
         </Button>
       </div>
-    </div>
-  ),
+    </div>,
     document.body!
   );
 }
@@ -275,7 +279,7 @@ function TwoFactorSection({ onStatusChange }: { onStatusChange: (v: boolean) => 
 
   // ── Recovery codes helpers ────────────────────────────────────────────────
   // Direkt fetch statt supabase.functions.invoke – umgeht SDK-Header-Probleme
-    const invokeWithAuth = useCallback(async (action: string, extra?: object) => {
+  const invokeWithAuth = useCallback(async (action: string, extra?: object) => {
     const { data: { session } } = await supabase.auth.getSession();
 
     // Key direkt aus dem Client holen – funktioniert immer, egal welche Env-Vars gesetzt sind
@@ -283,42 +287,42 @@ function TwoFactorSection({ onStatusChange }: { onStatusChange: (v: boolean) => 
     const supabaseKey = (supabase as any).supabaseKey as string;
 
     const res = await fetch(`${supabaseUrl}/functions/v1/mfa-recovery-codes`, {
-        method: "POST",
-        headers: {
+      method: "POST",
+      headers: {
         "Content-Type": "application/json",
         "apikey": supabaseKey,
         "Authorization": `Bearer ${session?.access_token ?? ""}`,
-        },
-        body: JSON.stringify({ action, ...extra }),
+      },
+      body: JSON.stringify({ action, ...extra }),
     });
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
-    }, []);
+  }, []);
 
-    const fetchCodeCount = useCallback(async () => {
+  const fetchCodeCount = useCallback(async () => {
     try {
-        const data = await invokeWithAuth("count");
-        if (data?.count !== undefined) setUnusedCount(data.count as number);
+      const data = await invokeWithAuth("count");
+      if (data?.count !== undefined) setUnusedCount(data.count as number);
     } catch (e) {
-        console.error("fetchCodeCount:", e);
+      console.error("fetchCodeCount:", e);
     }
-    }, [invokeWithAuth]);
+  }, [invokeWithAuth]);
 
-    const generateCodes = useCallback(async (isRegen = false) => {
+  const generateCodes = useCallback(async (isRegen = false) => {
     setGeneratingCodes(true);
     try {
-        const data = await invokeWithAuth("generate");
-        if (!data?.codes) throw new Error("Keine Codes erhalten");
-        setUnusedCount(data.codes.length);
-        setOverlayData({ codes: data.codes as string[], isRegen });
-        setConfirmRegen(false);
+      const data = await invokeWithAuth("generate");
+      if (!data?.codes) throw new Error("Keine Codes erhalten");
+      setUnusedCount(data.codes.length);
+      setOverlayData({ codes: data.codes as string[], isRegen });
+      setConfirmRegen(false);
     } catch (e) {
-        toast({ title: "Fehler beim Generieren", description: "Codes konnten nicht erstellt werden.", variant: "destructive" });
+      toast({ title: "Fehler beim Generieren", description: "Codes konnten nicht erstellt werden.", variant: "destructive" });
     } finally {
-        setGeneratingCodes(false);
+      setGeneratingCodes(false);
     }
-    }, [invokeWithAuth, toast]);
+  }, [invokeWithAuth, toast]);
 
   // ── Enroll 2FA ────────────────────────────────────────────────────────────
   const startEnroll = async () => {
@@ -587,155 +591,127 @@ function TwoFactorSection({ onStatusChange }: { onStatusChange: (v: boolean) => 
 function PermissionsDashboard() {
   const [perms, setPerms] = useState<Permission[]>([
     {
-      key: "camera",
-      label: "Kamera",
-      description: "Für QR-Code-Scanner",
-      icon: <Camera className="h-4 w-4" />,
-      settingsHint: "Einstellungen → Datenschutz → Kamera",
-      state: "unsupported",
+      key: 'camera',
+      label: 'Kamera',
+      description: 'Für QR-Code-Scanner und Foto-Upload',
+      icon: <CameraIcon className="h-4 w-4" />,
+      settingsHint: 'Einstellungen → Apps → RigFlow → Berechtigungen',
+      state: 'unsupported',
     },
     {
-      key: "notifications",
-      label: "Benachrichtigungen",
-      description: "Für Push-Hinweise",
+      key: 'notifications',
+      label: 'Benachrichtigungen',
+      description: 'Für Ausleih-Erinnerungen und Hinweise',
       icon: <Bell className="h-4 w-4" />,
-      settingsHint: "Einstellungen → Benachrichtigungen",
-      state: "unsupported",
+      settingsHint: 'Einstellungen → Apps → RigFlow → Benachrichtigungen',
+      state: 'unsupported',
     },
-/*     {
-      key: "geolocation",
-      label: "Standort",
-      description: "Nicht aktiv genutzt",
-      icon: <MapPin className="h-4 w-4" />,
-      settingsHint: "Einstellungen → Datenschutz → Standort",
-      state: "unsupported",
-    }, */
   ]);
 
   useEffect(() => {
-    const checkPerm = async (name: PermissionName): Promise<PermissionState | "unsupported"> => {
+    const checkPermissions = async () => {
       try {
-        const result = await navigator.permissions.query({ name });
-        return result.state;
-      } catch {
-        return "unsupported";
+        if (isNative()) {
+          // ── Native: Capacitor APIs ──
+          const [notif, cam] = await Promise.all([
+            LocalNotifications.checkPermissions().catch(() => ({ display: 'unsupported' })),
+            Camera.checkPermissions().catch(() => ({ camera: 'unsupported' })),
+          ]);
+
+          const mapCapacitor = (s: string): Permission['state'] => {
+            if (s === 'granted') return 'granted';
+            if (s === 'denied') return 'denied';
+            if (s === 'prompt' || s === 'prompt-with-rationale') return 'prompt';
+            return 'unsupported';
+          };
+
+          setPerms(prev => prev.map(p => {
+            if (p.key === 'notifications') return { ...p, state: mapCapacitor((notif as any).display) };
+            if (p.key === 'camera')        return { ...p, state: mapCapacitor((cam as any).camera) };
+            return p;
+          }));
+        } else {
+          // ── Web: Browser Permissions API ──
+          const notifState: Permission['state'] =
+            'Notification' in window
+              ? (Notification.permission as PermissionState)
+              : 'unsupported';
+
+          const camState = await navigator.permissions
+            .query({ name: 'camera' as PermissionName })
+            .then(r => r.state)
+            .catch((): Permission['state'] => 'unsupported');
+
+          setPerms(prev => prev.map(p => {
+            if (p.key === 'notifications') return { ...p, state: notifState };
+            if (p.key === 'camera')        return { ...p, state: camState };
+            return p;
+          }));
+        }
+      } catch (e) {
+        console.error('Permission check error:', e);
       }
     };
 
-    const notifState: PermissionState | "unsupported" =
-      "Notification" in window
-        ? (Notification.permission as PermissionState)
-        : "unsupported";
-
-    Promise.all([
-      checkPerm("camera" as PermissionName),
-      checkPerm("geolocation"),
-    ]).then(([camera, geo]) => {
-      setPerms((prev) =>
-        prev.map((p) => {
-          if (p.key === "camera") return { ...p, state: camera };
-          if (p.key === "notifications") return { ...p, state: notifState };
-          if (p.key === "geolocation") return { ...p, state: geo };
-          return p;
-        })
-      );
-    });
+    checkPermissions();
   }, []);
 
-  const stateLabel = (s: Permission["state"]) => {
-    if (s === "granted") return { text: "Erlaubt", color: "text-primary" };
-    if (s === "denied") return { text: "Blockiert", color: "text-destructive" };
-    if (s === "prompt") return { text: "Nicht gefragt", color: "text-muted-foreground" };
-    return { text: "Nicht verfügbar", color: "text-muted-foreground" };
+  const stateLabel = (s: Permission['state']) => {
+    if (s === 'granted')     return { text: 'Erlaubt',        color: 'text-primary' };
+    if (s === 'denied')      return { text: 'Blockiert',      color: 'text-destructive' };
+    if (s === 'prompt')      return { text: 'Nicht gefragt',  color: 'text-muted-foreground' };
+    return                          { text: 'Nicht verfügbar', color: 'text-muted-foreground' };
   };
 
-  const openPermissionSettings = () => {
-    const ua = navigator.userAgent;
+  const openPermissionSettings = async () => {
+    if (isNative()) {
+      // Android → direkt zu den App-Einstellungen
+      await NativeSettings.openAndroid({
+        option: AndroidSettings.ApplicationDetails,
+      });
+      return;
+    }
 
-    const isElectron  = ua.includes("Electron");
-    const isIOS       = /iPhone|iPad|iPod/.test(ua);
-    const isAndroid   = /Android/.test(ua);
-    const isMac       = /Macintosh|MacIntel/.test(ua);
-    const isWindows   = /Win/.test(ua);
-
-    // PWA-Modus (kein Browser-Chrome → keine Adressleiste)
-    const isPWA =
-        window.matchMedia("(display-mode: standalone)").matches ||
-        (navigator as any).standalone === true;
+    // Electron Desktop App erkennen
+    const isElectron = /Electron/.test(navigator.userAgent);
+    const isWindows = /Windows/.test(navigator.userAgent);
+    const isMac = /Macintosh|Mac OS X/.test(navigator.userAgent);
 
     if (isElectron) {
-        // ── Electron Desktop App ──────────────────────────────────────────────
-        if (isWindows) {
+      // ── Electron Desktop App ──────────────────────────────────────────────
+      if (isWindows) {
         // Windows: Datenschutz-Einstellungen (Kamera / Mikro / Standort)
         window.open("ms-settings:privacy-webcam");
-        } else if (isMac) {
+      } else if (isMac) {
         // macOS: Systemeinstellungen → Datenschutz & Sicherheit
-        window.open(
-            "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera"
-        );
-        } else {
+        window.open("x-apple.systempreferences:com.apple.preference.security?Privacy_Camera");
+      } else {
         // Linux: kein Standard-URI-Schema vorhanden
         toast({
-            title: "Berechtigungen verwalten",
-            description:
-            "Öffne deine Systemeinstellungen und suche nach 'Datenschutz' oder 'Anwendungsberechtigungen'.",
+          title: "Berechtigungen verwalten",
+          description: "Öffne deine Systemeinstellungen und suche nach 'Datenschutz' oder 'Anwendungsberechtigungen'.",
         });
-        }
-        return;
+      }
+      return;
     }
 
-    if (isAndroid) {
-        if (isPWA) {
-        // ── Android, installierte PWA ───────────────────────────────────────
-        toast({
-            title: "Berechtigungen verwalten",
-            description:
-            "Öffne Einstellungen → Apps → RigFlow → Berechtigungen.",
-            duration: 6000,
-        });
-        } else {
-        // ── Android Browser ─────────────────────────────────────────────────
-        toast({
-            title: "Berechtigungen verwalten",
-            description:
-            "Tippe auf das Schloss-Symbol in der Adressleiste → Website-Einstellungen.",
-            duration: 6000,
-        });
-        }
-        return;
+    // Web – Browser Permissions API
+    const ua = navigator.userAgent;
+    const isAndroid = /Android/.test(ua);
+    const isIOS = /iPhone|iPad|iPod/.test(ua);
+    const isPWA = window.matchMedia("(display-mode: standalone)").matches ||
+                   (navigator as any).standalone === true;
+
+    if (isAndroid && isPWA) {
+      toast({ title: "Berechtigungen verwalten", description: "Öffne Einstellungen → Apps → RigFlow → Berechtigungen.", duration: 6000 });
+    } else if (isAndroid) {
+      toast({ title: "Berechtigungen verwalten", description: "Tippe auf das Schloss-Symbol in der Adressleiste → Website-Einstellungen.", duration: 6000 });
+    } else if (isIOS) {
+      toast({ title: "Berechtigungen verwalten", description: "Öffne Einstellungen → Datenschutz & Sicherheit.", duration: 6000 });
+    } else {
+      toast({ title: "Berechtigungen verwalten", description: "Klicke auf das Schloss-Symbol in der Adressleiste.", duration: 6000 });
     }
-
-    if (isIOS) {
-        if (isPWA) {
-        // ── iOS, installierte PWA ───────────────────────────────────────────
-        // iOS erlaubt keinen direkten Link zu Einstellungen aus PWAs heraus
-        toast({
-            title: "Berechtigungen verwalten",
-            description:
-            "Öffne Einstellungen → Datenschutz & Sicherheit und wähle die gewünschte Berechtigung.",
-            duration: 6000,
-        });
-        } else {
-        // ── iOS Safari / Browser ─────────────────────────────────────────────
-        toast({
-            title: "Berechtigungen verwalten",
-            description:
-            "Tippe auf das AA-Symbol links in der Adressleiste → Website-Einstellungen.",
-            duration: 6000,
-        });
-        }
-        return;
-    }
-
-    // ── Desktop Browser (Chrome, Firefox, Edge, Safari) ─────────────────────
-    toast({
-        title: "Berechtigungen verwalten",
-        description:
-        "Klicke auf das Schloss-Symbol links in der Adressleiste, um Berechtigungen für RigFlow zu verwalten.",
-        duration: 6000,
-    });
-    };
-
+  };
 
   return (
     <div className="divide-y divide-border/50">
@@ -743,7 +719,7 @@ function PermissionsDashboard() {
         const { text, color } = stateLabel(p.state);
         return (
           <div key={p.key} className="flex items-center gap-3 py-3.5">
-            <div className={`p-2 rounded-lg shrink-0 ${p.state === "granted" ? "bg-primary/15 text-primary" : "bg-muted/50 text-muted-foreground"}`}>
+            <div className={`p-2 rounded-lg shrink-0 ${p.state === 'granted' ? 'bg-primary/15 text-primary' : 'bg-muted/50 text-muted-foreground'}`}>
               {p.icon}
             </div>
             <div className="flex-1 min-w-0">
@@ -756,11 +732,11 @@ function PermissionsDashboard() {
       })}
       <div className="pt-3">
         <button
-            onClick={openPermissionSettings}
-            className="flex items-center gap-1.5 text-xs text-primary hover:underline"
-            >
-            <ExternalLink className="h-3 w-3" />
-            Systemeinstellungen öffnen
+          onClick={openPermissionSettings}
+          className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+        >
+          <ExternalLink className="h-3 w-3" />
+          {isNative() ? 'App-Einstellungen öffnen' : 'Systemeinstellungen öffnen'}
         </button>
       </div>
     </div>
@@ -774,8 +750,31 @@ export default function PrivacySecurity() {
   const navigate = useNavigate();
   const [hasMfa, setHasMfa] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
   const { score, checks } = useSecurityScore(hasMfa);
   const { exportData, isExporting } = useExportUserData();
+
+  useEffect(() => {
+    const consent = localStorage.getItem(ANALYTICS_CONSENT_KEY);
+    setAnalyticsEnabled(consent === 'true');
+  }, []);
+
+  const toggleAnalytics = () => {
+    const posthog = (window as any).posthog;
+    if (!posthog) return;
+
+    const newState = !analyticsEnabled;
+    setAnalyticsEnabled(newState);
+    localStorage.setItem(ANALYTICS_CONSENT_KEY, newState ? 'true' : 'false');
+
+    if (newState) {
+      posthog.opt_in_capturing();
+      toast({ title: "Analytics aktiviert", description: "Deine Daten helfen uns, die App zu verbessern." });
+    } else {
+      posthog.opt_out_capturing();
+      toast({ title: "Analytics deaktiviert", description: "Wir erfassen keine Daten mehr über deine Nutzung." });
+    }
+  };
 
   const handleRemoteLogout = async () => {
     setLoggingOut(true);
@@ -865,6 +864,34 @@ export default function PrivacySecurity() {
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Meine Daten
           </p>
+
+          {/* Analytics Toggle */}
+          <div className="flex items-start gap-3 py-2">
+            <div className="p-2 rounded-lg bg-muted/50 text-muted-foreground shrink-0 mt-0.5">
+              <BarChart3 className="h-4 w-4" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium">Analytics</p>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                Hilf uns durch anonyme Nutzungsdaten, die App zu verbessern.
+              </p>
+            </div>
+            <button
+              onClick={toggleAnalytics}
+              className={`w-10 h-6 rounded-full transition-all shrink-0 mt-0.5 ${
+                analyticsEnabled
+                  ? 'bg-primary'
+                  : 'bg-muted border border-border/50'
+              }`}
+            >
+              <div
+                className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                  analyticsEnabled ? 'translate-x-5' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
           <button
             onClick={exportData}
             disabled={isExporting}

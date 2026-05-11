@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { User, Settings, LogOut } from "lucide-react";
 import posthog from "posthog-js";
+import { ANALYTICS_CONSENT_KEY } from '@/lib/constants';
 
 export function UserMenu() {
   const { user, signOut } = useAuth();
@@ -24,7 +25,10 @@ export function UserMenu() {
         title: "Abgemeldet",
         description: "Du wurdest erfolgreich abgemeldet.",
       });
-      posthog.capture("user_logged_out");
+      const consent = localStorage.getItem(ANALYTICS_CONSENT_KEY);
+      if (consent === 'true') {
+        posthog.capture("user_logged_out");
+      }
       navigate("/auth");
     } catch {
       toast({

@@ -5,6 +5,7 @@ import { Eye, EyeOff, ChevronRight, ChevronLeft, Lock, Hash, Type, QrCode, Wifi,
 import { motion, AnimatePresence } from 'framer-motion';
 import posthog from "posthog-js";
 import { hapticFeedback, hapticStop } from '@/lib/utils';
+import { ANALYTICS_CONSENT_KEY } from '@/lib/constants';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Phase = 'intro' | 'stories' | 'form' | 'finale';
@@ -287,10 +288,14 @@ export default function RegisterPage() {
         email: formData.email,
         password: formData.password,
         options: {
+          emailRedirectTo: 'com.rigflow.app://auth/callback',
           data: { full_name: formData.name, warehouse_name: formData.warehouse },
         },
       });
-      posthog.capture("user_signed_up");
+      const consent = localStorage.getItem(ANALYTICS_CONSENT_KEY);
+      if (consent === 'true') {
+        posthog.capture("user_signed_up");
+      }
       if (signUpError) throw signUpError;
       setRippleActive(false);
       setTimeout(() => {

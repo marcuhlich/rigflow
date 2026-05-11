@@ -1,17 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Camera as CameraIcon, ImageIcon, ChevronRight, Check } from 'lucide-react';
+import { Bell, Camera as CameraIcon, ImageIcon, ChevronRight, Check, BarChart2 } from 'lucide-react';
+import posthog from 'posthog-js';
 import {
   requestNativeNotificationPermission,
 } from '@/services/native/notifications';
 import { requestCameraPermission } from '@/services/native/index';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Camera } from '@capacitor/camera';
-
-// ─── Konstante ────────────────────────────────────────────────────────────────
-
-export const ONBOARDING_DONE_KEY = 'rigflow_native_onboarding_v1';
+import { ONBOARDING_DONE_KEY, ANALYTICS_CONSENT_KEY } from '@/lib/constants';
 
 // ─── Screens ──────────────────────────────────────────────────────────────────
 
@@ -81,6 +79,11 @@ export default function NativeOnboarding() {
   };
 
   const handleSkip = () => {
+    // Wenn der Analytics-Screen übersprungen wird
+    if (step === screens.length - 1) {
+      localStorage.setItem(ANALYTICS_CONSENT_KEY, 'false');
+      posthog.opt_out_capturing();
+    }
     if (step < screens.length - 1) {
       setStep(s => s + 1);
     } else {
@@ -92,7 +95,7 @@ export default function NativeOnboarding() {
     {
       icon: <Bell size={28} style={{ color: 'hsl(var(--primary))' }} />,
       accent: 'hsl(var(--primary))',
-      eyebrow: 'Schritt 1 von 2',
+      eyebrow: 'Schritt 1 von 3',
       title: 'Benachrichtigungen',
       description:
         'RigFlow erinnert dich an überfällige Rückgaben und wichtige Ereignisse – direkt auf dein Gerät.',
@@ -102,12 +105,25 @@ export default function NativeOnboarding() {
     {
       icon: <CameraIcon size={28} style={{ color: '#34d399' }} />,
       accent: '#34d399',
-      eyebrow: 'Schritt 2 von 2',
+      eyebrow: 'Schritt 2 von 3',
       title: 'Kamera & Fotos',
       description:
         'Fotografiere Equipment direkt aus der App oder lade Bilder aus deiner Galerie hoch.',
       allowLabel: 'Kamera erlauben',
       onAllow: async () => { await requestCameraPermission(); },
+    },
+    {
+      icon: <BarChart2 size={28} style={{ color: '#34d399' }} />,
+      accent: '#34d399',
+      eyebrow: 'Schritt 3 von 3',
+      title: 'Nutzungsanalyse',
+      description:
+        'Darf RigFlow anonymisierte Nutzungsdaten sammeln? Das hilft uns, die App zu verbessern – ohne dass wir wissen, wer du bist.',
+      allowLabel: 'Ja, gerne helfen',
+      onAllow: async () => {
+        localStorage.setItem(ANALYTICS_CONSENT_KEY, 'true');
+        posthog.opt_in_capturing();
+      },
     },
   ];
 
@@ -214,21 +230,7 @@ export default function NativeOnboarding() {
             {/* Buttons */}
             <div className="flex flex-col gap-3 w-full pt-2">
               <button
-                  onClick={async () => {
-                    // JSON.stringify damit Objekte lesbar sind:
-                    const notifCheck = await LocalNotifications.checkPermissions();
-                    console.log('Notifications:', JSON.stringify(notifCheck));
-                    
-                    const notifReq = await LocalNotifications.requestPermissions();
-                    console.log('Notifications after:', JSON.stringify(notifReq));
-
-                    try {
-                      const camReq = await Camera.requestPermissions({ permissions: ['camera', 'photos'] });
-                      console.log('Camera:', JSON.stringify(camReq));
-                    } catch(e) {
-                      console.log('Camera error:', JSON.stringify(e));
-                    }
-                  }}
+                onClick={() => handleAllow(screen.onAllow)}
                 disabled={loading}
                 style={{
                   width: '100%', padding: '16px 24px',

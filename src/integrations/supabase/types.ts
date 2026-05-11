@@ -255,6 +255,62 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_requests: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          status: string
+          title: string
+          votes: number
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          status?: string
+          title: string
+          votes?: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          status?: string
+          title?: string
+          votes?: number
+        }
+        Relationships: []
+      }
+      feature_votes: {
+        Row: {
+          created_at: string | null
+          id: string
+          request_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          request_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          request_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_votes_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "feature_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_items: {
         Row: {
           accessories: string | null

@@ -7,14 +7,18 @@ import { VitePWA } from "vite-plugin-pwa";
 export default defineConfig(({ mode }) => ({
   base: process.env.CAPACITOR_BUILD === 'true' ? './' : '/',
   build: {
+    sourcemap: true,
+    chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-query': ['@tanstack/react-query'],
-          'vendor-ui': ['lucide-react'],
-          'vendor-charts': ['recharts'],
+          'vendor-react':    ['react', 'react-dom', 'react-router-dom'],
+          'vendor-query':    ['@tanstack/react-query'],
+          'vendor-ui':       ['lucide-react'],
+          'vendor-charts':   ['recharts'],
           'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-motion':   ['framer-motion'],
+          'vendor-analytics':['posthog-js'],
         },
       },
     },

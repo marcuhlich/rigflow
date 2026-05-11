@@ -35,6 +35,7 @@ import {
   Sun,
   Gavel,
   LockKeyhole,
+  Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation } from "react-router-dom";
@@ -73,13 +74,13 @@ export default function AccountSettings() {
     }
   };
 
-const location = useLocation();
+  const location = useLocation();
 
-useEffect(() => {
-  if (location.state?.openDeleteDialog) {
-    setShowDeleteDialog(true);
-  }
-}, [location.state]);
+  useEffect(() => {
+    if (location.state?.openDeleteDialog) {
+      setShowDeleteDialog(true);
+    }
+  }, [location.state]);
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmEmail !== user?.email) {
@@ -99,7 +100,6 @@ useEffect(() => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      // Sofortiger Logout nach erfolgreicher Löschung
       await signOut();
 
       toast({
@@ -107,7 +107,6 @@ useEffect(() => {
         description: "Dein Konto wurde permanent gelöscht.",
       });
 
-      // replace verhindert "zurück"-Navigation
       navigate("/auth", { replace: true });
 
     } catch (error) {
@@ -134,8 +133,6 @@ useEffect(() => {
         flex items-center gap-4 px-6 py-5
         md:flex-col md:items-center md:gap-3 md:pt-6 md:pb-2 md:px-0 md:py-0
       ">
-
-        {/* Avatar */}
         <div className="relative shrink-0">
           <div
             className="w-20 h-20 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg"
@@ -144,12 +141,7 @@ useEffect(() => {
             {displayName.charAt(0).toUpperCase()}
           </div>
         </div>
-
-        {/* User Info */}
-        <div className="
-          flex flex-col justify-center min-w-0
-          md:text-center
-        ">
+        <div className="flex flex-col justify-center min-w-0 md:text-center">
           <h2 className="text-xl font-bold tracking-tight truncate">
             {displayName}
           </h2>
@@ -177,31 +169,31 @@ useEffect(() => {
             ),
           },
         ].map((item, idx, arr) => (
-            <div key={item.label}>
-              {item.to ? (
-                <Link
-                  to={item.to}
-                  className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors"
-                >
-                  <item.icon className="h-5 w-5 text-primary shrink-0" />
-                  <span className="flex-1 text-sm font-medium">{item.label}</span>
-                  {item.trailing ?? <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                </Link>
-              ) : (
-                <button
-                  className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors text-left"
-                  onClick={() =>
-                    toast({ title: item.label, description: "Diese Funktion kommt bald." })
-                  }
-                >
-                  <item.icon className="h-5 w-5 text-primary shrink-0" />
-                  <span className="flex-1 text-sm font-medium">{item.label}</span>
-                  {item.trailing ?? <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                </button>
-              )}
-              {idx < arr.length - 1 && <div className="h-px bg-border/50 mx-4" />}
-            </div>
-          ))}
+          <div key={item.label}>
+            {item.to ? (
+              <Link
+                to={item.to}
+                className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors"
+              >
+                <item.icon className="h-5 w-5 text-primary shrink-0" />
+                <span className="flex-1 text-sm font-medium">{item.label}</span>
+                {item.trailing ?? <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              </Link>
+            ) : (
+              <button
+                className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors text-left"
+                onClick={() =>
+                  toast({ title: item.label, description: "Diese Funktion kommt bald." })
+                }
+              >
+                <item.icon className="h-5 w-5 text-primary shrink-0" />
+                <span className="flex-1 text-sm font-medium">{item.label}</span>
+                {item.trailing ?? <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              </button>
+            )}
+            {idx < arr.length - 1 && <div className="h-px bg-border/50 mx-4" />}
+          </div>
+        ))}
       </Card>
 
       <Card className="hidden md:block glass-card p-4">
@@ -218,6 +210,23 @@ useEffect(() => {
         </div>
       </Card>
 
+      {/* ── Wunschliste ── */}
+      <Card className="glass-card overflow-hidden p-0 border-primary/25 bg-primary/5 active:scale-95 transition-all">
+        <Link
+          to="/settings/wunschliste"
+          className="flex items-center gap-3 px-4 py-4 hover:bg-primary/10 transition-colors"
+        >
+          <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
+            <Sparkles className="h-4 w-4 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-medium block">Wunschliste</span>
+            <span className="text-xs text-muted-foreground">Funktionen vorschlagen &amp; upvoten</span>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+        </Link>
+      </Card>
+
       {/* ── Support & Legal ── */}
       <Card className="glass-card overflow-hidden p-0 lg:hidden">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 pt-3 pb-1">
@@ -227,7 +236,7 @@ useEffect(() => {
           { icon: Info, label: "Über Rigflow", to: "https://github.com/marcuhlich/rigflow", external: true },
           { icon: FileText, label: "Impressum", to: "/impressum" },
           { icon: Shield, label: "Datenschutzerklärung", to: "/datenschutz" },
-          { icon: Gavel, label: "Nutzungsbedingungen", to: "/agb" },
+          { icon: Gavel, label: "Nutzungsbedingungen", to: "/nutzungsbedingungen" },
         ].map((item, idx, arr) => (
           <div key={item.label}>
             {item.to ? (

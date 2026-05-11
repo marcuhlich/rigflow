@@ -130,7 +130,7 @@ export default function SettingsLayout() {
               Informationen zur App
               <ExternalLink className="h-2.5 w-2.5 shrink-0" />
             </a>
-            <Link to="/agb" className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
+            <Link to="/nutzungsbedingungen" className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
               Nutzungsbedingungen
             </Link>
             <Link to="/impressum" className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">

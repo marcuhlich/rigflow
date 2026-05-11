@@ -191,6 +191,9 @@ export function DMXTimeline({
       wrapper.removeEventListener('touchcancel', onTouchEnd);
     };
   }, [isMobile]); // zoomScaleRef is always current — no dep needed
+  useEffect(() => {
+    return () => { dragCleanupRef.current?.(); };
+  }, []);
 
   // ── Drag state ─────────────────────────────────────────────────────────────
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -204,6 +207,7 @@ export function DMXTimeline({
   const dragRowRef = useRef<PatchplanRow | null>(null);
   const dragPreviewAddrRef = useRef<number | null>(null);
   dragPreviewAddrRef.current = dragPreviewAddr;
+  const dragCleanupRef = useRef<(() => void) | null>(null);
 
   const universeGroups = useMemo(() => {
     const groups = new Map<number, PatchplanRow[]>();
@@ -292,6 +296,7 @@ export function DMXTimeline({
       };
 
       const handleMouseUp = async () => {
+        dragCleanupRef.current = null;
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
         const row = dragRowRef.current;
@@ -308,6 +313,10 @@ export function DMXTimeline({
 
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
+      dragCleanupRef.current = () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
     },
     [isMobile, onInstanceChange],
   );
