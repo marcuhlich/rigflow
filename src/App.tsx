@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense } from "react";
+import { useEffect, lazy, Suspense, useState, useMemo } from "react";
 import { UndoRedoProvider } from "@/contexts/UndoRedoContext";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -21,6 +21,8 @@ import { PublicPageLayout } from "./components/layout/PublicPageLayout";
 import { isNative } from '@/services/platform';
 import BackButtonHandler from "./components/BackButtonHandler";
 import { App as CapApp } from '@capacitor/app';
+import { hasAnalyticsConsent } from "@/lib/consentUtils";
+import ConsentScreen from "./pages/ConsentScreen";
 
 const Landing = lazy(() => import("./pages/Landing"));
 const InstallPrompt = lazy(() => import("./pages/InstallPrompt"));
@@ -105,15 +107,35 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && (!user || !user.user_metadata?.is_admin)) {
+    if (!loading && (!user || !user.app_metadata?.is_admin)) {
       navigate("/", { replace: true });
     }
   }, [user, loading, navigate]);
 
   if (loading) return null;
-  if (!user || !user.user_metadata?.is_admin) return null;
+  if (!user || !user.app_metadata?.is_admin) return null;
 
   return <AppLayout>{children}</AppLayout>;
+}
+
+function ConsentGuard({ children }: { children: React.ReactNode }) {
+  const [showConsent, setShowConsent] = useState(() => !hasAnalyticsConsent());
+  const [consentDismissed, setConsentDismissed] = useState(false);
+
+  return (
+    <>
+      {!consentDismissed && (
+        <ConsentScreen 
+          isOpen={showConsent} 
+          onClose={() => {
+            setShowConsent(false);
+            setConsentDismissed(true);
+          }} 
+        />
+      )}
+      {children}
+    </>
+  );
 }
 
 function AppRoutes() {
@@ -284,23 +306,25 @@ function AppInitializer() {
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <UndoRedoProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <BackButtonHandler />
-              <AppInitializer />
-              <OverdueReminderInit />
-              <CommandPalette />
-              <AppRoutes />
-            </BrowserRouter>
-            <SpeedInsights />
-            <Analytics />
-          </TooltipProvider>
-        </UndoRedoProvider>
-      </AuthProvider>
+      <ConsentGuard>
+        <AuthProvider>
+          <UndoRedoProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <BackButtonHandler />
+                <AppInitializer />
+                <OverdueReminderInit />
+                <CommandPalette />
+                <AppRoutes />
+              </BrowserRouter>
+              <SpeedInsights />
+              <Analytics />
+            </TooltipProvider>
+          </UndoRedoProvider>
+        </AuthProvider>
+      </ConsentGuard>
     </QueryClientProvider>
   </ErrorBoundary>
 );

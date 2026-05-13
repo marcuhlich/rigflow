@@ -1,16 +1,18 @@
 # Datenschutzerklärung
 
-Zuletzt aktualisiert: 10.05.2026 · Gilt für Android, Browser & Windows
+Zuletzt aktualisiert: 13.05.2026 · Gilt für Android, Browser & Windows
 
 ---
 
 ## 1. Verantwortlicher
 
 Marc Uhlich  
-[ADRESSE EINTRAGEN]  
 rigflow.app@gmail.com
 
----
+Verantwortlicher im Sinne der DSGVO ist der Betreiber dieser App.  
+Die vollständigen Kontaktdaten sind dem [Impressum](/impressum) zu entnehmen.
+
+
 
 ## 2. Welche Daten wir verarbeiten
 
@@ -18,9 +20,9 @@ rigflow.app@gmail.com
 
 Beim Erstellen eines Nutzerkontos verarbeiten wir:
 
+- Name
 - E-Mail-Adresse
 - Passwort (ausschließlich verschlüsselt/gehasht gespeichert, nie im Klartext)
-- Datenschutz
 
 Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung)
 
@@ -36,7 +38,7 @@ Mit deiner Einwilligung verarbeiten wir anonymisierte Nutzungsdaten zur Verbesse
 
 Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung)
 
----
+
 
 ## 3. App-Berechtigungen
 
@@ -56,7 +58,7 @@ Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung)
 
 Der Zugriff auf den Gerätespeicher wird benötigt, um Dateien (z. B. Bilder von Geräten, Dokumente) in Rigflow hochzuladen. Dateien werden nur auf deine ausdrückliche Aktion hin übertragen und nicht im Hintergrund gelesen oder gespeichert.
 
----
+
 
 ## 4. Einwilligung in die Datenanalyse
 
@@ -64,7 +66,7 @@ Beim ersten Start der App fragen wir dich, ob du der Erhebung anonymisierter Nut
 
 Du kannst deine Einwilligung jederzeit in den App-Einstellungen widerrufen. Ab dem Zeitpunkt des Widerrufs werden keine weiteren Daten mehr erhoben.
 
----
+
 
 ## 5. Drittanbieter & Dienste
 
@@ -84,7 +86,7 @@ Vercel Inc., 340 Pine Street, Suite 701, San Francisco, CA 94104, USA.
 
 Datenschutzerklärung: [https://vercel.com/legal/privacy-policy](https://vercel.com/legal/privacy-policy)
 
----
+
 
 ## 6. Speicherung & Löschung
 
@@ -92,7 +94,7 @@ Deine Kontodaten und Inhaltsdaten werden gespeichert, solange dein Konto aktiv i
 
 Analytics-Daten (PostHog, Vercel) werden nach den jeweiligen Aufbewahrungsfristen der Anbieter automatisch gelöscht. Da diese Daten anonymisiert sind, ist eine gezielte Löschung einzelner Datensätze technisch nicht möglich.
 
----
+
 
 ## 7. Deine Rechte
 
@@ -108,7 +110,7 @@ Nach der DSGVO stehen dir folgende Rechte zu:
 
 Zur Ausübung deiner Rechte wende dich an: rigflow.app@gmail.com
 
----
+
 
 ## 8. Beschwerderecht
 
@@ -117,13 +119,13 @@ Du hast das Recht, dich bei einer Datenschutzaufsichtsbehörde zu beschweren. Di
 Landesbeauftragter für den Datenschutz und die Informationsfreiheit Baden-Württemberg  
 [https://www.baden-wuerttemberg.datenschutz.de](https://www.baden-wuerttemberg.datenschutz.de)
 
----
+
 
 ## 9. Datensicherheit
 
 Die Kommunikation zwischen App und Server erfolgt ausschließlich über verschlüsselte Verbindungen (HTTPS/TLS). Passwörter werden ausnahmslos gehasht gespeichert. Wir setzen technische und organisatorische Maßnahmen ein, um deine Daten vor unbefugtem Zugriff zu schützen.
 
----
+
 
 ## 10. Änderungen dieser Erklärung
 

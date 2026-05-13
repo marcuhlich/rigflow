@@ -10,7 +10,7 @@ export default function Nutzungsbedingungen() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("/Nutzungsbedingungen.md")
+    fetch("/nutzungsbedingungen.md")
       .then((res) => {
         if (!res.ok) throw new Error("Network error");
         return res.text();

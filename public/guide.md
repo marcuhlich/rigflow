@@ -13,10 +13,9 @@ Die App besteht aus folgenden Hauptbereichen, erreichbar über die Navigation:
 - **Dashboard** – Übersicht mit Statistiken, aktiven Ausleihen und letzten Aktivitäten
 - **Inventar** – Alle Geräte verwalten, filtern, exportieren
 - **Verleih** – Ausleihen erstellen, verwalten und Rückgaben tracken
-- **Event-Sets** – Packlisten für bestimmte Veranstaltungen
-- **Checklisten** – Vor- und Nachbereitungs-Listen für Events
+- **Projekte** – Packlisten für bestimmte Veranstaltungen
 - **DMX-Patchplan** – DMX-Adressen planen und Konflikte erkennen
-- **Einstellungen** – Konto verwalten, Passwort ändern, Account löschen
+- **Einstellungen** – Konto verwalten, Passwort ändern, Design ändern
 
 ---
 
@@ -95,39 +94,43 @@ Jedes Gerät bekommt automatisch einen QR-Code, der direkt zur Detailseite führ
 
 ---
 
-## Event-Sets (Packlisten)
+## Projekte
 
-### Event-Set erstellen
-1. Öffne die Seite **Event-Sets**
-2. Klicke auf **+ Neues Set**
-3. Gib Name, Beschreibung, Zeitraum und Notizen ein
-4. Füge Artikel aus dem Inventar hinzu und lege Mengen fest
+### Neues Projekt erstellen
+1. Öffne die Seite **Projekte**
+2. Klicke auf **+ Neues Projekt**
+3. Gib einen Namen für das Projekt ein (z.B. Veranstaltungsname oder Event-Datum)
+4. Optional: Beschreibung, Datum und Ort hinzufügen
+5. Klicke auf **Erstellen**
 
-### Packliste exportieren
-- Klicke auf **PDF exportieren**, um eine druckbare Packliste zu erstellen
-- Die Liste enthält Artikelname, Kategorie, Standort, Menge und Verfügbarkeit
+### Packliste zusammenstellen
+1. Öffne ein Projekt
+2. Klicke auf **+ Item hinzufügen**
+3. Wähle Geräte aus deinem Inventar aus oder füge manuelle Einträge hinzu
+4. Gib die benötigte Menge an
+5. Speichere die Packliste
 
-### Favoriten
-- Markiere häufig genutzte Sets als Favorit für schnellen Zugriff
+### Geräte ausleihen aus einem Projekt
+1. Öffne ein Projekt und seine Packliste
+2. Klicke auf **Ausleihen** beim jeweiligen Gerät oder nutze die Batch-Ausleihe
+3. Gib den Empfänger und das Rückgabedatum an
+4. Die Geräte werden als ausgeliehen markiert
+5. Alle Ausleihen werden automatisch in der Verleihverwaltung erfasst
 
----
+### Projekt-Status verwalten
+- Nutze **Bearbeiten**, um Projekt-Details zu ändern
+- Markiere das Projekt als **Abgeschlossen**, wenn der Event vorbei ist
+- **Archivieren**, um alte Projekte aus der Hauptliste zu entfernen (findbar im Archiv)
+- Klicke auf **Löschen**, um ein Projekt endgültig zu entfernen
 
-## Checklisten
+### Export & Druck
+- Nutze **Exportieren**, um die Packliste als **PDF** oder **CSV** herunterzuladen
+- Perfekt für den Druck vor der Veranstaltung oder zum Verteilen an Helfer
 
-### Checkliste erstellen
-1. Öffne die Seite **Checklisten**
-2. Klicke auf **+ Neue Checkliste**
-3. Gib einen Event-Namen, Typ (Aufbau, Abbau, Wartung) und optionale Beschreibung ein
-4. Füge Punkte hinzu, die abgehakt werden sollen
+### Tipps
+> **Tipp:** Erstelle Standard-Packlisten als Pakete (z.B. „Standard Mobile PA"). Füge diese dann in deine Projekte ein, ohne alle Teile manuell hinzuzufügen.
 
-### Punkte abhaken
-- Klicke auf einen Punkt, um ihn als erledigt zu markieren
-- Der Fortschritt wird als Balken angezeigt
-
-### Typen
-- **Aufbau** – Checkliste für den Event-Aufbau
-- **Abbau** – Checkliste für den Event-Abbau
-- **Wartung** – Checkliste für Wartungsarbeiten
+> **Hinweis:** Alle Ausleihen aus einem Projekt werden mit dem Projekt verlinkt. So kannst du später nachverfolgen, welche Geräte bei welchem Event waren.
 
 ---
 

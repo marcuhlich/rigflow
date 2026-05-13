@@ -44,7 +44,7 @@ const QUERY_KEY = (userId: string) => ["feature_requests", userId];
 
 export default function WunschlisteTab() {
   const { user }      = useAuth();
-  const isAdmin       = !!user?.user_metadata?.is_admin;
+  const isAdmin       = !!user?.app_metadata?.is_admin;
   const navigate      = useNavigate();
   const isMobile      = useIsMobile();
   const queryClient   = useQueryClient();

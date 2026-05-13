@@ -32,7 +32,7 @@ export default function HelpPage() {
       </Button>
 
       <Card className="p-4 sm:p-6 md:p-8 lg:p-10 glass-card bg-background/80">
-        <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:text-foreground">
+        <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:text-foreground user-select-text">
           <ReactMarkdown
             components={{
               h1: ({ node, ...props }) => (
@@ -57,7 +57,7 @@ export default function HelpPage() {
                 <a className="!text-primary hover:underline" {...props} />
               ),
               blockquote: ({ node, ...props }) => (
-                <blockquote className="!text-foreground/70 border-l-2 border-primary/50 pl-4 italic" {...props} />
+                <blockquote className="!text-foreground/70 border-l-2 border-primary/50 pl-4 italic [&_p]:before:content-none [&_p]:after:content-none" {...props} />
               ),
               hr: ({ node, ...props }) => (
                 <hr className="!border-border/50 my-6" {...props} />
