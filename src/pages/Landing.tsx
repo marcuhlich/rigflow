@@ -300,98 +300,31 @@ function NativeWelcome() {
 // ---------------------------------------------------------------------------
 function HeroMockup() {
   return (
-    <div className="relative w-full max-w-2xl mx-auto h-72 sm:h-96">
-
-      {/* Desktop Browser Mockup */}
-      <div className="rig-mockup-float absolute left-0 top-0 w-[75%] z-10">
-        <div className="rounded-xl border border-border/60 bg-background/90 shadow-2xl overflow-hidden backdrop-blur-sm">
-          {/* Browser chrome */}
-          <div className="flex items-center gap-1.5 px-3 py-2.5 bg-muted/40 border-b border-border/40">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
-            <div className="w-2.5 h-2.5 rounded-full bg-amber-500/70" />
-            <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
-            <div className="flex-1 mx-3 h-5 bg-background/60 rounded border border-border/30 flex items-center px-2">
-              <span className="text-[9px] text-muted-foreground/60 truncate">app.rigflow.de/inventory</span>
-            </div>
-          </div>
-          {/* Content preview */}
-          <div className="p-3 bg-background/60 space-y-2">
-            {/* Header bar */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-xs font-bold gradient-text">RigFlow</div>
-              <div className="flex gap-1">
-                <div className="h-4 w-12 rounded bg-primary/20" />
-                <div className="h-4 w-16 rounded bg-primary/80" />
-              </div>
-            </div>
-            {/* Table rows */}
-            {[
-              { name: 'JBL EON 615',     status: 'verfügbar', col: 'bg-green-500' },
-              { name: 'Moving Head 250W', status: 'verliehen',  col: 'bg-amber-500' },
-              { name: 'SM58 Mikrofon',    status: 'verfügbar', col: 'bg-green-500' },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-2 p-1.5 rounded bg-muted/20 border border-border/20">
-                <div className={`w-1.5 h-1.5 rounded-full ${item.col} flex-shrink-0`} />
-                <span className="text-[10px] flex-1 truncate">{item.name}</span>
-                <span className="text-[9px] text-muted-foreground">{item.status}</span>
-                <QrCode className="h-3 w-3 text-muted-foreground/30" />
-              </div>
-            ))}
-            {/* DMX mini table */}
-            <div className="mt-2 p-2 rounded border border-primary/20 bg-primary/5 space-y-1">
-              <div className="text-[9px] text-primary font-semibold mb-1">DMX Universe 1</div>
-              {[{ ch: '001', name: 'Spot A', mode: '16ch' }, { ch: '017', name: 'Spot B', mode: '16ch' }].map((r, i) => (
-                <div key={i} className="flex gap-2 text-[9px] text-muted-foreground">
-                  <span className="w-6 text-primary/70 font-mono">{r.ch}</span>
-                  <span className="flex-1">{r.name}</span>
-                  <span>{r.mode}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Phone Mockup */}
-      <div className="rig-phone-float absolute right-0 bottom-0 w-[38%] z-20">
-        <div className="rounded-[22px] border-2 border-border/50 bg-background/95 shadow-2xl overflow-hidden">
-          {/* Phone notch */}
-          <div className="bg-muted/30 py-2 flex justify-center">
-            <div className="w-10 h-1 rounded-full bg-border/60" />
-          </div>
-          {/* Screen content */}
-          <div className="px-2 pb-3 space-y-1.5 bg-background/80">
-            <div className="text-[9px] font-bold text-center py-1 gradient-text">Inventar</div>
-            {/* QR scan area */}
-            <div className="relative rounded-lg bg-muted/20 aspect-square flex items-center justify-center overflow-hidden border border-border/30">
-              <div className="absolute top-2 left-2  w-3 h-3 border-t-2 border-l-2 border-primary rounded-tl" />
-              <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-primary rounded-tr" />
-              <div className="absolute bottom-2 left-2  w-3 h-3 border-b-2 border-l-2 border-primary rounded-bl" />
-              <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-primary rounded-br" />
-              <div className="rig-scanbar" />
-              <QrCode className="h-6 w-6 text-primary/20" />
-            </div>
-            {/* Push notification badge */}
-            <div className="rounded-lg bg-primary/10 border border-primary/20 p-1.5 flex items-start gap-1.5">
-              <div className="rig-blink w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0 mt-0.5" />
-              <div className="space-y-0.5">
-                <div className="text-[8px] font-semibold">Rückgabe überfällig</div>
-                <div className="text-[7px] text-muted-foreground">Moving Head – Projekt Berlin</div>
-              </div>
-            </div>
-          </div>
-          {/* Home bar */}
-          <div className="pb-2 flex justify-center">
-            <div className="w-8 h-1 rounded-full bg-border/40" />
-          </div>
-        </div>
-      </div>
-
-      {/* Glow effects */}
+    <div className="relative w-full max-w-3xl mx-auto">
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-40 h-40 bg-primary/8 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-32 h-32 bg-primary/6 rounded-full blur-2xl" />
+        <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-primary/8 rounded-full blur-3xl" />
       </div>
+
+      <img
+        src="/mockups.png"
+        alt="RigFlow Dashboard"
+        className="rig-mockup-float relative w-full h-auto object-contain"
+        style={{ 
+          filter: 'drop-shadow(0 40px 20px rgba(0,0,0,0.2))',
+          transition: 'transform 0.4s ease, filter 0.4s ease',
+        }}
+        onMouseEnter={e => {
+          (e.currentTarget as HTMLImageElement).style.transform = 'scale(1.03) translateY(-6px)';
+          (e.currentTarget as HTMLImageElement).style.filter = 'drop-shadow(0 55px 40px rgba(0,0,0,0.5))';
+          (e.currentTarget as HTMLImageElement).style.animationPlayState = 'paused';
+        }}
+        onMouseLeave={e => {
+          (e.currentTarget as HTMLImageElement).style.transform = '';
+          (e.currentTarget as HTMLImageElement).style.filter = 'drop-shadow(0 40px 20px rgba(0,0,0,0.2))';
+          (e.currentTarget as HTMLImageElement).style.animationPlayState = 'running';
+        }}
+      />
     </div>
   );
 }

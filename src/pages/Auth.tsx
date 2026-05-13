@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Mail, Lock, Loader2, Download, ChevronLeft, KeyRound, ShieldCheck, LifeBuoy } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -232,23 +232,7 @@ const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    setTimeout(() => inputRef.current?.focus(), 100);
-  }, []);
-
-  // Auto-submit nur bei TOTP
-  useEffect(() => {
-    if (!useRecovery && code.length === 6) handleVerify();
-  }, [code]);
-
-  const switchMode = (recovery: boolean) => {
-    setUseRecovery(recovery);
-    setCode("");
-    setError(null);
-    setTimeout(() => inputRef.current?.focus(), 100);
-  };
-
-  const handleVerify = async () => {
+  const handleVerify = useCallback(async () => {
     if (isLoading) return;
     if (!useRecovery && code.length !== 6) return;
     if (useRecovery && code.length < 11) return;
@@ -319,7 +303,24 @@ const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
     } finally {
       setIsLoading(false);
     }
+  }, [isLoading, useRecovery, code]);
+
+  useEffect(() => {
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }, []);
+
+  // Auto-submit nur bei TOTP
+  useEffect(() => {
+    if (!useRecovery && code.length === 6) handleVerify();
+  }, [code, useRecovery, handleVerify]);
+
+  const switchMode = (recovery: boolean) => {
+    setUseRecovery(recovery);
+    setCode("");
+    setError(null);
+    setTimeout(() => inputRef.current?.focus(), 100);
   };
+
 
   return (
     <>
@@ -420,7 +421,7 @@ const Auth = () => {
     const checkAuth = async () => {
       if (!loading && user) {
         const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (data?.currentLevel === "aal2") {
+        if (data?.currentLevel === "aal1" || data?.currentLevel === "aal2") {
           navigate(getPostLoginRoute())
         }
       }
