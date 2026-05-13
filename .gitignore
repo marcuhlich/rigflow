@@ -30,3 +30,6 @@ ios/
 
 # Capacitor Assets (generiert, nicht committen)
 assets/icon-background.png
+
+# Sonstiges
+.nextcloudingore
