@@ -1,0 +1,56 @@
+/* Formular öffnen */
+@keyframes form-slide-in {
+    from { opacity: 0; transform: scaleY(0.85) translateY(-8px); }
+    to   { opacity: 1; transform: scaleY(1)    translateY(0); }
+}
+/* Formular schließen / zusammenquetschen */
+@keyframes form-squeeze-out {
+    0%   { opacity: 1; transform: scaleY(1)    translateY(0); max-height: 600px; }
+    60%  { opacity: 0.3; transform: scaleY(0.3) translateY(-4px); }
+    100% { opacity: 0; transform: scaleY(0)    translateY(-8px); max-height: 0; }
+}
+/* Neuer Eintrag in der Timeline */
+@keyframes entry-pop-in {
+    0%   { opacity: 0; transform: translateX(-10px) scale(0.97); }
+    55%  { transform: translateX(2px) scale(1.01); }
+    100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+/* Quick-Confirm Erfolg */
+@keyframes btn-success-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb, 99,102,241), 0.4); }
+    60%  { box-shadow: 0 0 0 8px rgba(var(--color-primary-rgb, 99,102,241), 0); }
+    100% { box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb, 99,102,241), 0); }
+}
+/* Status-Banner Pulse für Überfällig */
+@keyframes overdue-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.75; }
+}
+/* Typ-Pill Bounce */
+@keyframes pill-select {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(0.88); }
+    65%  { transform: scale(1.06); }
+    100% { transform: scale(1); }
+}
+.pill-bounce { animation: pill-select 0.22s ease; }
+
+.form-enter-active {
+    transform-origin: top center;
+    animation: form-slide-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.form-exit-active {
+    transform-origin: top center;
+    animation: form-squeeze-out 0.28s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+    overflow: hidden;
+    pointer-events: none;
+}
+.entry-new {
+    animation: entry-pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.btn-success {
+    animation: btn-success-pulse 0.6s ease;
+}
+.status-overdue-pulse {
+    animation: overdue-pulse 2.2s ease-in-out infinite;
+}

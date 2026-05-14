@@ -1,4 +1,4 @@
-export type ProjectStatus = 'draft' | 'planned' | 'packed' | 'transit' | 'live' | 'returning';
+export type ProjectStatus = 'draft' | 'planned' | 'packed' | 'transit' | 'live' | 'returning' | 'archived';
 
 export interface Package {
   id: string;

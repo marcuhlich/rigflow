@@ -8,7 +8,7 @@ import { offlineQueue } from '@/lib/offlineQueue';
 const PROJECTS_CACHE_KEY = 'projects';
 
 export const STATUS_ORDER: ProjectStatus[] = [
-  'draft', 'planned', 'packed', 'transit', 'live', 'returning',
+  'draft', 'planned', 'packed', 'transit', 'live', 'returning', 'archived',
 ];
 
 export function isWarningJump(from: ProjectStatus, to: ProjectStatus): boolean {

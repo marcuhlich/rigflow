@@ -263,7 +263,7 @@ function NativeWelcome() {
 
             <Button
               size="lg"
-              className="w-full text-base font-semibold py-6 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.01]"
+              className="w-full text-base font-semibold py-6 shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95 hover:scale-[1.01]"
               onClick={() => navigate('/register')}
             >
               Kostenlos Registrieren

@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Link } from "react-router-dom";
 import { isNative } from "@/services/platform";
 import {
   AlertDialog,
@@ -38,7 +37,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useLocation } from "react-router-dom";
 
 export default function AccountSettings() {
   const { user, signOut } = useAuth();
@@ -77,10 +75,12 @@ export default function AccountSettings() {
   const location = useLocation();
 
   useEffect(() => {
-    if (location.state?.openDeleteDialog) {
+    if (location.state?.openDeleteDialog === true) {
       setShowDeleteDialog(true);
+      // State sofort löschen, damit Reload den Dialog nicht erneut öffnet
+      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state]);
+  }, []);
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmEmail !== user?.email) {
@@ -112,10 +112,7 @@ export default function AccountSettings() {
     } catch (error) {
       toast({
         title: "Fehler",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Konto konnte nicht gelöscht werden",
+        description: "Konto konnte nicht gelöscht werden. Bitte versuche es später erneut.",
         variant: "destructive",
       });
     } finally {
@@ -233,7 +230,7 @@ export default function AccountSettings() {
           Support & Rechtliches
         </p>
         {[
-          { icon: Info, label: "Über Rigflow", to: "https://github.com/marcuhlich/rigflow", external: true },
+          { icon: Info, label: "Über Rigflow", to: "/settings/about" },
           { icon: FileText, label: "Impressum", to: "/impressum" },
           { icon: Shield, label: "Datenschutzerklärung", to: "/datenschutz" },
           { icon: Gavel, label: "Nutzungsbedingungen", to: "/nutzungsbedingungen" },
@@ -242,8 +239,6 @@ export default function AccountSettings() {
             {item.to ? (
               <Link
                 to={item.to}
-                target={item.external ? "_blank" : undefined}
-                rel={item.external ? "noopener noreferrer" : undefined}
                 className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors"
               >
                 <item.icon className="h-5 w-5 text-primary shrink-0" />
@@ -365,15 +360,17 @@ export default function AccountSettings() {
                       onChange={(e) => setDeleteConfirmEmail(e.target.value)}
                       className="glass-input"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      E-Mail: <span className="font-mono text-foreground">{user?.email}</span>
-                    </p>
                   </div>
                 </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="flex gap-3">
-              <AlertDialogCancel disabled={isDeleting}>Abbrechen</AlertDialogCancel>
+              <AlertDialogCancel
+                disabled={isDeleting}
+                onClick={() => setDeleteConfirmEmail("")}
+              >
+                Abbrechen
+              </AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDeleteAccount}
                 disabled={isDeleting || deleteConfirmEmail !== user?.email}

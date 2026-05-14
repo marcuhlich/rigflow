@@ -91,8 +91,9 @@ function formatChanges(changes: AuditLogEntry['changes']): string {
       return "Bild aktualisiert";
     }
     
-    const oldVal = val.old ?? "-";
-    const newVal = val.new ?? "-";
+    const SENSITIVE_FIELDS = new Set(['password', 'password_hash', 'token', 'secret']);
+    const oldVal = SENSITIVE_FIELDS.has(key) ? '***' : (val.old ?? "-");
+    const newVal = SENSITIVE_FIELDS.has(key) ? '***' : (val.new ?? "-");
     const displayName = formatFieldName(key);
     return `${displayName}: ${oldVal} → ${newVal}`;
   });
@@ -103,9 +104,11 @@ function formatChanges(changes: AuditLogEntry['changes']): string {
 export function AuditLogPanel() {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const { user } = useAuth();
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const LOG_LIMIT = 50;
 
   const fetchLogs = async () => {
     if (!user) {
@@ -117,14 +120,15 @@ export function AuditLogPanel() {
     try {
       const { data, error } = await supabase
         .from('audit_log')
-        .select('*')
+        .select('id, action, item_id, item_name, changes, created_at')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(80);
+        .limit(LOG_LIMIT);
 
       if (error) throw error;
       setLogs(data as AuditLogEntry[]);
-    } catch (error) {
-      console.error('Error fetching audit logs:', error);
+    } catch {
+      setFetchError('Verlauf konnte nicht geladen werden.');
     } finally {
       setLoading(false);
     }
@@ -136,7 +140,7 @@ export function AuditLogPanel() {
     // Subscribe to realtime updates
     if (user) {
       channelRef.current = supabase
-        .channel('audit-log-changes')
+        .channel(`audit-log-changes-${user.id}`)
         .on(
           'postgres_changes',
           {
@@ -147,7 +151,7 @@ export function AuditLogPanel() {
           (payload) => {
             const newLog = payload.new as AuditLogEntry;
             if (newLog.user_id === user.id) {
-              setLogs(prev => [newLog, ...prev].slice(0, 50));
+              setLogs(prev => [newLog, ...prev].slice(0, LOG_LIMIT));
             }
           }
         )
@@ -194,6 +198,10 @@ export function AuditLogPanel() {
             <div className="p-4 text-center text-sm text-muted-foreground">
               <RefreshCw className="h-4 w-4 animate-spin inline mr-2" />
               Lade Verlauf...
+            </div>
+          ) : fetchError ? (
+            <div className="p-4 text-center text-sm text-destructive">
+              {fetchError}
             </div>
           ) : logs.length === 0 ? (
             <div className="p-4 text-center text-sm text-muted-foreground">

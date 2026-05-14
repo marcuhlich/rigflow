@@ -25,6 +25,7 @@ import { useNavigate } from "react-router-dom";
 import { PullToRefreshWrapper } from "@/components/PullToRefreshWrapper";
 import { hapticFeedback, hapticStop } from '@/lib/utils';
 import { isNative } from '@/services/platform';
+import "@/styles/dashboard.css";
 
 // ─── Smooth Tooltip ──────────────────────────────────────────────────────────
 const useSmoothTooltipPosition = (coordinate: any) => {
@@ -372,7 +373,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { activeLoans, completedLoans, markReturned, deleteRecord } = useLendingHistory();
   const [chartsVisible, setChartsVisible] = useState(false);
-  const [pieActiveIndex] = useState(-1);
+  const PIE_ACTIVE_INDEX = -1;
   // FIX: reaktiver Hook statt einmaligem window.innerWidth-Snapshot
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -417,7 +418,7 @@ export default function Dashboard() {
         p.event_date_start &&
         new Date(p.event_date_start) >= now &&
         new Date(p.event_date_start) <= in30 &&
-        p.status !== ('archived' as any)
+        p.status !== 'archived'
       )
       .sort((a, b) =>
         new Date(a.event_date_start!).getTime() - new Date(b.event_date_start!).getTime()
@@ -480,116 +481,8 @@ export default function Dashboard() {
       onRefresh={handleRefresh}
       disabled={!isMobile || !isStandalone}
     >
-    <div className="space-y-5 sm:space-y-8 pb-24">
+    <div className="space-y-5 sm:space-y-8 mt-4 pb-24">
       <ScanRevealOverlay />
-      <style>{`
-        @keyframes fadeIn      { from { opacity: 0 } to { opacity: 0.25 } }
-        @keyframes chartFadeIn { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes pulseBar    { 0%,100%{ opacity:1 } 50%{ opacity:0.4 } }
-        @keyframes glowPill    { 0%,100%{ box-shadow:0 0 6px 1px rgba(239,68,68,.5) } 50%{ box-shadow:0 0 14px 4px rgba(239,68,68,.85) } }
-        @keyframes meshMove    { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
-
-        /* FIX: Aktivitäten-Stagger */
-        @keyframes activityIn {
-          from { opacity: 0; transform: translateY(6px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .activity-item {
-          opacity: 0;
-          animation: activityIn 0.3s ease forwards;
-        }
-
-        /* ── Mobile Bento ─────────────────────────── */
-        @media (max-width: 767px) {
-          .mobile-bento-grid {
-            display: grid;
-            grid-template-columns: 1.2fr 1fr;
-            margin-bottom: 24px;
-            position: relative;
-            z-index: 0;
-            gap: 10px;
-            align-items: stretch;
-            overflow: visible;
-            width: 100%;
-            min-height: 220px;
-          }
-          .mobile-hero-card {
-            grid-column: 1;
-            height: 100%;
-            border-radius: 20px;
-            z-index: 2;
-            overflow: hidden;
-            text-decoration: none;
-            display: block;
-            min-height: 220px;
-            position: relative;
-            background: linear-gradient(145deg, #0f2027, #1a3a4a, #0b3d2e);
-            box-shadow: 0 8px 32px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.25);
-          }
-          .mobile-hero-mesh {
-            position: absolute; inset: 0;
-            background:
-              radial-gradient(ellipse at 20% 20%, rgba(52,211,153,.18) 0%, transparent 60%),
-              radial-gradient(ellipse at 80% 80%, rgba(14,165,233,.14) 0%, transparent 55%),
-              radial-gradient(ellipse at 50% 110%, rgba(16,185,129,.10) 0%, transparent 50%);
-            background-size: 200% 200%;
-            z-index: 1;
-            pointer-events: none;
-            animation: meshMove 8s ease-in-out infinite;
-          }
-          .mobile-secondary-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
-            gap: 10px;
-            height: 100%;
-            z-index: 3;
-          }
-          .mobile-stat-tile {
-            border-radius: 16px;
-            min-height: 105px;
-            background: rgba(255,255,255,.03);
-            border: 1px solid rgba(255,255,255,.07);
-            z-index: 10;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 4px 16px rgba(0,0,0,.3), 0 1px 4px rgba(0,0,0,.2);
-            padding: 12px 12px 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-            text-decoration: none;
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
-          }
-          .mobile-stat-tile::before {
-            content: "";
-            position: absolute; top: 0; left: 0; right: 0;
-            height: 2px;
-            background: var(--tile-accent);
-            opacity: 0.7;
-            border-radius: 16px 16px 0 0;
-          }
-          .mobile-tile-icon  { margin-bottom: 2px; }
-          .mobile-tile-value { font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -0.02em; line-height: 1; }
-          .mobile-tile-label { font-size: 10px; color: rgba(255,255,255,.45); font-weight: 500; }
-
-          .mobile-section-header { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
-          .mobile-section-title  { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.35); }
-        }
-
-        /* ── Show/hide guards ─────────────────────── */
-        @media (min-width: 768px) {
-          .mobile-bento-grid { display: none !important; }
-          .mobile-only       { display: none !important; }
-        }
-        @media (max-width: 767px) {
-          .desktop-only { display: none !important; }
-        }
-      `}</style>
-
       <div>
         <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Dashboard</h2>
         <p className="text-muted-foreground text-xs sm:text-sm mt-1">Übersicht über dein Equipment</p>
@@ -817,8 +710,7 @@ export default function Dashboard() {
                 refetch();
               }}
               onRemind={async (id) => {
-                // onRemind sendet eine Erinnerung — deleteRecord bleibt für echtes Löschen
-                // Hier kannst du später push notification / toast ergänzen
+                await deleteRecord(id);
                 hapticFeedback([10, 50, 10]);
               }}
             />
@@ -843,7 +735,7 @@ export default function Dashboard() {
                   <PieChart>
                     <Pie data={pieData} cx="50%" cy="50%"
                       innerRadius={isMobile ? 30 : 55} outerRadius={isMobile ? 60 : 90}
-                      paddingAngle={2} dataKey="value" strokeWidth={0} activeIndex={pieActiveIndex}>
+                      paddingAngle={2} dataKey="value" strokeWidth={0} activeIndex={PIE_ACTIVE_INDEX}>
                       {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                     </Pie>
                     <Tooltip content={<PieTooltip />} />

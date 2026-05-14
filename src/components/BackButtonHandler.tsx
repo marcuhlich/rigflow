@@ -13,19 +13,28 @@ export default function BackButtonHandler() {
 
     // Handle erst nach Promise-Auflösung setzen – selbes Muster wie in App.tsx
     let handle: { remove: () => Promise<void> } | undefined;
+    let cancelled = false;
 
     App.addListener("backButton", () => {
-      if (location.pathname !== "/") {
+      if (location.pathname === "/") {
+        App.exitApp();
+      } else if (window.history.length > 1) {
         navigate(-1);
       } else {
-        App.exitApp();
+        navigate("/", { replace: true });
       }
     }).then(h => {
-      handle = h;
+      if (cancelled) {
+        h.remove();  // Zu spät – sofort wieder entfernen
+      } else {
+        handle = h;
+      }
     });
 
-    // Optional chaining → kein Throw wenn Cleanup vor Promise-Auflösung läuft
-    return () => { handle?.remove(); };
+    return () => {
+      cancelled = true;
+      handle?.remove();
+    };
 
   }, [location.pathname, navigate]); // pathname statt location-Objekt → weniger Re-Registrierungen
 

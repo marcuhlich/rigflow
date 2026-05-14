@@ -112,6 +112,12 @@ const LoginStep = ({ onMfaRequired, onSuccess }: LoginStepProps) => {
         toast({ title: "Willkommen zurück!", description: "Du wurdest erfolgreich angemeldet." });
         onSuccess();
       }
+    } catch {
+      toast({
+        title: "Fehler",
+        description: "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -224,6 +230,8 @@ interface MfaStepProps {
   onBack: () => void;
 }
 
+const FOCUS_DELAY_MS = 100; // Warten bis Animation/Transition abgeschlossen
+
 const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -244,8 +252,8 @@ const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
       if (useRecovery) {
         // ── Recovery Code Flow ────────────────────────────────────────────
         const { data: { session } } = await supabase.auth.getSession();
-        const supabaseUrl = (supabase as any).supabaseUrl as string;
-        const supabaseKey = (supabase as any).supabaseKey as string;
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
         const res = await fetch(`${supabaseUrl}/functions/v1/mfa-recovery-codes`, {
           method: "POST",
@@ -300,13 +308,15 @@ const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
           onSuccess("totp");
         }
       }
+    } catch {
+      setError("Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.");
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, useRecovery, code]);
-
+  }, [isLoading, useRecovery, code, toast, onSuccess]);
+  
   useEffect(() => {
-    setTimeout(() => inputRef.current?.focus(), 100);
+    setTimeout(() => inputRef.current?.focus(), FOCUS_DELAY_MS);
   }, []);
 
   // Auto-submit nur bei TOTP
@@ -318,7 +328,7 @@ const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
     setUseRecovery(recovery);
     setCode("");
     setError(null);
-    setTimeout(() => inputRef.current?.focus(), 100);
+    setTimeout(() => inputRef.current?.focus(), FOCUS_DELAY_MS);
   };
 
 
@@ -421,8 +431,9 @@ const Auth = () => {
     const checkAuth = async () => {
       if (!loading && user) {
         const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (data?.currentLevel === "aal1" || data?.currentLevel === "aal2") {
-          navigate(getPostLoginRoute())
+        const requiredLevel = data?.nextLevel === "aal2" ? "aal2" : "aal1";
+        if (data?.currentLevel === requiredLevel) {
+          navigate(getPostLoginRoute());
         }
       }
     };

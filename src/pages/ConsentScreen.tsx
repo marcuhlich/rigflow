@@ -10,24 +10,22 @@ interface ConsentScreenProps {
 }
 
 export default function ConsentScreen({ isOpen, onClose }: ConsentScreenProps) {
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [processing, setProcessing] = useState<"accept" | "decline" | null>(null);
   const isMobile = useIsMobile();
 
   if (!isOpen) return null;
 
   const handleConsent = async (consentGiven: boolean) => {
-    setIsProcessing(true);
-    
-    // Set consent preference
-    setAnalyticsConsent(consentGiven);
-    
-    // Initialize PostHog with the consent decision
-    initializePostHog();
-    
-    // Close the modal
-    setTimeout(() => {
+    setProcessing(consentGiven ? "accept" : "decline");
+    try {
+      setAnalyticsConsent(consentGiven);
+      initializePostHog();
       onClose();
-    }, 100);
+    } catch {
+      // Fehler still ignorieren, aber Processing zurücksetzen
+    } finally {
+      setProcessing(null);
+    }
   };
 
   // Mobile: Full-screen modal with backdrop
@@ -67,7 +65,7 @@ export default function ConsentScreen({ isOpen, onClose }: ConsentScreenProps) {
               </div>
 
               <p className="text-xs pt-1 text-slate-400">
-                <a href="/datenschutz" target="_blank" className="text-blue-400 hover:underline">
+                <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
                   Datenschutz
                 </a>
               </p>
@@ -76,30 +74,11 @@ export default function ConsentScreen({ isOpen, onClose }: ConsentScreenProps) {
 
           {/* Actions - always visible at bottom */}
           <div className="flex gap-2 p-4 border-t border-slate-700 bg-slate-800/50 flex-shrink-0">
-            <Button
-              onClick={() => handleConsent(false)}
-              disabled={isProcessing}
-              variant="outline"
-              size="sm"
-              className="flex-1 text-xs"
-            >
-              {isProcessing ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                "Ablehnen"
-              )}
+            <Button onClick={() => handleConsent(false)} disabled={processing !== null}>
+              {processing === "decline" ? <Loader2 className="h-3 w-3 animate-spin" /> : "Ablehnen"}
             </Button>
-            <Button
-              onClick={() => handleConsent(true)}
-              disabled={isProcessing}
-              size="sm"
-              className="flex-1 text-xs"
-            >
-              {isProcessing ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                "Akzeptieren"
-              )}
+            <Button onClick={() => handleConsent(true)} disabled={processing !== null}>
+              {processing === "accept" ? <Loader2 className="h-3 w-3 animate-spin" /> : "Akzeptieren"}
             </Button>
           </div>
         </div>
@@ -118,7 +97,7 @@ export default function ConsentScreen({ isOpen, onClose }: ConsentScreenProps) {
               <h2 className="text-sm font-semibold text-white">Analytik & Datenschutz</h2>
               <p className="text-xs text-slate-400">
                 Wir verwenden PostHog Analytics, um die App zu verbessern. Deine Daten sind dir eigen – nur anonymisierte Events werden übertragen.{" "}
-                <a href="/datenschutz" className="text-blue-400 hover:underline">
+                <a href="/datenschutz" target="_blank" rel="noopener noreferrer"className="text-blue-400 hover:underline">
                   Mehr erfahren
                 </a>
               </p>
@@ -127,30 +106,11 @@ export default function ConsentScreen({ isOpen, onClose }: ConsentScreenProps) {
 
           {/* Actions */}
           <div className="flex gap-2 flex-shrink-0">
-            <Button
-              onClick={() => handleConsent(false)}
-              disabled={isProcessing}
-              variant="outline"
-              size="sm"
-              className="text-xs"
-            >
-              {isProcessing ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                "Ablehnen"
-              )}
+            <Button onClick={() => handleConsent(false)} disabled={processing !== null}>
+              {processing === "decline" ? <Loader2 className="h-3 w-3 animate-spin" /> : "Ablehnen"}
             </Button>
-            <Button
-              onClick={() => handleConsent(true)}
-              disabled={isProcessing}
-              size="sm"
-              className="text-xs"
-            >
-              {isProcessing ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                "Akzeptieren"
-              )}
+            <Button onClick={() => handleConsent(true)} disabled={processing !== null}>
+              {processing === "accept" ? <Loader2 className="h-3 w-3 animate-spin" /> : "Akzeptieren"}
             </Button>
           </div>
         </div>

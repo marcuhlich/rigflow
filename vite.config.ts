@@ -27,7 +27,6 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     proxy: {
-      // Proxy API requests to Lovable Cloud during local development
       "/api": {
         target: "https://rigflow-web.vercel.app",
         changeOrigin: true,

@@ -310,7 +310,7 @@ oder mit Bun:
 bun run dev
 ```
 
-App läuft unter: **http://localhost:5173**
+App läuft unter: **http://localhost:8080**
 
 ### 5. Build für Production
 
@@ -487,11 +487,9 @@ npx cap add android
 #### Build APK
 
 ```bash
-# Web-Build aktualisieren
-npm run build
+# Web-Build aktualisieren + Sync zu Android Projekt
+npm run build:android
 
-# Sync zu Android-Projekt
-npx cap sync android
 
 # APK bauen
 cd android
@@ -499,6 +497,12 @@ cd android
 
 # APK ist dann unter: android/app/build/outputs/apk/debug/
 ```
+
+#### Preview in Android Studio
+1. Android Studio installieren und starten
+2. Projekt-Ordner öffnen, warten bis importiert
+3. Über den grünen Playbutton Preview starten
+4. Entweder auf virtuellem Gerät anzeigen, oder App auf echtem Gerät über USB-Debugging anzeigen (empfohlen)
 
 #### Build App Bundle (für Google Play)
 

@@ -21,7 +21,7 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-const LOVABLE_API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/latestRelease`;
+const SUPABASE_API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/latestRelease`;
 
 export function useLatestRelease(): UseLatestReleaseResult {
   const [release, setRelease] = useState<ReleaseInfo | null>(null);
@@ -34,7 +34,7 @@ export function useLatestRelease(): UseLatestReleaseResult {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(LOVABLE_API_URL);
+        const response = await fetch(SUPABASE_API_URL);
         if (!response.ok) {
           throw new Error(`Fehler beim Abrufen der Release-Daten (${response.status})`);
         }

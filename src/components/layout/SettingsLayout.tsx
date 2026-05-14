@@ -121,15 +121,12 @@ export default function SettingsLayout() {
             >
               Anleitung
             </Link>
-            <a
-              href="https://github.com/marcuhlich/rigflow"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              to="/settings/about"
               className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
             >
               Informationen zur App
-              <ExternalLink className="h-2.5 w-2.5 shrink-0" />
-            </a>
+            </Link>
             <Link to="/nutzungsbedingungen" className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
               Nutzungsbedingungen
             </Link>
