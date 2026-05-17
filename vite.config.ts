@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       "/api": {
-        target: "https://rigflow-web.vercel.app",
+        target: "https://rigflow.net",
         changeOrigin: true,
         secure: true,
       },

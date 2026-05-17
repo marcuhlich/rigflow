@@ -4,7 +4,7 @@
 
 Nutze RigFlow im Browser, als installierbare PWA auf Smartphone/Tablet oder als Desktop-App für Windows.
 
-[![Live Demo](https://img.shields.io/badge/Live-rigflow--web.vercel.app-blue?style=flat-square)](https://rigflow-web.vercel.app)
+[![Live Demo](https://img.shields.io/badge/Live-rigflow--web.vercel.app-blue?style=flat-square)](https://rigflow.net)
 [![React 18](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)](https://react.dev)
 [![TypeScript 5](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)](https://typescriptlang.org)
 [![Tailwind CSS 3](https://img.shields.io/badge/Tailwind-3-06B6D4?style=flat-square&logo=tailwindcss)](https://tailwindcss.com)
@@ -33,7 +33,7 @@ Mit RigFlow kannst du:
 
 ## ✨ Screenshots
 
-> **Hinweis:** Screenshots sind Platzhalter. Besuche die Live-Demo unter https://rigflow-web.vercel.app um die echte App zu sehen.
+> **Hinweis:** Screenshots sind Platzhalter. Besuche die Live-Demo unter https://rigflow.net um die echte App zu sehen.
 
 | Dashboard | Inventar | DMX Patchplan |
 |-----------|----------|---------------|
@@ -46,7 +46,7 @@ Mit RigFlow kannst du:
 
 Teste die App kostenlos mit Demo-Account:
 
-1. **Öffne** https://rigflow-web.vercel.app
+1. **Öffne** https://rigflow.net
 2. **Melde dich an** mit:
    - E-Mail: `demo@rigflow.app`
    - Passwort: `demo1234`
@@ -158,7 +158,7 @@ Teste die App kostenlos mit Demo-Account:
 
 Die einfachste Variante – keine Installation erforderlich.
 
-👉 **RigFlow öffnen:** https://rigflow-web.vercel.app
+👉 **RigFlow öffnen:** https://rigflow.net
 
 Einfach anmelden und starten. Alle Daten synchronisieren automatisch.
 
@@ -168,14 +168,14 @@ RigFlow kann wie eine native App installiert werden – mit offline-Unterstützu
 
 #### Android Installation
 1. **Öffne Chrome** (oder Edge, Brave)
-2. **Gehe zu** https://rigflow-web.vercel.app
+2. **Gehe zu** https://rigflow.net
 3. **Menü öffnen** ⋮ → **"Zum Startbildschirm hinzufügen"**
 4. App erscheint auf dem Home-Screen
 5. **Laden starten** – PWA wird installiert
 
 #### iOS Installation
 1. **Öffne Safari**
-2. **Gehe zu** https://rigflow-web.vercel.app
+2. **Gehe zu** https://rigflow.net
 3. **Teilen-Button** drücken
 4. **"Zum Home-Bildschirm"** auswählen
 5. App ist installiert und offline-verfügbar
