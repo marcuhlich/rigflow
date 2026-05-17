@@ -288,7 +288,7 @@ export default function RegisterPage() {
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: 'com.rigflow.app://auth/callback',
+          emailRedirectTo: `${window.location.origin}/auth/callback`, // ← dynamisch, funktioniert überall
           data: { full_name: formData.name, warehouse_name: formData.warehouse },
         },
       });
