@@ -209,7 +209,7 @@ function AppInitializer() {
     CapApp.addListener('appUrlOpen', ({ url }) => {
       const urlObj = new URL(url);
       if (urlObj.pathname.includes('/auth/callback')) {
-        window.location.href = '/auth/callback' + urlObj.hash;
+        window.location.href = '/auth/callback' + (urlObj.search || urlObj.hash);
       }
     }).then(l => { listener = l; });
 
