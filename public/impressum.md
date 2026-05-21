@@ -7,7 +7,12 @@ Angaben gemäß § 5 TMG
 ## Betreiber
 
 Marc Uhlich  
-[ADRESSE EINTRAGEN]  
+
+c/o flexdienst – #21087  
+Kurt-Schumacher-Straße 76  
+67663 Kaiserslautern  
+Deutschland
+
 rigflow.app@gmail.com
 
 Rigflow wird von einer Privatperson betrieben und ist ein nicht-kommerzielles Projekt. Es besteht kein eingetragenes Gewerbe.
