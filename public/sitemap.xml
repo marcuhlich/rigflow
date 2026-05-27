@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+>
+  <url>
+    <loc>https://rigflow.net/landing</loc>
+  </url>
+
+  <url>
+    <loc>https://rigflow.net/register</loc>
+  </url>
+
+  <url>
+    <loc>https://rigflow.net/install</loc>
+  </url>
+
+  <url>
+    <loc>https://rigflow.net/install-prompt</loc>
+  </url>
+
+  <url>
+    <loc>https://rigflow.net/impressum</loc>
+  </url>
+
+  <url>
+    <loc>https://rigflow.net/datenschutz</loc>
+  </url>
+
+  <url>
+    <loc>https://rigflow.net/nutzungsbedingungen</loc>
+  </url>
+
+  <url>
+    <loc>https://rigflow.net/features/dmx</loc>
+  </url>
+
+  <url>
+    <loc>https://rigflow.net/features/scanner</loc>
+  </url>
+
+  <url>
+    <loc>https://rigflow.net/features/service</loc>
+  </url>
+</urlset>
