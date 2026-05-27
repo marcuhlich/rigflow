@@ -11,23 +11,25 @@ import { isNative } from "@/services/platform";
 import { z } from "zod";
 import posthog from "posthog-js";
 import { ONBOARDING_DONE_KEY, ANALYTICS_CONSENT_KEY } from '@/lib/constants';
+import { useTranslation } from 'react-i18next';
 
-function getAuthErrorMessage(rawMessage: string): string {
+function getAuthErrorMessage(rawMessage: string, t: (key: string) => string): string {
   const map: Record<string, string> = {
-    "Email rate limit exceeded": "Zu viele Versuche. Bitte warte einen Moment.",
-    "Email not confirmed": "Bitte bestätige zuerst deine E-Mail-Adresse.",
-    "Invalid login credentials": "E-Mail oder Passwort ist falsch.",
+    "Email rate limit exceeded": t('auth.errors.rate_limit'),
+    "Email not confirmed":       t('auth.errors.email_not_confirmed'),
+    "Invalid login credentials": t('auth.errors.invalid_credentials'),
   };
   for (const [key, value] of Object.entries(map)) {
     if (rawMessage.includes(key)) return value;
   }
-  return "Ein unbekannter Fehler ist aufgetreten. Bitte versuche es erneut.";
+  return t('auth.errors.unknown');
 }
 
-const authSchema = z.object({
-  email: z.string().email("Ungültige E-Mail-Adresse"),
-  password: z.string().min(6, "Passwort muss mindestens 6 Zeichen lang sein"),
-});
+const getAuthSchema = (t: (key: string) => string) =>
+  z.object({
+    email:    z.string().email(t('auth.errors.invalid_email')),
+    password: z.string().min(6, t('auth.errors.password_too_short')),
+  });
 
 function getPostLoginRoute(): string {
   if (isNative() && !localStorage.getItem(ONBOARDING_DONE_KEY)) {
@@ -59,6 +61,7 @@ interface LoginStepProps {
 }
 
 const LoginStep = ({ onMfaRequired, onSuccess }: LoginStepProps) => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -69,7 +72,7 @@ const LoginStep = ({ onMfaRequired, onSuccess }: LoginStepProps) => {
 
   const validateForm = () => {
     try {
-      authSchema.parse({ email, password });
+      getAuthSchema(t).parse({ email, password });
       setErrors({});
       return true;
     } catch (error) {
@@ -93,8 +96,8 @@ const LoginStep = ({ onMfaRequired, onSuccess }: LoginStepProps) => {
       const { error } = await signIn(email, password);
       if (error) {
         toast({
-          title: "Fehler",
-          description: getAuthErrorMessage(error.message),
+          title: t('common.error'),
+          description: getAuthErrorMessage(error.message, t),
           variant: "destructive",
         });
         return;
@@ -109,13 +112,16 @@ const LoginStep = ({ onMfaRequired, onSuccess }: LoginStepProps) => {
         if (consent === 'true') {
           posthog.capture("user_logged_in");
         }
-        toast({ title: "Willkommen zurück!", description: "Du wurdest erfolgreich angemeldet." });
+        toast({
+          title: t('auth.login.welcome_back'),
+          description: t('auth.login.success_description'),
+        });
         onSuccess();
       }
     } catch {
       toast({
-        title: "Fehler",
-        description: "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.",
+        title: t('common.error'),
+        description: t('auth.errors.unexpected'),
         variant: "destructive",
       });
     } finally {
@@ -125,20 +131,20 @@ const LoginStep = ({ onMfaRequired, onSuccess }: LoginStepProps) => {
 
   return (
     <>
-      <h2 className="text-xl font-semibold text-center mb-2">Anmelden</h2>
+      <h2 className="text-xl font-semibold text-center mb-2">{t('auth.login.title')}</h2>
       <p className="text-sm text-muted-foreground text-center mb-6">
-        Melde dich an um dein Equipment zu verwalten
+        {t('auth.login.subtitle')}
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">E-Mail</Label>
+          <Label htmlFor="email">{t('auth.email')}</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
             <Input
               id="email"
               type="email"
-              placeholder="name@beispiel.de"
+              placeholder={t('auth.email_placeholder')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="pl-10 glass-input"
@@ -150,9 +156,9 @@ const LoginStep = ({ onMfaRequired, onSuccess }: LoginStepProps) => {
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password">Passwort</Label>
+            <Label htmlFor="password">{t('auth.password')}</Label>
             <Link to="/forgot-password" className="text-xs text-primary hover:underline">
-              Passwort vergessen?
+              {t('auth.login.forgot_password')}
             </Link>
           </div>
           <div className="relative">
@@ -171,7 +177,7 @@ const LoginStep = ({ onMfaRequired, onSuccess }: LoginStepProps) => {
               onClick={() => setShowPassword((v) => !v)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               tabIndex={-1}
-              aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"}
+              aria-label={showPassword ? t('auth.login.hide_password') : t('auth.login.show_password')}
             >
               {showPassword ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -192,8 +198,8 @@ const LoginStep = ({ onMfaRequired, onSuccess }: LoginStepProps) => {
 
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? (
-            <><Loader2 className="h-4 w-4 animate-spin mr-2" />Bitte warten...</>
-          ) : "Anmelden"}
+            <><Loader2 className="h-4 w-4 animate-spin mr-2" />{t('common.please_wait')}</>
+          ) : t('auth.login.title')}
         </Button>
       </form>
 
@@ -202,20 +208,20 @@ const LoginStep = ({ onMfaRequired, onSuccess }: LoginStepProps) => {
           <span className="w-full border-t border-border" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">oder</span>
+          <span className="bg-card px-2 text-muted-foreground">{t('common.or')}</span>
         </div>
       </div>
 
       <div className="mt-6 text-center">
         <Link to="/register" className="text-sm text-primary font-medium hover:underline">
-          Noch kein Konto? Registrieren.
+          {t('auth.login.no_account')}
         </Link>
       </div>
       {!isNative() && (
         <div className="mt-4 text-center">
           <Link to="/install" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <Download className="h-3.5 w-3.5" />
-            App installieren
+            {t('auth.login.install_app')}
           </Link>
         </div>
       )}
@@ -230,9 +236,10 @@ interface MfaStepProps {
   onBack: () => void;
 }
 
-const FOCUS_DELAY_MS = 100; // Warten bis Animation/Transition abgeschlossen
+const FOCUS_DELAY_MS = 100;
 
 const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
+  const { t } = useTranslation();
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -250,7 +257,6 @@ const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
 
     try {
       if (useRecovery) {
-        // ── Recovery Code Flow ────────────────────────────────────────────
         const { data: { session } } = await supabase.auth.getSession();
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
         const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -268,30 +274,29 @@ const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
         const data = await res.json();
 
         if (!data.valid) {
-          setError("Ungültiger oder bereits verwendeter Code.");
+          setError(t('auth.mfa.recovery_invalid'));
           setCode("");
           inputRef.current?.focus();
           return;
         }
 
         toast({
-          title: "Recovery-Code akzeptiert",
-          description: "Bitte richte 2FA neu ein um dein Konto zu schützen.",
+          title: t('auth.mfa.recovery_accepted_title'),
+          description: t('auth.mfa.recovery_accepted_description'),
         });
         onSuccess("recovery");
 
       } else {
-        // ── TOTP Flow ─────────────────────────────────────────────────────
         const { data: factors } = await supabase.auth.mfa.listFactors();
         const totpFactor = factors?.totp?.[0];
         if (!totpFactor) {
-          setError("Kein 2FA-Faktor gefunden.");
+          setError(t('auth.mfa.no_factor'));
           return;
         }
         const { data: challenge, error: challengeError } =
           await supabase.auth.mfa.challenge({ factorId: totpFactor.id });
         if (challengeError || !challenge) {
-          setError("Challenge fehlgeschlagen. Bitte erneut versuchen.");
+          setError(t('auth.mfa.challenge_failed'));
           return;
         }
         const { error: verifyError } = await supabase.auth.mfa.verify({
@@ -300,26 +305,28 @@ const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
           code,
         });
         if (verifyError) {
-          setError("Falscher Code. Bitte erneut versuchen.");
+          setError(t('auth.mfa.totp_invalid'));
           setCode("");
           inputRef.current?.focus();
         } else {
-          toast({ title: "Willkommen zurück!", description: "Du wurdest erfolgreich angemeldet." });
+          toast({
+            title: t('auth.login.welcome_back'),
+            description: t('auth.login.success_description'),
+          });
           onSuccess("totp");
         }
       }
     } catch {
-      setError("Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.");
+      setError(t('auth.errors.unexpected'));
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, useRecovery, code, toast, onSuccess]);
-  
+  }, [isLoading, useRecovery, code, toast, onSuccess, t]);
+
   useEffect(() => {
     setTimeout(() => inputRef.current?.focus(), FOCUS_DELAY_MS);
   }, []);
 
-  // Auto-submit nur bei TOTP
   useEffect(() => {
     if (!useRecovery && code.length === 6) handleVerify();
   }, [code, useRecovery, handleVerify]);
@@ -330,7 +337,6 @@ const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
     setError(null);
     setTimeout(() => inputRef.current?.focus(), FOCUS_DELAY_MS);
   };
-
 
   return (
     <>
@@ -344,12 +350,10 @@ const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
       </div>
 
       <h2 className="text-xl font-semibold text-center mb-2">
-        {useRecovery ? "Recovery-Code" : "Zwei-Faktor-Code"}
+        {useRecovery ? t('auth.mfa.recovery_title') : t('auth.mfa.totp_title')}
       </h2>
       <p className="text-sm text-muted-foreground text-center mb-8">
-        {useRecovery
-          ? "Gib einen deiner gespeicherten Recovery-Codes ein. Er wird danach ungültig."
-          : "Gib den 6-stelligen Code aus deiner Authenticator-App ein."}
+        {useRecovery ? t('auth.mfa.recovery_subtitle') : t('auth.mfa.totp_subtitle')}
       </p>
 
       <div className="space-y-4">
@@ -366,7 +370,6 @@ const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
               setError(null);
               if (useRecovery) {
                 let val = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "");
-                // Dash nach 5 Zeichen automatisch einfügen
                 if (val.length === 5 && !val.includes("-") && e.target.value.length > code.length) {
                   val += "-";
                 }
@@ -395,25 +398,22 @@ const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
           }
         >
           {isLoading ? (
-            <><Loader2 className="h-4 w-4 animate-spin mr-2" />Wird geprüft...</>
-          ) : "Bestätigen"}
+            <><Loader2 className="h-4 w-4 animate-spin mr-2" />{t('auth.mfa.verifying')}</>
+          ) : t('auth.mfa.confirm')}
         </Button>
 
-        {/* Toggle TOTP ↔ Recovery */}
         <button
           onClick={() => switchMode(!useRecovery)}
           className="w-full text-sm text-primary hover:opacity-70 transition-opacity text-center pt-1"
         >
-          {useRecovery
-            ? "← Zurück zum Authenticator-Code"
-            : "Keinen Zugriff auf die App? Recovery-Code verwenden"}
+          {useRecovery ? t('auth.mfa.back_to_totp') : t('auth.mfa.use_recovery')}
         </button>
 
         <button
           onClick={onBack}
           className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors text-center"
         >
-          ← Zurück zum Login
+          {t('auth.mfa.back_to_login')}
         </button>
       </div>
     </>
@@ -440,6 +440,8 @@ const Auth = () => {
     checkAuth();
   }, [user, loading, navigate]);
 
+  const { t } = useTranslation();
+
   return (
     <div className="min-h-screen relative flex justify-center p-4 pt-[calc(env(safe-area-inset-top)+4rem)] sm:items-center sm:pt-4 bg-gradient-to-br from-background via-background to-primary/5">
       {step === "login" && (
@@ -449,7 +451,7 @@ const Auth = () => {
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ChevronLeft className="h-4 w-4" />
-            <span className="text-sm">Zurück</span>
+            <span className="text-sm">{t('common.back')}</span>
           </Link>
         </div>
       )}
@@ -466,7 +468,6 @@ const Auth = () => {
             <MfaStep
               onSuccess={(method) => {
                 if (method === "recovery") {
-                  // Nach Recovery-Code-Login direkt zu 2FA-Einstellungen
                   navigate("/settings/privacy-security");
                 } else {
                   navigate(getPostLoginRoute());

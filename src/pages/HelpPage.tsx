@@ -4,20 +4,23 @@ import ReactMarkdown from "react-markdown";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function HelpPage() {
   const [markdown, setMarkdown] = useState("");
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
 
   useEffect(() => {
-    fetch("/guide.md")
+    const file = i18n.language.startsWith("de") ? "/hilfe.md" : "/guide.md";
+    fetch(file)
       .then((res) => {
         if (!res.ok) throw new Error("Network error");
         return res.text();
       })
       .then((text) => setMarkdown(text))
       .catch(() =>
-        setMarkdown("# Anleitung nicht verfügbar\nDie Anleitung konnte nicht geladen werden. Bitte stelle sicher, dass du online bist, oder versuche es später erneut.")
+        setMarkdown(t("legal.load_error"))
       );
   }, []);
 
@@ -28,7 +31,7 @@ export default function HelpPage() {
         onClick={() => navigate(-1)}
         className="mb-4 flex items-center gap-2"
       >
-        <ArrowLeft className="h-4 w-4" /> Zurück
+        <ArrowLeft className="h-4 w-4" /> {t("common.back")}
       </Button>
 
       <Card className="p-4 sm:p-6 md:p-8 lg:p-10 glass-card bg-background/80">

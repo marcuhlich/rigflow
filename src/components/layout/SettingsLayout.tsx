@@ -2,47 +2,61 @@ import { Outlet, NavLink, Link, useLocation } from "react-router-dom";
 import {
   ChevronLeft,
   User, Bell, Shield, Palette, Settings2,
-  LogOut, ExternalLink, Loader2,
+  LogOut, Loader2,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
-const NAV_ITEMS = [
-  { to: "/settings",                  label: "Allgemein",                icon: User,     end: true },
-  { to: "/settings/account-info",     label: "Kontoinformationen",       icon: Settings2           },
-  { to: "/settings/notifications",    label: "Benachrichtigungen",       icon: Bell                },
-  { to: "/settings/privacy-security", label: "Datenschutz & Sicherheit", icon: Shield              },
-  { to: "/settings/appearance",       label: "Erscheinungsbild",         icon: Palette             },
-];
+interface NavItem {
+  to: string;
+  label: string;
+  icon: React.ElementType;
+  end?: boolean;
+}
 
-const SUB_PAGE_TITLES: Record<string, string> = {
-  "/settings/account-info":     "Kontoinformationen",
-  "/settings/notifications":    "Benachrichtigungen",
-  "/settings/privacy-security": "Datenschutz & Sicherheit",
-  "/settings/appearance":       "Erscheinungsbild",
-};
+function getNavItems(t: TFunction): NavItem[] {
+  return [
+    { to: "/settings",                  label: t("settings.general"),       icon: User,     end: true },
+    { to: "/settings/account-info",     label: t("settings.account_info"),  icon: Settings2           },
+    { to: "/settings/notifications",    label: t("settings.notifications"), icon: Bell                },
+    { to: "/settings/privacy-security", label: t("settings.privacy"),       icon: Shield              },
+    { to: "/settings/appearance",       label: t("settings.appearance"),    icon: Palette             },
+  ];
+}
 
 export default function SettingsLayout() {
+  const { t } = useTranslation();
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const subTitle = SUB_PAGE_TITLES[location.pathname];
-  const isSubPage = !!subTitle;
+  const navItems = getNavItems(t);
+
+  // Derive sub-page title from navItems — no separate lookup object needed
+  const activeSubItem = navItems.find(
+    (item) => !item.end && item.to === location.pathname
+  );
+  const isSubPage = !!activeSubItem;
 
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
       await signOut();
-      toast({ title: "Abgemeldet" });
+      toast({ title: t("user_menu.logout_success_title") });
       navigate("/auth");
     } catch {
-      toast({ title: "Fehler", description: "Abmeldung fehlgeschlagen", variant: "destructive" });
+      toast({
+        title: t("common.error"),
+        description: t("user_menu.logout_error"),
+        variant: "destructive",
+      });
     } finally {
       setLoggingOut(false);
     }
@@ -51,11 +65,7 @@ export default function SettingsLayout() {
   return (
     <div className="flex min-h-[calc(100dvh-var(--header-h))]">
 
-      {/* ── Mobile Sub-Header ─────────────────────────────────────────────
-          Rendered here — outside any animated/transformed wrapper — so that
-          position:fixed is always relative to the viewport.
-          Sub-page components (AccountInfo, Notifications, etc.) must NOT
-          render their own sub-header or spacer any more. */}
+      {/* ── Mobile Sub-Header ── */}
       {isSubPage && (
         <div
           className="fixed left-0 right-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/40 lg:hidden"
@@ -67,20 +77,16 @@ export default function SettingsLayout() {
               className="absolute left-3 sm:left-4 inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
-              <span className="text-sm hidden sm:inline">Einstellungen</span>
+              <span className="text-sm hidden sm:inline">{t("settings.title")}</span>
             </Link>
-            <span className="text-sm font-medium text-foreground">{subTitle}</span>
+            <span className="text-sm font-medium text-foreground">
+              {activeSubItem.label}
+            </span>
           </div>
         </div>
       )}
 
-      {/* ── Desktop Sidebar ───────────────────────────────────────────────
-          Uses position:fixed so top:var(--header-h) is relative to the
-          viewport directly.  The old sticky approach had a double-offset
-          bug: sticky top:N is measured from the scroll container (main),
-          which itself already starts N px below the header, putting the
-          sidebar N px too low on scrollable pages.  Fixed + an explicit
-          spacer div below is the clean solution. */}
+      {/* ── Desktop Sidebar ── */}
       <aside
         className="hidden lg:flex flex-col fixed w-60 xl:w-64 border-r border-border/40 bg-background z-20 overflow-y-auto"
         style={{ top: "var(--header-h)", bottom: 0, left: 0 }}
@@ -88,10 +94,10 @@ export default function SettingsLayout() {
         {/* Nav */}
         <div className="flex-1 overflow-y-auto px-3 pt-6 pb-2">
           <p className="text-[11px] font-semibold text-muted-foreground/50 uppercase tracking-widest mb-3 px-2">
-            Einstellungen
+            {t("settings.title")}
           </p>
           <nav className="space-y-0.5">
-            {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+            {navItems.map(({ to, label, icon: Icon, end }) => (
               <NavLink
                 key={to}
                 to={to}
@@ -119,22 +125,31 @@ export default function SettingsLayout() {
               to="/help"
               className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
             >
-              Anleitung
+              {t("settings.help_link")}
             </Link>
             <Link
               to="/settings/about"
               className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
             >
-              Informationen zur App
+              {t("settings.about_link")}
             </Link>
-            <Link to="/nutzungsbedingungen" className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
-              Nutzungsbedingungen
+            <Link
+              to="/nutzungsbedingungen"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            >
+              {t("settings.terms_link")}
             </Link>
-            <Link to="/impressum" className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
-              Impressum
+            <Link
+              to="/impressum"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            >
+              {t("settings.imprint_link")}
             </Link>
-            <Link to="/datenschutz" className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
-              Datenschutzerklärung
+            <Link
+              to="/datenschutz"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            >
+              {t("settings.privacy_policy_link")}
             </Link>
           </div>
 
@@ -147,23 +162,17 @@ export default function SettingsLayout() {
               ? <Loader2 className="h-[1.05rem] w-[1.05rem] shrink-0 animate-spin" />
               : <LogOut className="h-[1.05rem] w-[1.05rem] shrink-0" />
             }
-            Abmelden
+            {t("auth.logout")}
           </button>
         </div>
       </aside>
 
-      {/* ── Desktop spacer ────────────────────────────────────────────────
-          Reserves the sidebar's width in the flex row so the content
-          column starts to the right of the fixed sidebar. */}
+      {/* ── Desktop spacer ── */}
       <div className="hidden lg:block w-60 xl:w-64 shrink-0" />
 
-      {/* ── Content ───────────────────────────────────────────────────────
-          Only the Outlet re-animates on navigation. Sidebar and sub-header
-          stay mounted. */}
+      {/* ── Content ── */}
       <div className="flex-1 min-w-0 px-3 sm:px-4 lg:px-8">
-        {/* Mobile spacer: pushes content below the fixed sub-header */}
         {isSubPage && <div className="h-11 mb-2 lg:hidden" />}
-
         <div key={location.pathname} className="animate-page">
           <Outlet />
         </div>

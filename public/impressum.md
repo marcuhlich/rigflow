@@ -7,7 +7,6 @@ Angaben gemäß § 5 TMG
 ## Betreiber
 
 Marc Uhlich  
-
 c/o flexdienst – #21087  
 Kurt-Schumacher-Straße 76  
 67663 Kaiserslautern  

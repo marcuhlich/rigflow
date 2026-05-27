@@ -6,23 +6,14 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog, DialogContent, DialogHeader,
-  DialogTitle, DialogDescription,
-} from "@/components/ui/dialog";
 import { FilterBar } from "@/components/FilterBar";
 import { InventoryGrid } from "@/components/InventoryGrid";
 import { InventoryTable } from "@/components/InventoryTable";
 import { ItemForm } from "@/components/ItemForm";
-import { EnhancedQRScanner } from "@/components/EnhancedQRScanner";
 import { BatchActionsBar } from "@/components/BatchActionsBar";
 import { AuditLogPanel } from "@/components/AuditLogPanel";
 import { useInventory } from "@/hooks/useInventory";
@@ -42,17 +33,15 @@ import { hapticFeedback } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 import { TrashDrawer } from "@/components/TrashDrawer";
 import { ToastAction } from "@/components/ui/toast";
+import { useTranslation } from "react-i18next";
 
 type ViewMode = "grid" | "table";
 
 export default function Inventory() {
   const navigate = useNavigate();
-  
+  const { t } = useTranslation();
+
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialSearchQuery = searchParams.get("search") || "";
-  const initialCategory = (searchParams.get("category") as ItemCategory) || "all";
-  const initialCondition = (searchParams.get("filter") as ItemCondition) || "all";
-  const initialLocation = searchParams.get("location") || "all";
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
@@ -65,10 +54,7 @@ export default function Inventory() {
   const { categoryNames, dmxCategories, categories } = useCategories();
   const history = useInventoryHistory();
   const undoRedoCtx = useUndoRedoContext();
-  const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
 
-
-  // Autofocus Suchfeld auf Desktop
   useEffect(() => {
     const isMobile = window.matchMedia("(max-width: 768px)").matches;
     if (!isMobile) {
@@ -79,11 +65,11 @@ export default function Inventory() {
   const handleExportCSV = () => {
     const csv = exportInventoryAsCSV(items);
     downloadCSV(csv, `inventar-${new Date().toISOString().split("T")[0]}.csv`);
-    toast({ title: "Export erfolgreich", description: "CSV-Datei wurde heruntergeladen." });
+    toast({ title: t("inventory.export_success_title"), description: t("inventory.export_csv_description") });
   };
   const handleExportPDF = () => {
     exportInventoryAsPDF(items);
-    toast({ title: "Export erfolgreich", description: "PDF-Datei wurde heruntergeladen." });
+    toast({ title: t("inventory.export_success_title"), description: t("inventory.export_pdf_description") });
   };
   const handlePrint = () => printInventory(items);
   const { exportToSheets, isExporting } = useGoogleSheets();
@@ -99,12 +85,11 @@ export default function Inventory() {
     addItem, updateItem, deleteItem,
     selectedIds, toggleSelection, selectAll, clearSelection,
     isProcessing, batchUpdateCondition, batchUpdateLocation, batchDelete,
-    // Papierkorb:
     trashedItems, trashedCount, fetchTrashedItems, restoreItem, permanentlyDeleteItem, emptyTrash,
     tagFilter, setTagFilter, availableTags,
   } = useInventory();
 
-    const didInitFromUrl = useRef(false);
+  const didInitFromUrl = useRef(false);
   useEffect(() => {
     if (didInitFromUrl.current) return;
     didInitFromUrl.current = true;
@@ -112,21 +97,18 @@ export default function Inventory() {
     const category = searchParams.get("category") || "all";
     const filter   = searchParams.get("filter")   || "all";
     const location = searchParams.get("location") || "all";
-    if (search)              setSearchQuery(search);
-    if (category !== "all")  setCategoryFilter(category as ItemCategory);
-    if (filter   !== "all")  setConditionFilter(filter as ItemCondition);
-    if (location !== "all")  setLocationFilter(location);
+    if (search)             setSearchQuery(search);
+    if (category !== "all") setCategoryFilter(category as ItemCategory);
+    if (filter   !== "all") setConditionFilter(filter as ItemCondition);
+    if (location !== "all") setLocationFilter(location);
   }, []);
 
-    const updateSearchParams = useCallback((patch: Record<string, string>) => {
+  const updateSearchParams = useCallback((patch: Record<string, string>) => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
       Object.entries(patch).forEach(([key, value]) => {
-        if (value === "" || value === "all") {
-          next.delete(key);
-        } else {
-          next.set(key, value);
-        }
+        if (value === "" || value === "all") next.delete(key);
+        else next.set(key, value);
       });
       return next;
     });
@@ -137,37 +119,28 @@ export default function Inventory() {
   const handleViewChange = (next: ViewMode) => {
     if (next === viewMode) return;
     setContentVisible(false);
-    setTimeout(() => {
-      setViewMode(next);
-      setContentVisible(true);
-    }, 150);
+    setTimeout(() => { setViewMode(next); setContentVisible(true); }, 150);
   };
 
-
-  // Führe Aktionen aus, die von der CommandPalette via URL-Parameter signalisiert werden
   useEffect(() => {
     const action = searchParams.get("action");
     if (!action) return;
-
     if (action === "toggle-view") {
       setViewMode(prev => prev === "grid" ? "table" : "grid");
     } else if (action === "toggle-selection") {
       setSelectionMode(prev => !prev);
     }
-
-    // Entferne den action-Parameter aus der URL, um zu verhindern, dass die Aktion mehrfach ausgeführt wird
     const newParams = new URLSearchParams(searchParams);
     newParams.delete("action");
     navigate({ search: newParams.toString() }, { replace: true });
   }, [searchParams, navigate]);
 
-
   const handleExportSheets = async () => {
     try {
       await exportToSheets(items as any);
-      toast({ title: "Export erfolgreich", description: "Google Sheet wurde geöffnet." });
+      toast({ title: t("inventory.export_success_title"), description: t("inventory.export_sheets_description") });
     } catch {
-      toast({ title: "Export fehlgeschlagen", description: "Bitte versuche es erneut.", variant: "destructive" });
+      toast({ title: t("inventory.export_failed_title"), description: t("inventory.export_failed_description"), variant: "destructive" });
     }
   };
 
@@ -181,12 +154,11 @@ export default function Inventory() {
       if (item) history.pushAction({ type: "delete", item });
       hapticFeedback(100);
       toast({
-        title: "In Papierkorb verschoben",
-        description: `„${item?.name}" wurde in den Papierkorb verschoben.`,
+        title: t("inventory.moved_to_trash_title"),
+        description: t("inventory.moved_to_trash_description", { name: item?.name }),
         action: (
-          <ToastAction altText="Rückgängig" onClick={() => handleUndoRef.current()}>
-            {/* ↑ statt handleUndo() – Ref zeigt immer auf aktuelle Version */}
-            Rückgängig
+          <ToastAction altText={t("undo_redo.undo")} onClick={() => handleUndoRef.current()}>
+            {t("undo_redo.undo")}
           </ToastAction>
         ),
       });
@@ -197,41 +169,29 @@ export default function Inventory() {
 
   const handleFormSubmit = async (data: Omit<InventoryItem, "id" | "user_id" | "created_at" | "updated_at">) => {
     if (editItem) {
-      // Check if transitioning to "verliehen" and not already lent
       if (data.condition === 'verliehen' && editItem.condition !== 'verliehen' && data.lent_to) {
-        // Create lending history record
         await addRecord({
-          item_id: editItem.id,
-          item_name: data.name,
-          lent_to: data.lent_to,
+          item_id: editItem.id, item_name: data.name, lent_to: data.lent_to,
           lent_at: new Date().toISOString().split('T')[0],
-          due_date: data.lent_until || null,
-          returned_at: null,
-          notes: null,
+          due_date: data.lent_until || null, returned_at: null, notes: null,
         });
       }
       await updateItem(editItem.id, data);
       const newItem = { ...editItem, ...data, updated_at: new Date().toISOString() };
       history.pushAction({ type: "update", oldItem: editItem, newItem });
-      toast({ title: "Item aktualisiert", description: "Die Änderungen wurden gespeichert." });
+      toast({ title: t("inventory.updated_title"), description: t("inventory.updated_description") });
     } else {
       await addItem(data);
       const latestItem = allItems[0];
-      // Check if creating as "verliehen"
       if (latestItem && data.condition === 'verliehen' && data.lent_to) {
-        // Create lending history record
         await addRecord({
-          item_id: latestItem.id,
-          item_name: data.name,
-          lent_to: data.lent_to,
+          item_id: latestItem.id, item_name: data.name, lent_to: data.lent_to,
           lent_at: new Date().toISOString().split('T')[0],
-          due_date: data.lent_until || null,
-          returned_at: null,
-          notes: null,
+          due_date: data.lent_until || null, returned_at: null, notes: null,
         });
       }
       if (latestItem) history.pushAction({ type: "add", item: latestItem });
-      toast({ title: "Item hinzugefügt", description: "Das neue Item wurde erfolgreich erstellt." });
+      toast({ title: t("inventory.added_title"), description: t("inventory.added_description") });
     }
   };
 
@@ -242,21 +202,21 @@ export default function Inventory() {
       switch (action.type) {
         case "add":
           await deleteItem(action.item.id);
-          toast({ title: "Rückgängig", description: `"${action.item.name}" wurde entfernt.` });
+          toast({ title: t("undo_redo.undo"), description: t("inventory.undo_add_description", { name: action.item.name }) });
           break;
         case "update": {
           const { id, user_id, created_at, updated_at, ...oldData } = action.oldItem;
           await updateItem(action.oldItem.id, oldData as any);
-          toast({ title: "Rückgängig", description: `"${action.oldItem.name}" wurde zurückgesetzt.` });
+          toast({ title: t("undo_redo.undo"), description: t("inventory.undo_update_description", { name: action.oldItem.name }) });
           break;
         }
         case "delete":
-          await restoreItem(action.item.id);  // restoreItem war stale
-          toast({ title: "Rückgängig", description: `„${action.item.name}" wurde wiederhergestellt.` });
+          await restoreItem(action.item.id);
+          toast({ title: t("undo_redo.undo"), description: t("inventory.undo_delete_description", { name: action.item.name }) });
           break;
       }
     } catch { history.pushAction(action); }
-  }, [history, deleteItem, updateItem, addItem, restoreItem, toast]);
+  }, [history, deleteItem, updateItem, addItem, restoreItem, toast, t]);
 
   const handleRedo = useCallback(async () => {
     const action = history.redo();
@@ -266,22 +226,22 @@ export default function Inventory() {
         case "add": {
           const { id, user_id, created_at, updated_at, ...itemData } = action.item;
           await addItem(itemData as any);
-          toast({ title: "Wiederherstellen", description: `"${action.item.name}" wurde erneut hinzugefügt.` });
+          toast({ title: t("undo_redo.redo"), description: t("inventory.redo_add_description", { name: action.item.name }) });
           break;
         }
         case "update": {
           const { id, user_id, created_at, updated_at, ...newData } = action.newItem;
           await updateItem(action.newItem.id, newData as any);
-          toast({ title: "Wiederherstellen", description: `"${action.newItem.name}" wurde erneut geändert.` });
+          toast({ title: t("undo_redo.redo"), description: t("inventory.redo_update_description", { name: action.newItem.name }) });
           break;
         }
         case "delete":
           await deleteItem(action.item.id);
-          toast({ title: "Wiederherstellen", description: `"${action.item.name}" wurde erneut gelöscht.` });
+          toast({ title: t("undo_redo.redo"), description: t("inventory.redo_delete_description", { name: action.item.name }) });
           break;
       }
     } catch { /* failed redo */ }
-  }, [history, deleteItem, updateItem, addItem, toast]);
+  }, [history, deleteItem, updateItem, addItem, toast, t]);
 
   const handleUndoRef = useRef(handleUndo);
   const handleRedoRef = useRef(handleRedo);
@@ -290,8 +250,7 @@ export default function Inventory() {
 
   useEffect(() => {
     undoRedoCtx.register({
-      canUndo: history.canUndo,
-      canRedo: history.canRedo,
+      canUndo: history.canUndo, canRedo: history.canRedo,
       onUndo: () => handleUndoRef.current(),
       onRedo: () => handleRedoRef.current(),
     });
@@ -299,64 +258,27 @@ export default function Inventory() {
 
   useEffect(() => () => undoRedoCtx.unregister(), []);
 
-    const toggleSelectionMode = () => {
-      if (selectionMode) clearSelection();
-      setSelectionMode(!selectionMode);
-    };
-  
+  const toggleSelectionMode = () => {
+    if (selectionMode) clearSelection();
+    setSelectionMode(!selectionMode);
+  };
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Falls der Nutzer gerade in einem Input-Feld schreibt, 
-      // sollen Shortcuts (außer Undo/Redo) nicht triggern.
-      const isTyping = document.activeElement?.tagName === "INPUT" || 
-                      document.activeElement?.tagName === "TEXTAREA";
-
-      // 1. Undo & Redo (auch während des Tippens sinnvoll)
-      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) { 
-        e.preventDefault(); 
-        handleUndo(); 
-      }
-      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) { 
-        e.preventDefault(); 
-        handleRedo(); 
-      }
-
-      // Ab hier: Shortcuts, die nur triggern, wenn man NICHT tippt
+      const isTyping = document.activeElement?.tagName === "INPUT" ||
+                       document.activeElement?.tagName === "TEXTAREA";
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) { e.preventDefault(); handleUndo(); }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) { e.preventDefault(); handleRedo(); }
       if (isTyping) return;
-
-      // 2. Suche fokussieren (Taste: 'f' oder '/')
-      if (e.key === "f" || e.key === "/") {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
-
-      // 3. Neues Item erstellen (Taste: 'n' oder '+')
-      if (e.key === "n" || e.key === "+") {
-        e.preventDefault();
-        handleAddClick();
-      }
-
-      // 4. Ansicht wechseln (Taste: 'v' für View)
-      if (e.key === "v") {
-        setViewMode(prev => prev === "grid" ? "table" : "grid");
-      }
-
-      // 5. Auswahlmodus umschalten (Taste: 'm' für Multi-Select)
-      if (e.key === "m") {
-        toggleSelectionMode();
-      }
-      
-      // 6. Alles schließen / Filter löschen (Taste: 'Escape')
-      if (e.key === "Escape") {
-        clearFilters();
-        if (selectionMode) toggleSelectionMode();
-      }
+      if (e.key === "f" || e.key === "/") { e.preventDefault(); searchRef.current?.focus(); }
+      if (e.key === "n" || e.key === "+") { e.preventDefault(); handleAddClick(); }
+      if (e.key === "v") setViewMode(prev => prev === "grid" ? "table" : "grid");
+      if (e.key === "m") toggleSelectionMode();
+      if (e.key === "Escape") { clearFilters(); if (selectionMode) toggleSelectionMode(); }
     };
-
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [handleUndo, handleRedo, selectionMode, toggleSelectionMode, clearFilters]); 
-  // WICHTIG: Alle Abhängigkeiten hier im Array aufführen!
+  }, [handleUndo, handleRedo, selectionMode, toggleSelectionMode, clearFilters]);
 
   if (loading) {
     return (
@@ -377,175 +299,179 @@ export default function Inventory() {
 
   return (
     <div className="space-y-3 sm:space-y-5 pb-24">
-    <PageHeader
-      title="Inventar"
-      description={`${items.length} Artikel gefunden`}
-      icon={Package}
-      actions={
-        <div className="flex gap-1.5 sm:gap-2 w-full sm:w-auto flex-wrap">
-          {!isMobile && (
-            <div className="flex rounded-md border border-border overflow-hidden h-9">
-              <button
-                onClick={() => handleViewChange("grid")}
-                className={`px-2.5 flex items-center transition-all active:scale-95 ${
-                  viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/50"
-                }`}
-                title="Kachelansicht"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => handleViewChange("table")}
-                className={`px-2.5 flex items-center border-l border-border transition-all active:scale-95 ${
-                  viewMode === "table" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/50"
-                }`}
-                title="Listenansicht"
-              >
-                <List className="h-4 w-4" />
-              </button>
-            </div>
-          )}
-          <Button variant={selectionMode ? "default" : "outline"} onClick={toggleSelectionMode} className="gap-1 flex-1 sm:flex-none px-2 sm:px-4 h-9 text-xs sm:text-sm active:scale-95">
-            {selectionMode ? <CheckSquare className="h-3.5 w-3.5 shrink-0" /> : <Square className="h-3.5 w-3.5 shrink-0" />}
-            <span className="hidden sm:inline">{selectionMode ? "Auswahl beenden" : "Mehrfachauswahl"}</span>
-            <span className="sm:hidden">{selectionMode ? "Fertig" : "Auswahl"}</span>
-          </Button>
-          <Button onClick={handleAddClick} className="gap-1 flex-1 sm:flex-none px-2 sm:px-4 h-9 text-xs sm:text-sm active:scale-95">
-            <Plus className="h-3.5 w-3.5 shrink-0" />
-            <span className="hidden sm:inline">Neues Item</span>
-            <span className="sm:hidden">Item</span>
-          </Button>
-          {!isMobile && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1 h-9 text-xs sm:text-sm">
-                  <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  Export
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleExportCSV}><FileText className="h-4 w-4 mr-2" /> Als CSV exportieren</DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportPDF}><FileText className="h-4 w-4 mr-2" /> Als PDF exportieren</DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportSheets} disabled={isExporting}><Table2 className="h-4 w-4 mr-2" />{isExporting ? "Wird exportiert..." : "Nach Google Sheets"}</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handlePrint}><Printer className="h-4 w-4 mr-2" /> Drucken</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 h-9 text-xs sm:text-sm relative active:scale-95"
-            onClick={() => setTrashOpen(true)}
-            title="Papierkorb"
-          >
-            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Papierkorb</span>
-            {trashedCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-muted-foreground/50" />
+      <PageHeader
+        title={t("nav.inventory")}
+        description={t("inventory.items_found", { count: items.length })}
+        icon={Package}
+        actions={
+          <div className="flex gap-1.5 sm:gap-2 w-full sm:w-auto flex-wrap">
+            {!isMobile && (
+              <div className="flex rounded-md border border-border overflow-hidden h-9">
+                <button
+                  onClick={() => handleViewChange("grid")}
+                  className={`px-2.5 flex items-center transition-all active:scale-95 ${
+                    viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/50"
+                  }`}
+                  title={t("inventory.grid_view")}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => handleViewChange("table")}
+                  className={`px-2.5 flex items-center border-l border-border transition-all active:scale-95 ${
+                    viewMode === "table" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/50"
+                  }`}
+                  title={t("inventory.list_view")}
+                >
+                  <List className="h-4 w-4" />
+                </button>
+              </div>
             )}
-          </Button>
-        </div>
-      }
-    />
 
-      {/* Alle auswählen – nur sichtbar im selectionMode */}
+            <Button
+              variant={selectionMode ? "default" : "outline"}
+              onClick={toggleSelectionMode}
+              className="gap-1 flex-1 sm:flex-none px-2 sm:px-4 h-9 text-xs sm:text-sm active:scale-95"
+            >
+              {selectionMode
+                ? <CheckSquare className="h-3.5 w-3.5 shrink-0" />
+                : <Square className="h-3.5 w-3.5 shrink-0" />
+              }
+              <span className="hidden sm:inline">
+                {selectionMode ? t("inventory.end_selection") : t("inventory.multi_select")}
+              </span>
+              <span className="sm:hidden">
+                {selectionMode ? t("inventory.done") : t("inventory.select")}
+              </span>
+            </Button>
+
+            <Button
+              onClick={handleAddClick}
+              className="gap-1 flex-1 sm:flex-none px-2 sm:px-4 h-9 text-xs sm:text-sm active:scale-95"
+            >
+              <Plus className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden sm:inline">{t("inventory.new_item")}</span>
+              <span className="sm:hidden">{t("inventory.item_short")}</span>
+            </Button>
+
+            {!isMobile && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1 h-9 text-xs sm:text-sm">
+                    <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    {t("common.export")}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExportCSV}>
+                    <FileText className="h-4 w-4 mr-2" /> {t("inventory.export_csv")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportPDF}>
+                    <FileText className="h-4 w-4 mr-2" /> {t("inventory.export_pdf")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportSheets} disabled={isExporting}>
+                    <Table2 className="h-4 w-4 mr-2" />
+                    {isExporting ? t("inventory.exporting") : t("inventory.export_sheets")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handlePrint}>
+                    <Printer className="h-4 w-4 mr-2" /> {t("common.print")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-9 text-xs sm:text-sm relative active:scale-95"
+              onClick={() => setTrashOpen(true)}
+              title={t("trash.title")}
+            >
+              <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">{t("trash.title")}</span>
+              {trashedCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-muted-foreground/50" />
+              )}
+            </Button>
+          </div>
+        }
+      />
+
       {selectionMode && items.length > 0 && (
         <div className="flex items-center gap-2 text-sm">
           <Button variant="ghost" size="sm" onClick={selectAll} className="h-8 text-xs">
-            Alle auswählen ({items.length})
+            {t("inventory.select_all_count", { count: items.length })}
           </Button>
           {selectedIds.size > 0 && (
             <Button variant="ghost" size="sm" onClick={clearSelection} className="h-8 text-xs">
-              Auswahl aufheben
+              {t("inventory.clear_selection")}
             </Button>
           )}
         </div>
       )}
 
-      {/* FilterBar – searchRef für Autofokus */}
-        <FilterBar
+      <FilterBar
         searchQuery={searchQuery}
-        onSearchChange={(value) => {
-          setSearchQuery(value);
-          updateSearchParams({ search: value });
-        }}
+        onSearchChange={(value) => { setSearchQuery(value); updateSearchParams({ search: value }); }}
         categoryFilter={categoryFilter}
-        onCategoryChange={(value) => {
-          setCategoryFilter(value);
-          updateSearchParams({ category: value });
-        }}
+        onCategoryChange={(value) => { setCategoryFilter(value); updateSearchParams({ category: value }); }}
         conditionFilter={conditionFilter}
-        onConditionChange={(value) => {
-          setConditionFilter(value);
-          updateSearchParams({ filter: value });
-        }}
+        onConditionChange={(value) => { setConditionFilter(value); updateSearchParams({ filter: value }); }}
         locationFilter={locationFilter}
-        onLocationChange={(value) => {
-          setLocationFilter(value);
-          updateSearchParams({ location: value });
-        }}
-        onClearFilters={() => {
-          clearFilters();
-          setSearchParams({});
-        }}
+        onLocationChange={(value) => { setLocationFilter(value); updateSearchParams({ location: value }); }}
+        onClearFilters={() => { clearFilters(); setSearchParams({}); }}
         locations={locations}
         categories={categories}
         searchRef={searchRef}
-
         tagFilter={tagFilter}
         onTagChange={setTagFilter}
         availableTags={availableTags}
       />
 
-      {/* ── Content ── */}
       <div style={{
         opacity: contentVisible ? 1 : 0,
         transform: contentVisible ? "translateY(0)" : "translateY(6px)",
         transition: "opacity 150ms ease, transform 150ms ease",
       }}>
-      {viewMode === "grid" || isMobile ? (
-        <InventoryGrid
-          items={items}
-          onEdit={handleEditClick}
-          onDelete={handleDeleteClick}
-          onViewDetails={handleViewDetails}
-          selectedIds={selectedIds}
-          onToggleSelection={toggleSelection}
-          selectionMode={selectionMode}
-          onUpdateItem={updateItem}
-          onAddItem={addItem}
-          onFilterCategory={(cat) => setCategoryFilter(cat)}
-          searchQuery={searchQuery}
-          hasActiveFilters={categoryFilter !== "all" || conditionFilter !== "all" || locationFilter !== "all" || tagFilter !== "all"}
-          onAddItemClick={handleAddClick}
-          onClearFilters={clearFilters}
-          onClearSearch={() => setSearchQuery("")}
-          onEnterSelectionMode={(firstId) => {
-            setSelectionMode(true);
-            toggleSelection(firstId);
-          }}
-        />
-      ) : (
-        <InventoryTable
-          items={items}
-          onEdit={handleEditClick}
-          onDelete={handleDeleteClick}
-          onViewDetails={handleViewDetails}
-          selectedIds={selectedIds}
-          onToggleSelection={toggleSelection}
-          selectionMode={selectionMode}
-          onUpdateItem={updateItem}
-          onAddItem={addItem}
-          onFilterCategory={(cat) => setCategoryFilter(cat)}
-          searchQuery={searchQuery}
-          hasActiveFilters={categoryFilter !== "all" || conditionFilter !== "all" || locationFilter !== "all" || tagFilter !== "all"}
-          onAddItemClick={handleAddClick}
-          onClearFilters={clearFilters}
-          onClearSearch={() => setSearchQuery("")}
-        />
-      )}
-
+        {viewMode === "grid" || isMobile ? (
+          <InventoryGrid
+            items={items}
+            onEdit={handleEditClick}
+            onDelete={handleDeleteClick}
+            onViewDetails={handleViewDetails}
+            selectedIds={selectedIds}
+            onToggleSelection={toggleSelection}
+            selectionMode={selectionMode}
+            onUpdateItem={updateItem}
+            onAddItem={addItem}
+            onFilterCategory={(cat) => setCategoryFilter(cat)}
+            searchQuery={searchQuery}
+            hasActiveFilters={categoryFilter !== "all" || conditionFilter !== "all" || locationFilter !== "all" || tagFilter !== "all"}
+            onAddItemClick={handleAddClick}
+            onClearFilters={clearFilters}
+            onClearSearch={() => setSearchQuery("")}
+            onEnterSelectionMode={(firstId) => { setSelectionMode(true); toggleSelection(firstId); }}
+          />
+        ) : (
+          <InventoryTable
+            items={items}
+            onEdit={handleEditClick}
+            onDelete={handleDeleteClick}
+            onViewDetails={handleViewDetails}
+            selectedIds={selectedIds}
+            onToggleSelection={toggleSelection}
+            selectionMode={selectionMode}
+            onUpdateItem={updateItem}
+            onAddItem={addItem}
+            onFilterCategory={(cat) => setCategoryFilter(cat)}
+            searchQuery={searchQuery}
+            hasActiveFilters={categoryFilter !== "all" || conditionFilter !== "all" || locationFilter !== "all" || tagFilter !== "all"}
+            onAddItemClick={handleAddClick}
+            onClearFilters={clearFilters}
+            onClearSearch={() => setSearchQuery("")}
+          />
+        )}
       </div>
 
       <AuditLogPanel />
@@ -567,6 +493,7 @@ export default function Inventory() {
         locations={locations}
         isProcessing={isProcessing}
       />
+
       <TrashDrawer
         open={trashOpen}
         onClose={() => setTrashOpen(false)}

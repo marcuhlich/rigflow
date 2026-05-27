@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Loader2, X, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,13 +15,15 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { InventoryItem, CONDITIONS, CONDITION_LABELS, ItemCondition, ItemAttributes, Category } from '@/types/inventory';
+import {
+  InventoryItem, CONDITIONS, ItemCondition, ItemAttributes, Category,
+} from '@/types/inventory';
+import { getConditionLabel, getCategoryLabel, getAttrValueLabel } from '@/i18n/helpers';
 import { validators } from '@/lib/validators';
 import { hapticFeedback } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-// ── Attribut-Feld-Definitionen pro Kategorie ──────────────────────────────────
 type FieldType = 'text' | 'number' | 'select' | 'boolean' | 'date';
 interface AttributeFieldDef {
   key: string;
@@ -31,44 +34,46 @@ interface AttributeFieldDef {
   unit?: string;
 }
 
-const ATTRIBUTE_FIELDS: Record<string, AttributeFieldDef[]> = {
-  licht: [
-    { key: 'lamp_type',  label: 'Lampentyp',       type: 'select', options: ['LED', 'Halogen', 'Entladung', 'Laser'] },
-    { key: 'cooling',    label: 'Kühlung',          type: 'select', options: ['Aktiv', 'Passiv'] },
-    { key: 'beam_angle', label: 'Abstrahlwinkel',   type: 'number', unit: '°', placeholder: '25' },
-    { key: 'dmx_mode',   label: 'DMX-Modus',        type: 'text',   placeholder: 'Standard / Extended' },
-  ],
-  audio: [
-    { key: 'frequency_range', label: 'Frequenzbereich',       type: 'text',    placeholder: '20Hz – 20kHz' },
-    { key: 'is_active',       label: 'Aktiv (mit Verstärker)', type: 'boolean' },
-    { key: 'impedance',       label: 'Impedanz',               type: 'number', unit: 'Ω', placeholder: '8' },
-    { key: 'connector_type',  label: 'Anschluss',              type: 'text',   placeholder: 'XLR, Speakon …' },
-  ],
-  video: [
-    { key: 'resolution',       label: 'Auflösung',   type: 'text',   placeholder: '1920 × 1080' },
-    { key: 'brightness_lumen', label: 'Helligkeit',  type: 'number', unit: 'lm', placeholder: '5000' },
-    { key: 'signal_type',      label: 'Signaltyp',   type: 'text',   placeholder: 'HDMI, SDI …' },
-  ],
-  rigging: [
-    { key: 'wll',                label: 'Traglast (WLL)',  type: 'number', unit: 'kg', placeholder: '500' },
-    { key: 'self_weight',        label: 'Eigengewicht',    type: 'number', unit: 'kg', placeholder: '2.5' },
-    { key: 'certification_date', label: 'Prüfdatum',       type: 'date' },
-  ],
-  strom: [
-    { key: 'voltage',       label: 'Spannung',    type: 'number', unit: 'V',  placeholder: '230' },
-    { key: 'max_amperage',  label: 'Max. Strom',  type: 'number', unit: 'A',  placeholder: '16' },
-    { key: 'connector_in',  label: 'Eingang',     type: 'text',   placeholder: 'CEE 32A, Schuko …' },
-    { key: 'connector_out', label: 'Ausgang',     type: 'text',   placeholder: 'Schuko, CEE 16A …' },
-  ],
-  'it-netzwerk': [
-    { key: 'ip_range',   label: 'IP-Bereich', type: 'text',   placeholder: '192.168.1.0/24' },
-    { key: 'protocol',   label: 'Protokoll',  type: 'text',   placeholder: 'sACN, Art-Net, Dante …' },
-    { key: 'port_count', label: 'Ports',      type: 'number', placeholder: '8' },
-  ],
-  werkzeug: [],
-};
+// Außerhalb der Komponente – nimmt t entgegen
+function getAttributeFields(t: (k: string) => string): Record<string, AttributeFieldDef[]> {
+  return {
+    licht: [
+      { key: 'lamp_type',  label: t('attr.licht.lamp_type'),  type: 'select', options: ['LED', 'Halogen', 'Entladung', 'Laser'] },
+      { key: 'cooling',    label: t('attr.licht.cooling'),    type: 'select', options: ['Aktiv', 'Passiv'] },
+      { key: 'beam_angle', label: t('attr.licht.beam_angle'), type: 'number', unit: '°', placeholder: '25' },
+      { key: 'dmx_mode',   label: t('attr.licht.dmx_mode'),   type: 'text',   placeholder: 'Standard / Extended' },
+    ],
+    audio: [
+      { key: 'frequency_range', label: t('attr.audio.frequency_range'), type: 'text',    placeholder: '20Hz – 20kHz' },
+      { key: 'is_active',       label: t('attr.audio.is_active'),       type: 'boolean' },
+      { key: 'impedance',       label: t('attr.audio.impedance'),       type: 'number', unit: 'Ω', placeholder: '8' },
+      { key: 'connector_type',  label: t('attr.audio.connector_type'),  type: 'text',   placeholder: 'XLR, Speakon …' },
+    ],
+    video: [
+      { key: 'resolution',       label: t('attr.video.resolution'),       type: 'text',   placeholder: '1920 × 1080' },
+      { key: 'brightness_lumen', label: t('attr.video.brightness_lumen'), type: 'number', unit: 'lm', placeholder: '5000' },
+      { key: 'signal_type',      label: t('attr.video.signal_type'),      type: 'text',   placeholder: 'HDMI, SDI …' },
+    ],
+    rigging: [
+      { key: 'wll',                label: t('attr.rigging.wll'),                type: 'number', unit: 'kg', placeholder: '500' },
+      { key: 'self_weight',        label: t('attr.rigging.self_weight'),        type: 'number', unit: 'kg', placeholder: '2.5' },
+      { key: 'certification_date', label: t('attr.rigging.certification_date'), type: 'date' },
+    ],
+    strom: [
+      { key: 'voltage',       label: t('attr.strom.voltage'),       type: 'number', unit: 'V',  placeholder: '230' },
+      { key: 'max_amperage',  label: t('attr.strom.max_amperage'),  type: 'number', unit: 'A',  placeholder: '16' },
+      { key: 'connector_in',  label: t('attr.strom.connector_in'),  type: 'text',   placeholder: 'CEE 32A, Schuko …' },
+      { key: 'connector_out', label: t('attr.strom.connector_out'), type: 'text',   placeholder: 'Schuko, CEE 16A …' },
+    ],
+    'it-netzwerk': [
+      { key: 'ip_range',   label: t('attr.it_netzwerk.ip_range'),   type: 'text',   placeholder: '192.168.1.0/24' },
+      { key: 'protocol',   label: t('attr.it_netzwerk.protocol'),   type: 'text',   placeholder: 'sACN, Art-Net, Dante …' },
+      { key: 'port_count', label: t('attr.it_netzwerk.port_count'), type: 'number', placeholder: '8' },
+    ],
+    werkzeug: [],
+  };
+}
 
-// ── Props ─────────────────────────────────────────────────────────────────────
 interface ItemFormProps {
   isOpen: boolean;
   onClose: () => void;
@@ -77,14 +82,12 @@ interface ItemFormProps {
   categories?: Category[];
 }
 
-// ── Lucide Icon dynamisch rendern ─────────────────────────────────────────────
 function CategoryIcon({ name, size = 18, color }: { name: string; size?: number; color: string }) {
   const Icon = (LucideIcons as any)[name];
   if (!Icon) return null;
   return <Icon size={size} color={color} />;
 }
 
-// ── Leerer Formularstand ──────────────────────────────────────────────────────
 const emptyForm = (firstCatId = '') => ({
   name: '',
   category: firstCatId,
@@ -104,26 +107,26 @@ const emptyForm = (firstCatId = '') => ({
   tags: [] as string[],
 });
 
-// ── Komponente ────────────────────────────────────────────────────────────────
 export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] }: ItemFormProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
-  const [isLoading, setIsLoading]   = useState(false);
-  const [formData, setFormData]     = useState(emptyForm(categories[0]?.id));
-  const [errors, setErrors]         = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData]   = useState(emptyForm(categories[0]?.id));
+  const [errors, setErrors]       = useState<Record<string, string>>({});
 
-  // Tag-State
-  const [tagInput, setTagInput]           = useState('');
-  const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
+  const [tagInput, setTagInput]               = useState('');
+  const [tagSuggestions, setTagSuggestions]   = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [allUserTags, setAllUserTags]     = useState<string[]>([]);
+  const [allUserTags, setAllUserTags]         = useState<string[]>([]);
   const tagInputRef = useRef<HTMLInputElement>(null);
+
+  const ATTRIBUTE_FIELDS = getAttributeFields(t);
 
   const selectedCat = categories.find(c => c.id === formData.category);
   const attrFields  = ATTRIBUTE_FIELDS[formData.category] ?? [];
   const showDMX     = selectedCat?.is_dmx_capable ?? false;
   const showLent    = formData.condition === 'verliehen';
 
-  // Tags vom User laden (für Autovervollständigung)
   useEffect(() => {
     if (!user || !isOpen) return;
     supabase
@@ -136,7 +139,6 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
       });
   }, [user, isOpen]);
 
-  // Formular befüllen
   useEffect(() => {
     if (!isOpen) return;
     if (editItem) {
@@ -165,27 +167,19 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
     setTagInput('');
   }, [editItem, isOpen, categories]);
 
-  // Nachsetzen falls categories später ankommen als das Formular sich öffnet
   useEffect(() => {
     if (!editItem && categories.length > 0 && !formData.category) {
       setFormData(prev => ({ ...prev, category: categories[0].id }));
     }
   }, [categories, editItem]);
 
-  // Kategorie-Wechsel → Attribute zurücksetzen
   const handleCategoryChange = (catId: string) => {
     setFormData(prev => ({ ...prev, category: catId, attributes: {} }));
   };
 
-  // Attribut-Änderung
   const setAttr = (key: string, value: string | number | boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      attributes: { ...prev.attributes, [key]: value },
-    }));
+    setFormData(prev => ({ ...prev, attributes: { ...prev.attributes, [key]: value } }));
   };
-
-  // ── Tag-Handling ─────────────────────────────────────────────────────────
 
   const addTag = useCallback((name: string) => {
     const trimmed = name.trim().toLowerCase();
@@ -223,16 +217,11 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
     }
   };
 
-  // ── DMX-Instanz-State (nur beim Bearbeiten) ───────────────────────────────
   type InstanceEdit = { instanceNumber: number; address: string; universe: string };
   const [instanceEdits, setInstanceEdits] = useState<InstanceEdit[]>([]);
 
-  // Instanzen laden wenn DMX-Item geöffnet wird
   useEffect(() => {
-    if (!isOpen || !editItem || !editItem.dmx_channels) {
-      setInstanceEdits([]);
-      return;
-    }
+    if (!isOpen || !editItem || !editItem.dmx_channels) { setInstanceEdits([]); return; }
     const qty = editItem.quantity;
     if (qty <= 1) { setInstanceEdits([]); return; }
 
@@ -245,7 +234,6 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
         const baseAddr = editItem.dmx_start_address ?? 1;
         const baseCh   = editItem.dmx_channels ?? 1;
         const baseUni  = editItem.dmx_universe ?? 1;
-
         setInstanceEdits(
           Array.from({ length: qty }, (_, i) => {
             const n = i + 1;
@@ -260,17 +248,15 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
       });
   }, [isOpen, editItem]);
 
-  // ── Submit ────────────────────────────────────────────────────────────────
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) newErrors.name = 'Name ist erforderlich';
-    if (!formData.category)    newErrors.category = 'Kategorie ist erforderlich';
+    if (!formData.name.trim())  newErrors.name     = t('item_form.error.name_required');
+    if (!formData.category)     newErrors.category = t('item_form.error.category_required');
     if (formData.quantity === '' || parseInt(formData.quantity) <= 0)
-      newErrors.quantity = 'Menge darf nicht 0 sein';
+      newErrors.quantity = t('item_form.error.quantity_zero');
 
     if (showDMX) {
       if (formData.dmx_start_address) {
@@ -299,7 +285,6 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
     }
     setErrors({});
 
-    // Attribute konvertieren (string → number/boolean wo nötig)
     const parsedAttributes: Record<string, string | number | boolean> = {};
     attrFields.forEach(field => {
       const raw = formData.attributes[field.key];
@@ -354,36 +339,40 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
     }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  const dmxBaseFields = [
+    { id: 'dmx_universe',      label: t('item_form.label.dmx_universe'),      key: 'dmx_universe',      ph: '1',  max: undefined,     errKey: 'dmx_universe' },
+    { id: 'dmx_start_address', label: t('item_form.label.dmx_start_address'), key: 'dmx_start_address', ph: '1',  max: 512 as number | undefined, errKey: 'dmx_start_address' },
+    { id: 'dmx_channels',      label: t('item_form.label.dmx_channels'),      key: 'dmx_channels',      ph: '16', max: undefined,     errKey: 'dmx_channels' },
+  ];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="glass-card border-border/50 w-[95vw] sm:max-w-[600px] max-h-[90vh] p-0 animate-scale-in">
         <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2">
           <DialogTitle className="text-lg sm:text-xl font-semibold">
-            {editItem ? 'Item bearbeiten' : 'Neues Item hinzufügen'}
+            {editItem ? t('item_form.title_edit') : t('item_form.title_add')}
           </DialogTitle>
         </DialogHeader>
 
         <ScrollArea className="max-h-[calc(90vh-80px)]">
           <form onSubmit={handleSubmit} className="space-y-5 px-4 sm:px-6 pb-6 pt-2">
 
-            {/* ── Name ── */}
+            {/* Name */}
             <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
+              <Label htmlFor="name">{t('item_form.label.name')} *</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={e => setFormData(p => ({ ...p, name: e.target.value }))}
-                placeholder="z.B. Moving Head LED"
+                placeholder={t('item_form.placeholder.name')}
                 className={`glass-input ${errors.name ? 'border-destructive' : ''}`}
               />
               {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
 
-            {/* ── Kategorie-Picker ── */}
+            {/* Kategorie */}
             <div className="space-y-2">
-              <Label>Kategorie *</Label>
+              <Label>{t('item_form.label.category')} *</Label>
               <div className="grid grid-cols-4 gap-2">
                 {categories.map(cat => {
                   const isSelected = formData.category === cat.id;
@@ -400,15 +389,10 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
                       ].join(' ')}
                       style={isSelected ? { borderColor: cat.color } : {}}
                     >
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: `${cat.color}22` }}
-                      >
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${cat.color}22` }}>
                         <CategoryIcon name={cat.icon} size={16} color={cat.color} />
                       </div>
-                      <span className="text-[10px] sm:text-xs font-medium leading-tight">
-                        {cat.name}
-                      </span>
+                      <span className="text-[10px] sm:text-xs font-medium leading-tight">{getCategoryLabel(cat, t)}</span>
                     </button>
                   );
                 })}
@@ -416,10 +400,10 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
               {errors.category && <p className="text-xs text-destructive">{errors.category}</p>}
             </div>
 
-            {/* ── Menge + Zustand + Standort ── */}
+            {/* Menge + Zustand + Standort */}
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="quantity">Menge *</Label>
+                <Label htmlFor="quantity">{t('item_form.label.quantity')} *</Label>
                 <Input
                   id="quantity"
                   type="number"
@@ -433,38 +417,36 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="condition">Zustand *</Label>
+                <Label htmlFor="condition">{t('item_form.label.condition')} *</Label>
                 <Select
                   value={formData.condition}
                   onValueChange={v => setFormData(p => ({ ...p, condition: v as ItemCondition }))}
                 >
-                  <SelectTrigger className="glass-input">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger className="glass-input"><SelectValue /></SelectTrigger>
                   <SelectContent className="glass-card border-border/50">
                     {CONDITIONS.map(c => (
-                      <SelectItem key={c} value={c}>{CONDITION_LABELS[c]}</SelectItem>
+                      <SelectItem key={c} value={c}>{getConditionLabel(c, t)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location">Standort *</Label>
+                <Label htmlFor="location">{t('item_form.label.location')} *</Label>
                 <Input
                   id="location"
                   value={formData.location}
                   onChange={e => setFormData(p => ({ ...p, location: e.target.value }))}
-                  placeholder="Lager A"
+                  placeholder={t('item_form.placeholder.location')}
                   className="glass-input"
                 />
               </div>
             </div>
 
-            {/* ── Preis + Zubehör ── */}
+            {/* Preis + Zubehör */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="unit_price">Stückpreis (€)</Label>
+                <Label htmlFor="unit_price">{t('item_form.label.unit_price')}</Label>
                 <Input
                   id="unit_price"
                   type="number"
@@ -477,35 +459,35 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="accessories">Zubehör</Label>
+                <Label htmlFor="accessories">{t('fields.accessories')}</Label>
                 <Input
                   id="accessories"
                   value={formData.accessories}
                   onChange={e => setFormData(p => ({ ...p, accessories: e.target.value }))}
-                  placeholder="Netzteil, Case …"
+                  placeholder={t('item_form.placeholder.accessories')}
                   className="glass-input"
                 />
               </div>
             </div>
 
-            {/* ── Verliehen-Felder ── */}
+            {/* Verliehen */}
             <div
               className="overflow-hidden transition-all duration-300"
               style={{ maxHeight: showLent ? '200px' : '0px', opacity: showLent ? 1 : 0 }}
             >
               <div className="grid grid-cols-2 gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
                 <div className="space-y-2">
-                  <Label htmlFor="lent_to">Verliehen an</Label>
+                  <Label htmlFor="lent_to">{t('item_form.label.lent_to')}</Label>
                   <Input
                     id="lent_to"
                     value={formData.lent_to}
                     onChange={e => setFormData(p => ({ ...p, lent_to: e.target.value }))}
-                    placeholder="Name / Firma"
+                    placeholder={t('item_form.placeholder.lent_to')}
                     className="glass-input"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lent_until">Verliehen bis</Label>
+                  <Label htmlFor="lent_until">{t('item_form.label.lent_until')}</Label>
                   <Input
                     id="lent_until"
                     type="date"
@@ -517,26 +499,23 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
               </div>
             </div>
 
-            {/* ── DMX-Felder ── */}
+            {/* DMX */}
             <div
               className="overflow-hidden transition-all duration-300"
               style={{ maxHeight: showDMX ? '600px' : '0px', opacity: showDMX ? 1 : 0 }}
             >
               <div className="space-y-3 p-4 rounded-xl bg-primary/10 border border-primary/20">
-                <Label className="text-sm font-medium text-primary">DMX-Konfiguration</Label>
+                <Label className="text-sm font-medium text-primary">
+                  {t('item_form.label.dmx_config')}
+                </Label>
 
-                {/* Basis-Felder (immer sichtbar) */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {[
-                    { id: 'dmx_universe',      label: 'Universum',    key: 'dmx_universe',      ph: '1',  max: undefined, errKey: 'dmx_universe' },
-                    { id: 'dmx_start_address', label: 'Startadresse', key: 'dmx_start_address', ph: '1',  max: 512,       errKey: 'dmx_start_address' },
-                    { id: 'dmx_channels',      label: 'Kanäle',       key: 'dmx_channels',      ph: '16', max: undefined, errKey: 'dmx_channels' },
-                  ].map(field => (
+                  {dmxBaseFields.map(field => (
                     <div key={field.id} className="space-y-1.5">
                       <Label htmlFor={field.id} className="text-xs text-muted-foreground">
                         {field.label}
                         {field.key === 'dmx_start_address' && instanceEdits.length > 0 && (
-                          <span className="ml-1 text-primary/60">(Instanz 1)</span>
+                          <span className="ml-1 text-primary/60">{t('item_form.dmx.instance_1_hint')}</span>
                         )}
                       </Label>
                       <Input
@@ -547,7 +526,6 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
                         value={(formData as any)[field.key]}
                         onChange={e => {
                           setFormData(p => ({ ...p, [field.key]: e.target.value }));
-                          // Basis-Felder → Instanz #1 mitziehen
                           if (field.key === 'dmx_start_address' && instanceEdits.length > 0) {
                             setInstanceEdits(prev => prev.map(inst =>
                               inst.instanceNumber === 1 ? { ...inst, address: e.target.value } : inst
@@ -569,13 +547,12 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
                   ))}
                 </div>
 
-                {/* Instanz-Liste (nur beim Bearbeiten mit qty > 1) */}
                 {instanceEdits.length > 1 && (
                   <div className="space-y-2 pt-1">
                     <div className="flex items-center gap-2">
                       <div className="h-px flex-1 bg-primary/20" />
                       <span className="text-[10px] text-primary/60 font-medium uppercase tracking-wide">
-                        Alle Instanzen
+                        {t('item_form.dmx.all_instances')}
                       </span>
                       <div className="h-px flex-1 bg-primary/20" />
                     </div>
@@ -592,12 +569,9 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
                             key={inst.instanceNumber}
                             className="flex items-center gap-2 rounded-lg bg-primary/5 border border-primary/15 px-3 py-2"
                           >
-                            {/* Instanz-Badge */}
                             <span className="text-[10px] font-mono font-semibold text-primary/70 w-6 shrink-0">
                               #{inst.instanceNumber}
                             </span>
-
-                            {/* Universe */}
                             <div className="flex items-center gap-1 shrink-0">
                               <span className="text-[10px] text-muted-foreground hidden sm:inline">U</span>
                               <Input
@@ -609,16 +583,12 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
                                   setInstanceEdits(prev => prev.map(i =>
                                     i.instanceNumber === inst.instanceNumber ? { ...i, universe: val } : i
                                   ));
-                                  if (inst.instanceNumber === 1) {
-                                    setFormData(p => ({ ...p, dmx_universe: val }));
-                                  }
+                                  if (inst.instanceNumber === 1) setFormData(p => ({ ...p, dmx_universe: val }));
                                 }}
                                 className="glass-input h-8 w-14 text-center text-xs px-1 font-mono"
                                 placeholder="1"
                               />
                             </div>
-
-                            {/* Startadresse */}
                             <div className="flex items-center gap-1 flex-1 min-w-0">
                               <span className="text-[10px] text-muted-foreground hidden sm:inline shrink-0">CH</span>
                               <Input
@@ -631,16 +601,12 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
                                   setInstanceEdits(prev => prev.map(i =>
                                     i.instanceNumber === inst.instanceNumber ? { ...i, address: val } : i
                                   ));
-                                  if (inst.instanceNumber === 1) {
-                                    setFormData(p => ({ ...p, dmx_start_address: val }));
-                                  }
+                                  if (inst.instanceNumber === 1) setFormData(p => ({ ...p, dmx_start_address: val }));
                                 }}
                                 className={`glass-input h-8 w-16 text-center text-xs px-1 font-mono ${outOfRange ? 'border-destructive' : ''}`}
                                 placeholder="1"
                               />
                             </div>
-
-                            {/* Endadresse */}
                             <span className={`text-[10px] font-mono shrink-0 ${outOfRange ? 'text-destructive' : 'text-muted-foreground'}`}>
                               → {endAddr !== null ? endAddr : '–'}
                               {outOfRange && ' ⚠'}
@@ -651,14 +617,14 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
                     </div>
 
                     <p className="text-[10px] text-muted-foreground/60">
-                      Instanz #1 ist immer mit den Basis-Feldern oben synchronisiert
+                      {t('item_form.dmx.instance_sync_hint')}
                     </p>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* ── Dynamische Kategorie-Attribute ── */}
+            {/* Dynamische Attribute */}
             <div
               className="overflow-hidden transition-all duration-300"
               style={{
@@ -673,7 +639,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
                     style={{ color: selectedCat?.color }}
                   >
                     <CategoryIcon name={selectedCat?.icon ?? 'Package'} size={14} color={selectedCat?.color ?? '#fff'} />
-                    {selectedCat?.name}-Eigenschaften
+                    {t('item_form.category_properties', { name: selectedCat ? getCategoryLabel(selectedCat, t) : '' })}
                   </Label>
                   <div className="grid grid-cols-2 gap-3">
                     {attrFields.map(field => (
@@ -682,6 +648,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
                         field={field}
                         value={formData.attributes[field.key]}
                         onChange={val => setAttr(field.key, val)}
+                        selectPlaceholder={t('item_form.placeholder.select')}
                       />
                     ))}
                   </div>
@@ -689,14 +656,12 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
               )}
             </div>
 
-            {/* ── Tags ── */}
+            {/* Tags */}
             <div className="space-y-2">
               <Label className="flex items-center gap-1.5">
                 <Tag size={13} className="text-muted-foreground" />
-                Tags
+                {t('item_form.label.tags')}
               </Label>
-
-              {/* Gewählte Tags */}
               {formData.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {formData.tags.map(tag => (
@@ -712,8 +677,6 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
                   ))}
                 </div>
               )}
-
-              {/* Eingabe + Autovervollständigung */}
               <div className="relative">
                 <Input
                   ref={tagInputRef}
@@ -722,7 +685,7 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
                   onKeyDown={handleTagKeyDown}
                   onFocus={() => tagInput && setShowSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-                  placeholder="Tag eingeben, Enter zum Hinzufügen …"
+                  placeholder={t('item_form.placeholder.tag_input')}
                   className="glass-input"
                 />
                 {showSuggestions && tagSuggestions.length > 0 && (
@@ -740,40 +703,40 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
                   </div>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">Enter oder Komma = Tag hinzufügen</p>
+              <p className="text-xs text-muted-foreground">{t('item_form.tags_hint')}</p>
             </div>
 
-            {/* ── Foto ── */}
+            {/* Foto */}
             <div className="space-y-2">
-              <Label>Foto</Label>
+              <Label>{t('item_form.label.photo')}</Label>
               <ImageUpload
                 currentImageUrl={formData.image_url}
                 onImageChange={url => setFormData(p => ({ ...p, image_url: url }))}
               />
             </div>
 
-            {/* ── Notizen ── */}
+            {/* Notizen */}
             <div className="space-y-2">
-              <Label htmlFor="notes">Notizen</Label>
+              <Label htmlFor="notes">{t('fields.notes')}</Label>
               <Textarea
                 id="notes"
                 value={formData.notes}
                 onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))}
-                placeholder="Optionale Bemerkungen …"
+                placeholder={t('item_form.placeholder.notes')}
                 className="glass-input resize-none"
                 rows={3}
               />
             </div>
 
-            {/* ── Buttons ── */}
+            {/* Buttons */}
             <div className="flex gap-3 pt-2">
               <Button type="button" variant="ghost" onClick={onClose} className="flex-1" disabled={isLoading}>
-                Abbrechen
+                {t('common.cancel')}
               </Button>
               <Button type="submit" className="flex-1" disabled={isLoading}>
                 {isLoading ? (
-                  <><Loader2 className="h-4 w-4 animate-spin mr-2" />Speichern…</>
-                ) : editItem ? 'Speichern' : 'Hinzufügen'}
+                  <><Loader2 className="h-4 w-4 animate-spin mr-2" />{t('common.saving')}</>
+                ) : editItem ? t('common.save') : t('item_form.btn_add')}
               </Button>
             </div>
           </form>
@@ -783,26 +746,26 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
   );
 }
 
-// ── Attribut-Feld-Renderer ────────────────────────────────────────────────────
+// ── AttributeField ────────────────────────────────────────────────────────────
 function AttributeField({
   field,
   value,
   onChange,
+  selectPlaceholder,
 }: {
   field: AttributeFieldDef;
   value: string | number | boolean | undefined;
   onChange: (val: string | number | boolean) => void;
+  selectPlaceholder: string;
 }) {
   const baseClass = 'glass-input';
+  const { t } = useTranslation();
 
   if (field.type === 'boolean') {
     return (
       <div className="flex items-center justify-between py-2 col-span-2">
         <Label className="text-sm font-normal">{field.label}</Label>
-        <Switch
-          checked={!!value}
-          onCheckedChange={onChange}
-        />
+        <Switch checked={!!value} onCheckedChange={onChange} />
       </div>
     );
   }
@@ -811,16 +774,15 @@ function AttributeField({
     return (
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">{field.label}</Label>
-        <Select
-          value={(value as string) ?? ''}
-          onValueChange={onChange}
-        >
+        <Select value={(value as string) ?? ''} onValueChange={onChange}>
           <SelectTrigger className={baseClass}>
-            <SelectValue placeholder="Auswählen …" />
+            <SelectValue placeholder={selectPlaceholder} />
           </SelectTrigger>
           <SelectContent className="glass-card border-border/50">
             {field.options.map(opt => (
-              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+              <SelectItem key={opt} value={opt}>
+                {getAttrValueLabel(field.key, opt, t)}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -836,7 +798,7 @@ function AttributeField({
       <Input
         type={field.type === 'date' ? 'date' : field.type === 'number' ? 'number' : 'text'}
         value={(value as string | number) ?? ''}
-        onChange={e => onChange(field.type === 'number' ? e.target.value : e.target.value)}
+        onChange={e => onChange(e.target.value)}
         placeholder={field.placeholder}
         className={baseClass}
         step={field.type === 'number' ? 'any' : undefined}

@@ -1,13 +1,23 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Drawer,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import { generateQRCodeDataUrl, downloadQRCode, printQRCode } from '@/lib/qrCode';
+import {
+  generateQRCodeDataUrl,
+  downloadQRCode,
+  printQRCode,
+} from '@/lib/qrCode';
 import { Download, Printer, Copy, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
@@ -26,11 +36,15 @@ interface QRCodeDisplayProps {
 }
 
 function useIsMobile(breakpoint = 640) {
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < breakpoint);
+  const [isMobile, setIsMobile] = useState(
+    () => window.innerWidth < breakpoint
+  );
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < breakpoint);
+
     window.addEventListener('resize', handler);
+
     return () => window.removeEventListener('resize', handler);
   }, [breakpoint]);
 
@@ -45,20 +59,27 @@ export function QRCodeDisplay({
   onClose,
   size = 'md',
 }: QRCodeDisplayProps) {
+  const { t } = useTranslation();
+
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [containerWidth, setContainerWidth] = useState(window.innerWidth);
+
   const { toast } = useToast();
+
   const isMobile = useIsMobile();
 
   const baseMap = { sm: 200, md: 300, lg: 400 };
   const baseSize = baseMap[size];
+
   const sizePixels = Math.min(baseSize, (containerWidth - 48) * 0.85);
 
   useEffect(() => {
     const handleResize = () => setContainerWidth(window.innerWidth);
+
     window.addEventListener('resize', handleResize);
+
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -70,14 +91,26 @@ export function QRCodeDisplay({
     try {
       setLoading(true);
       setQrCodeUrl(null);
-      const url = await generateQRCodeDataUrl(itemId, { width: sizePixels });
-      if (!url) throw new Error('QR-Code URL ist leer');
+
+      const url = await generateQRCodeDataUrl(itemId, {
+        width: sizePixels,
+      });
+
+      if (!url) {
+        throw new Error(t('qr.errors.empty_url'));
+      }
+
       setQrCodeUrl(url);
     } catch (error) {
       logger.error('Error loading QR code:', error);
+
       toast({
-        title: 'QR-Code Fehler',
-        description: `${error instanceof Error ? error.message : 'Unbekannter Fehler'}. Prüfe deine Internetverbindung.`,
+        title: t('qr.errors.title'),
+        description: `${
+          error instanceof Error
+            ? error.message
+            : t('common.unknown_error')
+        }. ${t('qr.errors.connection_hint')}`,
         variant: 'destructive',
       });
     } finally {
@@ -88,40 +121,66 @@ export function QRCodeDisplay({
   const handleDownload = async () => {
     try {
       await downloadQRCode(itemId, itemName);
-      toast({ title: 'Erfolg', description: 'QR-Code wurde heruntergeladen' });
+
+      toast({
+        title: t('common.success'),
+        description: t('qr.download_success'),
+      });
     } catch (error) {
       logger.error('Error downloading QR code:', error);
-      toast({ title: 'Fehler', description: 'QR-Code konnte nicht heruntergeladen werden', variant: 'destructive' });
+
+      toast({
+        title: t('common.error'),
+        description: t('qr.download_error'),
+        variant: 'destructive',
+      });
     }
   };
 
   const handlePrint = async () => {
     try {
       await printQRCode(itemId, itemName, itemDetails);
-      toast({ title: 'Erfolg', description: 'Druck-Dialog geöffnet' });
+
+      toast({
+        title: t('common.success'),
+        description: t('qr.print_success'),
+      });
     } catch (error) {
       logger.error('Error printing QR code:', error);
-      toast({ title: 'Fehler', description: 'Druck-Dialog konnte nicht geöffnet werden', variant: 'destructive' });
+
+      toast({
+        title: t('common.error'),
+        description: t('qr.print_error'),
+        variant: 'destructive',
+      });
     }
   };
 
   const handleCopyItemId = async () => {
     try {
       await navigator.clipboard.writeText(itemId);
+
       setCopied(true);
+
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Fallback für ältere Mobile-Browser ohne Clipboard API
       const el = document.createElement('textarea');
+
       el.value = itemId;
       el.style.position = 'fixed';
       el.style.opacity = '0';
+
       document.body.appendChild(el);
+
       el.focus();
       el.select();
+
       try {
         document.execCommand('copy');
+
         setCopied(true);
+
         setTimeout(() => setCopied(false), 2000);
       } finally {
         document.body.removeChild(el);
@@ -134,23 +193,37 @@ export function QRCodeDisplay({
       {/* QR-Code Anzeige */}
       <div className="flex justify-center w-full">
         {loading ? (
-          <div className="flex items-center justify-center" style={{ width: sizePixels, height: sizePixels }}>
+          <div
+            className="flex items-center justify-center"
+            style={{ width: sizePixels, height: sizePixels }}
+          >
             <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
           </div>
         ) : qrCodeUrl ? (
           <div
             className="border-2 border-border rounded-lg p-2 bg-white flex items-center justify-center"
-            style={{ width: sizePixels + 16, height: sizePixels + 16 }}
+            style={{
+              width: sizePixels + 16,
+              height: sizePixels + 16,
+            }}
           >
             <img
               src={qrCodeUrl}
-              alt={`QR-Code für ${itemName}`}
-              style={{ width: sizePixels, height: sizePixels, display: 'block', aspectRatio: '1 / 1', objectFit: 'contain' }}
+              alt={t('qr.image_alt', { itemName })}
+              style={{
+                width: sizePixels,
+                height: sizePixels,
+                display: 'block',
+                aspectRatio: '1 / 1',
+                objectFit: 'contain',
+              }}
               className="rounded"
             />
           </div>
         ) : (
-          <div className="text-muted-foreground text-sm">QR-Code konnte nicht geladen werden</div>
+          <div className="text-muted-foreground text-sm">
+            {t('qr.load_error')}
+          </div>
         )}
       </div>
 
@@ -158,15 +231,23 @@ export function QRCodeDisplay({
       <div className="bg-muted/40 rounded-lg p-3 space-y-2">
         <div className="text-sm">
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-1 sm:gap-0">
-            <span className="text-muted-foreground">Item-Name:</span>
+            <span className="text-muted-foreground">
+              {t('fields.name')}:
+            </span>
+
             <span className="font-medium truncate">{itemName}</span>
           </div>
+
           <div className="flex flex-col sm:flex-row justify-between sm:items-start mt-2 gap-1 sm:gap-0">
-            <span className="text-muted-foreground">Item-ID:</span>
+            <span className="text-muted-foreground">
+              {t('qr.item_id')}:
+            </span>
+
             <div className="flex items-center gap-1 overflow-hidden">
               <code className="text-xs bg-background px-2 py-1 rounded font-mono truncate">
                 {itemId.slice(0, 8)}...{itemId.slice(-8)}
               </code>
+
               <Button
                 type="button"
                 variant="ghost"
@@ -176,7 +257,7 @@ export function QRCodeDisplay({
                 }`}
                 onPointerDown={(e) => e.preventDefault()}
                 onClick={handleCopyItemId}
-                aria-label="Item-ID kopieren"
+                aria-label={t('qr.copy_item_id')}
               >
                 {copied ? (
                   <Check className="h-3 w-3 transition-all duration-200" />
@@ -189,20 +270,37 @@ export function QRCodeDisplay({
 
           {itemDetails?.category && (
             <div className="flex flex-col sm:flex-row justify-between sm:items-center mt-2 gap-1 sm:gap-0">
-              <span className="text-muted-foreground">Kategorie:</span>
-              <span className="font-medium truncate">{itemDetails.category}</span>
+              <span className="text-muted-foreground">
+                {t('fields.category')}:
+              </span>
+
+              <span className="font-medium truncate">
+                {itemDetails.category}
+              </span>
             </div>
           )}
+
           {itemDetails?.quantity && (
             <div className="flex flex-col sm:flex-row justify-between sm:items-center mt-2 gap-1 sm:gap-0">
-              <span className="text-muted-foreground">Menge:</span>
-              <span className="font-medium">{itemDetails.quantity}</span>
+              <span className="text-muted-foreground">
+                {t('fields.quantity')}:
+              </span>
+
+              <span className="font-medium">
+                {itemDetails.quantity}
+              </span>
             </div>
           )}
+
           {itemDetails?.location && (
             <div className="flex flex-col sm:flex-row justify-between sm:items-center mt-2 gap-1 sm:gap-0">
-              <span className="text-muted-foreground">Standort:</span>
-              <span className="font-medium truncate">{itemDetails.location}</span>
+              <span className="text-muted-foreground">
+                {t('fields.location')}:
+              </span>
+
+              <span className="font-medium truncate">
+                {itemDetails.location}
+              </span>
             </div>
           )}
         </div>
@@ -217,8 +315,10 @@ export function QRCodeDisplay({
           disabled={loading || !qrCodeUrl}
         >
           <Download className="h-4 w-4 shrink-0" />
-          <span>Herunterladen</span>
+
+          <span>{t('common.download')}</span>
         </Button>
+
         <Button
           variant="outline"
           onClick={handlePrint}
@@ -226,25 +326,31 @@ export function QRCodeDisplay({
           disabled={loading || !qrCodeUrl}
         >
           <Printer className="h-4 w-4 shrink-0" />
-          <span>Drucken</span>
+
+          <span>{t('common.print')}</span>
         </Button>
       </div>
 
       {/* Hinweis */}
       <div className="text-xs text-muted-foreground text-center pt-2">
-        Dieser QR-Code enthält die eindeutige Item-ID und kann zum schnellen Abrufen des Artikels gescannt werden.
+        {t('qr.description')}
       </div>
     </div>
   );
 
   if (isMobile) {
     return (
-      <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Drawer
+        open={isOpen}
+        onOpenChange={(open) => !open && onClose()}
+      >
         <DrawerContent className="flex flex-col max-h-[92dvh]">
           <DrawerHeader className="px-4 shrink-0">
-            <DrawerTitle>QR-Code: {itemName}</DrawerTitle>
+            <DrawerTitle>
+              {t('qr.title', { itemName })}
+            </DrawerTitle>
           </DrawerHeader>
-          {/* Scrollbarer Bereich – der Handle und der Header bleiben fix */}
+
           <div className="overflow-y-auto px-4 pb-6">
             {content}
           </div>
@@ -257,8 +363,11 @@ export function QRCodeDisplay({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="glass-card border-border/50 max-w-[500px] p-6 overflow-auto max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>QR-Code: {itemName}</DialogTitle>
+          <DialogTitle>
+            {t('qr.title', { itemName })}
+          </DialogTitle>
         </DialogHeader>
+
         {content}
       </DialogContent>
     </Dialog>

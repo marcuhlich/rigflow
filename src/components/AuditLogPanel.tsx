@@ -4,9 +4,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
-import { de } from "date-fns/locale";
+import { de, enUS } from "date-fns/locale";
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 interface AuditLogEntry {
   id: string;
@@ -29,79 +30,32 @@ const ACTION_ICONS: Record<string, React.ReactNode> = {
   permanent_delete: <Delete className="h-3.5 w-3.5 text-destructive" />,
 };
 
-const ACTION_LABELS: Record<string, string> = {
-  create: "Erstellt",
-  update: "Aktualisiert",
-  delete: "Gelöscht",
-  batch_update: "Batch-Update",
-  batch_delete: "Batch-Löschen",
-  restore: "Wiederhergestellt",
-  soft_delete: "In Papierkorb verschoben",
-  permanent_delete: "Endgültig gelöscht",
-};
-
-const FIELD_LABELS: Record<string, string> = {
-  name: "Name",
-  description: "Beschreibung",
-  category: "Kategorie",
-  location: "Ort",
-  quantity: "Menge",
-  unit: "Einheit",
-  unit_price: "Stückpreis",
-  purchase_date: "Kaufdatum",
-  serial_number: "Seriennummer",
-  condition: "Zustand",
-  status: "Status",
-  dmx_start_adress: "DMX Start-Adresse",
-  dmx_start_address: "DMX Start-Adresse",
-  dmx_address: "DMX Adresse",
-  dmx_channels: "DMX Kanäle",
-  checked_out_by: "Ausgecheckt von",
-  checked_out_at: "Ausgecheckt am",
-  last_maintenance: "Letzte Wartung",
-  maintenance_notes: "Wartungsnotizen",
-  owner: "Besitzer",
-  value: "Wert",
-  total_value: "Gesamtwert",
-  notes: "Notizen",
-  created_at: "Erstellt am",
-  updated_at: "Aktualisiert am",
-  lent_to: "Ausgeliehen an",
-  lent_until: "Ausgeliehen bis",
-  attributes: "Attribute",
-};
-
-function formatFieldName(fieldName: string): string {
-  return FIELD_LABELS[fieldName] || fieldName;
-}
-
-function formatChanges(changes: AuditLogEntry['changes']): string {
+function formatChanges(
+  changes: AuditLogEntry['changes'],
+  t: ReturnType<typeof useTranslation>['t']
+): string {
   if (!changes) return "";
-  
+
   const parts = Object.entries(changes).map(([key, val]) => {
-    // Special handling for image_url
     if (key === "image_url") {
-      if (val.old === null && val.new !== null) {
-        return "Bild hinzugefügt";
-      } else if (val.old !== null && val.new === null) {
-        return "Bild gelöscht";
-      } else if (val.old !== null && val.new !== null) {
-        return "Bild geändert";
-      }
-      return "Bild aktualisiert";
+      if (val.old === null && val.new !== null) return t('audit.image_added');
+      if (val.old !== null && val.new === null) return t('audit.image_deleted');
+      if (val.old !== null && val.new !== null) return t('audit.image_changed');
+      return t('audit.image_updated');
     }
-    
+
     const SENSITIVE_FIELDS = new Set(['password', 'password_hash', 'token', 'secret']);
     const oldVal = SENSITIVE_FIELDS.has(key) ? '***' : (val.old ?? "-");
     const newVal = SENSITIVE_FIELDS.has(key) ? '***' : (val.new ?? "-");
-    const displayName = formatFieldName(key);
+    const displayName = t(`fields.${key}`, { defaultValue: key });
     return `${displayName}: ${oldVal} → ${newVal}`;
   });
-  
+
   return parts.join(", ");
 }
 
 export function AuditLogPanel() {
+  const { t, i18n } = useTranslation();
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -109,6 +63,8 @@ export function AuditLogPanel() {
   const { user } = useAuth();
   const channelRef = useRef<RealtimeChannel | null>(null);
   const LOG_LIMIT = 50;
+
+  const dateLocale = i18n.language.startsWith('de') ? de : enUS;
 
   const fetchLogs = async () => {
     if (!user) {
@@ -128,7 +84,7 @@ export function AuditLogPanel() {
       if (error) throw error;
       setLogs(data as AuditLogEntry[]);
     } catch {
-      setFetchError('Verlauf konnte nicht geladen werden.');
+      setFetchError(t('audit.fetch_error'));
     } finally {
       setLoading(false);
     }
@@ -137,17 +93,10 @@ export function AuditLogPanel() {
   useEffect(() => {
     fetchLogs();
 
-    // Subscribe to realtime updates
     if (user) {
       channelRef.current = supabase
         .channel(`audit-log-changes-${user.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'audit_log',
-          },
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'audit_log' },
           (payload) => {
             const newLog = payload.new as AuditLogEntry;
             if (newLog.user_id === user.id) {
@@ -159,9 +108,7 @@ export function AuditLogPanel() {
     }
 
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
     };
   }, [user]);
 
@@ -173,16 +120,14 @@ export function AuditLogPanel() {
       >
         <div className="flex items-center gap-2">
           <History className="h-4 w-4 text-muted-foreground" />
-          <span className="font-medium text-sm">Letzte Änderungen</span>
+          <span className="font-medium text-sm">{t('audit.panel_title')}</span>
           <span className="text-xs text-muted-foreground">
-            ({logs.length} Einträge)
+            ({t('audit.entry_count', { count: logs.length })})
           </span>
         </div>
-        {isExpanded ? (
-          <ChevronUp className="h-4 w-4 text-muted-foreground" />
-        ) : (
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-        )}
+        {isExpanded
+          ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+          : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
       </button>
 
       <AnimatePresence initial={false}>
@@ -194,60 +139,57 @@ export function AuditLogPanel() {
             transition={{ duration: 0.25 }}
             className="border-t border-border/30 overflow-hidden"
           >
-          {loading ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">
-              <RefreshCw className="h-4 w-4 animate-spin inline mr-2" />
-              Lade Verlauf...
-            </div>
-          ) : fetchError ? (
-            <div className="p-4 text-center text-sm text-destructive">
-              {fetchError}
-            </div>
-          ) : logs.length === 0 ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">
-              Noch keine Änderungen protokolliert.
-            </div>
-          ) : (
-            <ScrollArea className="h-64">
-              <div className="divide-y divide-border/30">
-                {logs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="p-3 hover:bg-muted/10 transition-colors"
-                  >
-                    <div className="flex items-start gap-2">
-                      <div className="mt-0.5">
-                        {ACTION_ICONS[log.action] || <Edit className="h-3.5 w-3.5" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-medium">
-                            {ACTION_LABELS[log.action] || log.action}
-                          </span>
-                          {log.item_name && (
-                            <span className="text-xs text-muted-foreground truncate max-w-[150px]">
-                              {log.item_name}
-                            </span>
-                          )}
+            {loading ? (
+              <div className="p-4 text-center text-sm text-muted-foreground">
+                <RefreshCw className="h-4 w-4 animate-spin inline mr-2" />
+                {t('audit.loading')}
+              </div>
+            ) : fetchError ? (
+              <div className="p-4 text-center text-sm text-destructive">
+                {fetchError}
+              </div>
+            ) : logs.length === 0 ? (
+              <div className="p-4 text-center text-sm text-muted-foreground">
+                {t('audit.empty')}
+              </div>
+            ) : (
+              <ScrollArea className="h-64">
+                <div className="divide-y divide-border/30">
+                  {logs.map((log) => (
+                    <div key={log.id} className="p-3 hover:bg-muted/10 transition-colors">
+                      <div className="flex items-start gap-2">
+                        <div className="mt-0.5">
+                          {ACTION_ICONS[log.action] || <Edit className="h-3.5 w-3.5" />}
                         </div>
-                        {log.changes && (
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                            {formatChanges(log.changes)}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-medium">
+                              {t(`audit.actions.${log.action}`, { defaultValue: log.action })}
+                            </span>
+                            {log.item_name && (
+                              <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+                                {log.item_name}
+                              </span>
+                            )}
+                          </div>
+                          {log.changes && (
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                              {formatChanges(log.changes, t)}
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground/70 mt-1">
+                            {format(new Date(log.created_at), "dd.MM.yyyy HH:mm", { locale: dateLocale })}
                           </p>
-                        )}
-                        <p className="text-xs text-muted-foreground/70 mt-1">
-                          {format(new Date(log.created_at), "dd.MM.yyyy HH:mm", { locale: de })}
-                        </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

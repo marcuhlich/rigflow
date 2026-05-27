@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PatchplanRow, DMXConflict } from '@/lib/dmxPatchplan';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +38,7 @@ export function DMXPatchplanTable({
   onAutoAssign,
   loading = false,
 }: DMXPatchplanTableProps) {
+  const { t } = useTranslation();
   const [editState, setEditState] = useState<EditState | null>(null);
   const [editingRow, setEditingRow] = useState<PatchplanRow | null>(null);
   const { toast } = useToast();
@@ -56,7 +58,11 @@ export function DMXPatchplanTable({
     if (!conflict) return '';
 
     const otherRow = conflict.row1.itemId === row.itemId ? conflict.row2 : conflict.row1;
-    return `Überschneidet sich mit ${otherRow.itemName} (${otherRow.startAddress}-${otherRow.endAddress})`;
+    return t('dmx_table.conflict_message', {
+      name: otherRow.itemName,
+      start: otherRow.startAddress,
+      end: otherRow.endAddress,
+    });
   };
 
   const handleStartEdit = (row: PatchplanRow, type: 'address' | 'universe') => {
@@ -74,19 +80,19 @@ export function DMXPatchplanTable({
     try {
       const value = parseInt(editState.value);
       if (isNaN(value)) {
-        toast({ title: 'Fehler', description: 'Ungültige Eingabe', variant: 'destructive' });
+        toast({ title: t('common.error'), description: t('dmx_table.error.invalid_input'), variant: 'destructive' });
         return;
       }
 
       if (editState.type === 'address') {
         if (value < 1 || value > 512) {
-          toast({ title: 'Fehler', description: 'Adresse muss zwischen 1 und 512 liegen', variant: 'destructive' });
+          toast({ title: t('common.error'), description: t('dmx_table.error.address_range'), variant: 'destructive' });
           return;
         }
         await onInstanceChange(editingRow.itemId, editingRow.instanceNumber, value, editingRow.universe);
       } else {
         if (value < 1) {
-          toast({ title: 'Fehler', description: 'Universe muss >= 1 sein', variant: 'destructive' });
+          toast({ title: t('common.error'), description: t('dmx_table.error.universe_min'), variant: 'destructive' });
           return;
         }
         await onInstanceChange(editingRow.itemId, editingRow.instanceNumber, editingRow.startAddress, value);
@@ -96,7 +102,7 @@ export function DMXPatchplanTable({
       setEditingRow(null);
     } catch (error) {
       logger.error('Error saving edit:', error);
-      toast({ title: 'Fehler', description: 'Änderung konnte nicht gespeichert werden', variant: 'destructive' });
+      toast({ title: t('common.error'), description: t('dmx_table.error.save_failed'), variant: 'destructive' });
     }
   };
 
@@ -110,15 +116,15 @@ export function DMXPatchplanTable({
       <Table>
         <TableHeader>
           <TableRow className="border-border/50 hover:bg-transparent">
-            <TableHead>Gerät</TableHead>
-            <TableHead className="text-center">Inst.</TableHead>
-            <TableHead className="text-center">Universe</TableHead>
-            <TableHead className="text-center">Start-Adresse</TableHead>
-            <TableHead className="text-center">End-Adresse</TableHead>
-            <TableHead className="text-center">Kanäle</TableHead>
-            <TableHead>Standort</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Aktionen</TableHead>
+            <TableHead>{t('dmx_table.col.device')}</TableHead>
+            <TableHead className="text-center">{t('dmx_table.col.instance')}</TableHead>
+            <TableHead className="text-center">{t('dmx_table.col.universe')}</TableHead>
+            <TableHead className="text-center">{t('dmx_table.col.start_address')}</TableHead>
+            <TableHead className="text-center">{t('dmx_table.col.end_address')}</TableHead>
+            <TableHead className="text-center">{t('dmx_table.col.channels')}</TableHead>
+            <TableHead>{t('fields.location')}</TableHead>
+            <TableHead>{t('dmx_table.col.status')}</TableHead>
+            <TableHead className="text-right">{t('dmx_table.col.actions')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -161,29 +167,17 @@ export function DMXPatchplanTable({
                         type="number"
                         min="1"
                         value={editState.value}
-                        onChange={e => 
-                          setEditState({...editState, value: e.target.value})
+                        onChange={e =>
+                          setEditState({ ...editState, value: e.target.value })
                         }
                         className="w-16 h-8 text-center"
                         disabled={loading}
                         autoFocus
                       />
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0"
-                        onClick={handleSaveEdit}
-                        disabled={loading}
-                      >
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleSaveEdit} disabled={loading}>
                         <Check className="h-4 w-4 text-green-600" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0"
-                        onClick={handleCancel}
-                        disabled={loading}
-                      >
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleCancel} disabled={loading}>
                         <X className="h-4 w-4 text-red-600" />
                       </Button>
                     </div>
@@ -212,28 +206,16 @@ export function DMXPatchplanTable({
                         max="512"
                         value={editState.value}
                         onChange={e =>
-                          setEditState({...editState, value: e.target.value})
+                          setEditState({ ...editState, value: e.target.value })
                         }
                         className="w-20 h-8 text-center"
                         disabled={loading}
                         autoFocus
                       />
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0"
-                        onClick={handleSaveEdit}
-                        disabled={loading}
-                      >
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleSaveEdit} disabled={loading}>
                         <Check className="h-4 w-4 text-green-600" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0"
-                        onClick={handleCancel}
-                        disabled={loading}
-                      >
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleCancel} disabled={loading}>
                         <X className="h-4 w-4 text-red-600" />
                       </Button>
                     </div>
@@ -257,7 +239,9 @@ export function DMXPatchplanTable({
                   {row.endAddress}
                 </TableCell>
 
-                <TableCell className="text-center">{row.channels}ch</TableCell>
+                <TableCell className="text-center">
+                  {t('dmx_table.channels_value', { count: row.channels })}
+                </TableCell>
 
                 <TableCell className="text-muted-foreground text-sm">{row.location}</TableCell>
 
@@ -273,11 +257,9 @@ export function DMXPatchplanTable({
                       className="h-8 w-8 p-0"
                       onClick={() => {
                         navigator.clipboard.writeText(`${row.startAddress}-${row.endAddress}`);
-                        toast({
-                          description: 'Adressbereich kopiert',
-                        });
+                        toast({ description: t('dmx_table.copied') });
                       }}
-                      title="Adressbereich kopieren"
+                      title={t('dmx_table.copy_title')}
                     >
                       <Copy className="h-3 w-3" />
                     </Button>
@@ -286,9 +268,9 @@ export function DMXPatchplanTable({
                       variant="outline"
                       onClick={() => onAutoAssign?.(row.itemId, row.universe)}
                       disabled={loading || isEditing}
-                      title="Nächsten verfügbaren Kanal automatisch zuweisen"
+                      title={t('dmx_table.auto_assign_title')}
                     >
-                      Auto
+                      {t('dmx_table.auto_assign_label')}
                     </Button>
                   </div>
                 </TableCell>
@@ -300,7 +282,7 @@ export function DMXPatchplanTable({
 
       {rows.length === 0 && (
         <div className="p-8 text-center text-muted-foreground">
-          Keine DMX-Geräte konfiguriert
+          {t('dmx_table.empty')}
         </div>
       )}
     </div>

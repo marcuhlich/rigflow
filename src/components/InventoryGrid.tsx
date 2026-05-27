@@ -6,12 +6,13 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { QRCodeDisplay } from "@/components/QRCodeDisplay";
 import { InventoryItem } from "@/types/inventory";
 import { format } from "date-fns";
-import { de } from "date-fns/locale";
+import { de, enUS } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { InventoryContextMenu } from "@/components/InventoryContextMenu";
 import { hapticFeedback } from "@/lib/utils";
 import { hapticStop, hapticLongPress } from "@/lib/utils";
 import { EmptyState } from "@/components/EmptyState";
+import { useTranslation } from 'react-i18next';
 
 const LONG_PRESS_MS = 1000;
 
@@ -62,6 +63,8 @@ export const InventoryGrid = React.memo(function InventoryGrid({
   const pressPosRef = useRef<{ x: number; y: number } | null>(null);
   const [completingId, setCompletingId] = useState<string | null>(null);
   const hapticTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language.startsWith('de') ? de : enUS;
 
   const qrItem = items.find((i) => i.id === qrItemId);
 
@@ -246,7 +249,7 @@ export const InventoryGrid = React.memo(function InventoryGrid({
                       size="icon"
                       className="h-7 w-7 text-muted-foreground hover:text-foreground"
                       onClick={(e) => { e.stopPropagation(); onEdit(item); }}
-                      title="Bearbeiten"
+                      title={t('common.edit')}
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
@@ -255,7 +258,7 @@ export const InventoryGrid = React.memo(function InventoryGrid({
                       size="icon"
                       className="h-7 w-7 text-destructive/60 hover:text-destructive"
                       onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
-                      title="Löschen"
+                      title={t('common.delete')}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -316,7 +319,7 @@ export const InventoryGrid = React.memo(function InventoryGrid({
                       <span className="truncate">
                         {item.lent_to}
                         {item.lent_until && (
-                          <> bis {format(new Date(item.lent_until), "dd.MM.yy", { locale: de })}</>
+                          <> {t('inventory_grid.lent_until')} {format(new Date(item.lent_until), i18n.language.startsWith('de') ? 'dd.MM.yy' : 'MM/dd/yy', { locale: dateLocale })}</>
                         )}
                       </span>
                     </div>

@@ -498,6 +498,41 @@ cd android
 # APK ist dann unter: android/app/build/outputs/apk/debug/
 ```
 
+#### App-Daten zurücksetzen
+ 
+Android Studio macht beim „Run" einen **inkrementellen Deploy** – App-Daten (localStorage, Supabase-Session, Onboarding-Status) bleiben dabei erhalten. Für einen sauberen Test-Reset:
+ 
+```bash
+adb -s DEVICE_ID shell pm clear com.rigflow.app
+```
+ 
+Geräte-ID herausfinden:
+```bash
+adb devices
+```
+ 
+> **Nur ein Entwicklungsproblem.** Echte Nutzer (Play Store / APK) bekommen bei Neuinstallation immer einen sauberen Zustand.
+ 
+#### Build-Fehler (Windows + Nextcloud/OneDrive)
+ 
+Wenn der Build mit `mergeDebugResources`-Fehlern abbricht:
+ 
+```bash
+cd android
+.\gradlew.bat clean
+cd ..
+npx cap sync android
+```
+
+**Dauerhafter Fix:** Projektordner aus dem Nextcloud-/OneDrive-Sync-Bereich verschieben, z.B. nach `C:\Dev\RigFlow\`. Cloud-Sync-Clients greifen während des Builds auf Dateien zu und korrumpieren den Gradle-Cache.
+ 
+Alternativ Nextcloud-Ausschlussliste bearbeiten (`%APPDATA%\Nextcloud\sync-exclude.lst`):
+```
+build/
+.gradle/
+```
+
+
 #### Preview in Android Studio
 1. Android Studio installieren und starten
 2. Projekt-Ordner öffnen, warten bis importiert

@@ -16,6 +16,7 @@ import { InventoryItem } from "@/types/inventory";
 import { cn } from "@/lib/utils";
 import { InventoryContextMenu } from "@/components/InventoryContextMenu";
 import { EmptyState } from "@/components/EmptyState";
+import { useTranslation } from 'react-i18next';
 
 interface InventoryTableProps {
   items: InventoryItem[];
@@ -60,6 +61,7 @@ export const InventoryTable = React.memo(function InventoryTable({
 }: InventoryTableProps) {
   const [qrItemId, setQrItemId] = useState<string | null>(null);
   const qrItem = items.find((i) => i.id === qrItemId);
+  const { t } = useTranslation();
 
   if (items.length === 0) {
     if (searchQuery.trim()) {
@@ -96,11 +98,11 @@ export const InventoryTable = React.memo(function InventoryTable({
               {selectionMode && (
                 <TableHead className="w-[40px]" />
               )}
-              <TableHead className="text-muted-foreground font-semibold">Name</TableHead>
-              <TableHead className="text-muted-foreground font-semibold">Kategorie</TableHead>
-              <TableHead className="text-muted-foreground font-semibold text-center">Menge</TableHead>
-              <TableHead className="text-muted-foreground font-semibold">Zustand</TableHead>
-              <TableHead className="text-muted-foreground font-semibold">Standort</TableHead>
+              <TableHead className="text-muted-foreground font-semibold">{t('fields.name')}</TableHead>
+              <TableHead className="text-muted-foreground font-semibold">{t('fields.category')}</TableHead>
+              <TableHead className="text-muted-foreground font-semibold text-center">{t('fields.quantity')}</TableHead>
+              <TableHead className="text-muted-foreground font-semibold">{t('fields.condition')}</TableHead>
+              <TableHead className="text-muted-foreground font-semibold">{t('fields.location')}</TableHead>
               {!selectionMode && (
                 <TableHead className="w-[60px]" />
               )}
@@ -178,13 +180,13 @@ export const InventoryTable = React.memo(function InventoryTable({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="glass-card border-border/50">
                             <DropdownMenuItem onClick={() => setQrItemId(item.id)}>
-                              <QrCode className="h-4 w-4 mr-2" /> QR-Code
+                              <QrCode className="h-4 w-4 mr-2" /> {t('inventory_context.show_qr')}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => onEdit(item)}>
-                              <Pencil className="h-4 w-4 mr-2" /> Bearbeiten
+                              <Pencil className="h-4 w-4 mr-2" /> {t('common.edit')}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => onDelete(item.id)}>
-                              <Trash2 className="h-4 w-4 mr-2" /> Löschen
+                              <Trash2 className="h-4 w-4 mr-2" /> {t('common.delete')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

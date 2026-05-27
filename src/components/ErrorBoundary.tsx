@@ -1,5 +1,6 @@
 import { Component, ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import i18n from '@/i18n'; // direkt die i18n-Instanz importieren
 
 interface Props {
   children: ReactNode;
@@ -10,10 +11,6 @@ interface State {
   error: Error | null;
 }
 
-/**
- * Error Boundary - Verhindert dass die ganze App crasht bei Component-Fehler
- * Zeigt benutzerfreundliche Fehlermeldung und Neustart-Button
- */
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -29,9 +26,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
     if (isChunkError) {
       window.location.reload();
-      return { hasError: false, error: null }; // wird nie gerendert
+      return { hasError: false, error: null };
     }
-
     return { hasError: true, error };
   }
 
@@ -49,17 +45,21 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   render() {
+    const { t } = i18n;
+
     if (this.state.hasError) {
       return (
         <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
           <div className="bg-destructive/10 border border-destructive rounded-lg p-8 max-w-md w-full">
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="w-6 h-6 text-destructive flex-shrink-0" />
-              <h2 className="font-bold text-lg text-destructive">Etwas ist schiefgelaufen</h2>
+              <h2 className="font-bold text-lg text-destructive">
+                {t('error_boundary.title')}
+              </h2>
             </div>
-            
+
             <p className="text-sm text-muted-foreground mb-4">
-              {this.state.error?.message || 'Ein unerwarteter Fehler ist aufgetreten'}
+              {this.state.error?.message || t('error_boundary.fallback_message')}
             </p>
 
             <div className="bg-destructive/5 rounded p-3 mb-6 text-xs font-mono text-muted-foreground max-h-24 overflow-y-auto">
@@ -67,22 +67,22 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
 
             <div className="space-y-2">
-              <button 
+              <button
                 onClick={this.handleReload}
                 className="w-full px-4 py-2 bg-destructive text-white rounded-md hover:bg-destructive/90 transition font-semibold"
               >
-                Seite neu laden
+                {t('error_boundary.reload')}
               </button>
-              <button 
+              <button
                 onClick={this.handleReset}
                 className="w-full px-4 py-2 bg-muted text-muted-foreground rounded-md hover:bg-muted/80 transition"
               >
-                Weiter versuchen
+                {t('error_boundary.retry')}
               </button>
             </div>
 
             <p className="text-xs text-muted-foreground mt-4">
-              Wenn das Problem weiterhin auftritt, öffne die Developer Console (F12) für mehr Details.
+              {t('error_boundary.hint')}
             </p>
           </div>
         </div>

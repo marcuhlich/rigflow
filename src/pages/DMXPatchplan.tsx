@@ -18,15 +18,13 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/PageHeader";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 // ── Animierter Progress-Balken ────────────────────────────────────────────────
-// Läuft von 0 → Zielwert ein, sobald er sichtbar wird.
 function AnimatedBar({ value, max, className }: { value: number; max: number; className?: string }) {
   const [width, setWidth] = useState(0);
 
   useEffect(() => {
-    // Einen Frame warten damit der initiale 0%-Zustand gerendert wird,
-    // dann auf den echten Wert animieren.
     const raf = requestAnimationFrame(() => {
       setTimeout(() => setWidth(Math.min((value / max) * 100, 100)), 50);
     });
@@ -54,6 +52,7 @@ function AnimatedBar({ value, max, className }: { value: number; max: number; cl
 }
 
 export default function DMXPatchplan() {
+  const { t } = useTranslation();
   const { allItems, loading } = useInventory();
   const {
     patchplan, conflicts, universeUsage,
@@ -63,7 +62,6 @@ export default function DMXPatchplan() {
 
   const [viewMode, setViewMode] = useState<"timeline" | "table">("timeline");
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
-  // Steuert ob der Content-Bereich gerade zwischen den Views übergeblendet wird
   const [contentVisible, setContentVisible] = useState(true);
   const [setFakeLoading] = useState(true);
   const isMobile = useIsMobile();
@@ -73,9 +71,7 @@ export default function DMXPatchplan() {
   // ── View-Toggle mit Fade-Übergang ─────────────────────────────────────────
   const handleViewChange = (next: "timeline" | "table") => {
     if (next === viewMode) return;
-    // 1. Ausblenden
     setContentVisible(false);
-    // 2. Nach der Fade-out-Dauer (150ms) tatsächlich umschalten + einblenden
     setTimeout(() => {
       setViewMode(next);
       setContentVisible(true);
@@ -86,11 +82,17 @@ export default function DMXPatchplan() {
   const handleExportCSV = () => {
     const csv = exportPatchplanCSV(patchplan);
     downloadCSV(csv, `dmx-patchplan-${new Date().toISOString().split("T")[0]}.csv`);
-    toast({ title: "Export erfolgreich", description: "CSV-Datei wurde heruntergeladen." });
+    toast({
+      title: t('dmx_patchplan.export_success'),
+      description: t('dmx_patchplan.export_csv_downloaded'),
+    });
   };
   const handleExportPDF = () => {
     exportPatchplanAsPDF(patchplan);
-    toast({ title: "Export erfolgreich", description: "PDF-Datei wurde heruntergeladen." });
+    toast({
+      title: t('dmx_patchplan.export_success'),
+      description: t('dmx_patchplan.export_pdf_downloaded'),
+    });
   };
   const handlePrint = () => printPatchplan(patchplan, conflicts);
 
@@ -114,10 +116,11 @@ export default function DMXPatchplan() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="DMX Patchplan"
-        description={`${patchplan.length} Kanal-Zuweisungen aus ${
-          allItems.filter(i => i.dmx_start_address && i.dmx_channels).length
-        } Geräten`}
+        title={t('dmx_patchplan.title')}
+        description={t('dmx_patchplan.description', {
+          assignments: patchplan.length,
+          devices: allItems.filter(i => i.dmx_start_address && i.dmx_channels).length,
+        })}
         icon={Sliders}
         actions={
           <div className="flex gap-2 flex-wrap">
@@ -135,7 +138,7 @@ export default function DMXPatchplan() {
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:bg-muted/50"
                   )}
-                  title={mode === "timeline" ? "Timeline-Ansicht" : "Tabellenansicht"}
+                  title={mode === "timeline" ? t('dmx.view_timeline') : t('dmx.view_table')}
                 >
                   {mode === "timeline"
                     ? <LayoutGrid className="h-4 w-4" />
@@ -155,19 +158,19 @@ export default function DMXPatchplan() {
                     disabled={patchplan.length === 0}
                   >
                     <Download className="h-4 w-4" />
-                    Export
+                    {t('common.export')}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={handleExportCSV}>
-                    <FileText className="h-4 w-4 mr-2" /> Als CSV exportieren
+                    <FileText className="h-4 w-4 mr-2" /> {t('dmx.export_csv')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleExportPDF}>
-                    <FileText className="h-4 w-4 mr-2" /> Als PDF exportieren
+                    <FileText className="h-4 w-4 mr-2" /> {t('dmx.export_pdf')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handlePrint}>
-                    <Printer className="h-4 w-4 mr-2" /> Drucken
+                    <Printer className="h-4 w-4 mr-2" /> {t('common.print')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -184,18 +187,17 @@ export default function DMXPatchplan() {
               key={universe}
               className="glass-card p-3"
               style={{
-                // Stagger: jede Karte kommt leicht versetzt rein
                 animation: "dmxCardIn 0.35s ease both",
                 animationDelay: `${idx * 60}ms`,
               }}
             >
               <div className="text-sm font-medium text-muted-foreground">
-                Universe {universe}
+                {t('dmx.universe_number', { number: universe })}
               </div>
               <div className="mt-2 space-y-1">
                 <AnimatedBar value={usedChannels} max={512} />
                 <div className="text-xs text-muted-foreground">
-                  {usedChannels}/512 Kanäle
+                  {t('dmx_patchplan.channels_used', { used: usedChannels })}
                 </div>
               </div>
             </div>
@@ -211,19 +213,24 @@ export default function DMXPatchplan() {
           style={{ animation: "dmxCardIn 0.3s ease both" }}
         >
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>DMX-Adresskonflikte erkannt!</AlertTitle>
+          <AlertTitle>{t('dmx_patchplan.conflicts_title')}</AlertTitle>
           <AlertDescription className="mt-2">
             <ul className="list-disc list-inside space-y-1 text-sm">
               {conflicts.slice(0, 5).map((conflict, i) => (
                 <li key={i}>
-                  <strong>{conflict.row1.itemName}</strong> #{conflict.row1.instanceNumber}{" "}
-                  ({conflict.row1.startAddress}–{conflict.row1.endAddress}) überschneidet sich mit{" "}
-                  <strong>{conflict.row2.itemName}</strong> #{conflict.row2.instanceNumber}{" "}
+                  <strong>{conflict.row1.itemName}</strong>{" "}
+                  #{conflict.row1.instanceNumber}{" "}
+                  ({conflict.row1.startAddress}–{conflict.row1.endAddress}){" "}
+                  {t('dmx_patchplan.conflicts_overlaps_with')}{" "}
+                  <strong>{conflict.row2.itemName}</strong>{" "}
+                  #{conflict.row2.instanceNumber}{" "}
                   ({conflict.row2.startAddress}–{conflict.row2.endAddress})
                 </li>
               ))}
               {conflicts.length > 5 && (
-                <li className="text-muted-foreground">… und {conflicts.length - 5} weitere</li>
+                <li className="text-muted-foreground">
+                  {t('dmx.conflicts_more', { count: conflicts.length - 5 })}
+                </li>
               )}
             </ul>
           </AlertDescription>
@@ -240,23 +247,21 @@ export default function DMXPatchplan() {
             <Sliders className="h-8 w-8 text-muted-foreground" strokeWidth={1.5} />
           </div>
           <div className="max-w-xs">
-            <h3 className="text-base font-medium">Keine DMX-Geräte gefunden</h3>
+            <h3 className="text-base font-medium">{t('dmx_patchplan.empty_title')}</h3>
             <p className="text-muted-foreground text-sm mt-1.5 leading-relaxed">
-              Füge DMX-Adressen und Kanalanzahl zu deinen Lichttechnik- oder Effektgeräten hinzu.
+              {t('dmx_patchplan.empty_description')}
             </p>
           </div>
-          {/* CTA direkt zum Inventar */}
           <Button
             variant="outline"
             className="gap-1.5 active:scale-95 transition-transform"
             onClick={() => navigate("/inventory?category=Lichttechnik")}
           >
             <Plus className="h-4 w-4" />
-            Zum Inventar
+            {t('dmx_patchplan.empty_cta')}
           </Button>
         </div>
       ) : (
-        /* Fade + leichtes Y-Shift beim View-Wechsel */
         <div
           style={{
             opacity: contentVisible ? 1 : 0,
@@ -285,7 +290,6 @@ export default function DMXPatchplan() {
         </div>
       )}
 
-      {/* ── Keyframes ──────────────────────────────────────────────────────── */}
       <style>{`
         @keyframes dmxCardIn {
           from { opacity: 0; transform: translateY(8px); }

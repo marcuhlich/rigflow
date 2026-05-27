@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { usePackages } from "@/hooks/usePackages";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 import { PackageWithItems, PackageItem } from "@/types/project";
 import { InventoryItem } from "@/types/inventory";
 import { cn } from "@/lib/utils";
@@ -75,6 +76,7 @@ function PackageFormDialog({ open, onClose, onSubmit, initial }: {
   onSubmit: (data: PackageFormData) => Promise<void>;
   initial?: PackageFormData;
 }) {
+  const { t } = useTranslation();
   const [name,   setName]   = useState(initial?.name ?? '');
   const [desc,   setDesc]   = useState(initial?.description ?? '');
   const [color,  setColor]  = useState(initial?.color ?? '#34d399');
@@ -103,12 +105,11 @@ function PackageFormDialog({ open, onClose, onSubmit, initial }: {
 
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      {/* max-h-[90dvh] + overflow-y-auto → Dialog scrollbar auf kleinen Screens */}
       <DialogContent className="sm:max-w-md max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{initial ? 'Paket bearbeiten' : 'Neues Paket erstellen'}</DialogTitle>
+          <DialogTitle>{initial ? t("packages.title_edit") : t("packages.title_create")}</DialogTitle>
           <DialogDescription>
-            Pakete sind wiederverwendbare Equipment-Vorlagen für deine Projekte.
+            {t("packages.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -121,13 +122,13 @@ function PackageFormDialog({ open, onClose, onSubmit, initial }: {
             >
               <IconComp className="h-5 w-5" style={{ color }} />
             </div>
-            <span className="font-semibold text-sm truncate">{name || 'Paketname'}</span>
+            <span className="font-semibold text-sm truncate">{name || t("packages.name_label")}</span>
           </div>
 
           <div className="space-y-1">
-            <Label>Name *</Label>
+            <Label>{t("packages.name_label")}</Label>
             <Input
-              placeholder="z.B. DJ-Set, Licht-Basic, PA-System"
+              placeholder={t("packages.name_placeholder")}
               value={name}
               onChange={e => setName(e.target.value)}
               autoFocus
@@ -135,9 +136,9 @@ function PackageFormDialog({ open, onClose, onSubmit, initial }: {
           </div>
 
           <div className="space-y-1">
-            <Label>Beschreibung</Label>
+            <Label>{t("packages.description_label")}</Label>
             <Textarea
-              placeholder="Was ist in diesem Paket enthalten?"
+              placeholder={t("packages.description_placeholder")}
               value={desc}
               onChange={e => setDesc(e.target.value)}
               rows={2}
@@ -145,7 +146,7 @@ function PackageFormDialog({ open, onClose, onSubmit, initial }: {
           </div>
 
           <div className="space-y-2">
-            <Label>Farbe</Label>
+            <Label>{t("packages.color_label")}</Label>
             <div className="flex gap-2 flex-wrap">
               {COLORS.map(c => (
                 <button
@@ -163,7 +164,7 @@ function PackageFormDialog({ open, onClose, onSubmit, initial }: {
           </div>
 
           <div className="space-y-2">
-            <Label>Icon</Label>
+            <Label>{t("packages.icon_label")}</Label>
             <div className="flex gap-2 flex-wrap">
               {ICON_OPTIONS.map(({ value, Icon: I }) => (
                 <button
@@ -185,9 +186,9 @@ function PackageFormDialog({ open, onClose, onSubmit, initial }: {
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">Abbrechen</Button>
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">{t("packages.btn_cancel")}</Button>
           <Button onClick={handleSubmit} disabled={!name.trim() || saving} className="w-full sm:w-auto">
-            {saving ? 'Speichern...' : initial ? 'Speichern' : 'Erstellen'}
+            {saving ? t("packages.btn_saving") : initial ? t("packages.btn_save") : t("packages.btn_create")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -202,6 +203,7 @@ function SortablePackageItemRow({ item, onRemove, onQtyChange }: {
   onRemove: () => void;
   onQtyChange: (qty: number) => void;
 }) {
+  const { t } = useTranslation();
   const {
     attributes, listeners, setNodeRef,
     transform, transition, isDragging,
@@ -227,7 +229,7 @@ function SortablePackageItemRow({ item, onRemove, onQtyChange }: {
         <GripVertical className="h-4 w-4" />
       </button>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{item.item_name ?? 'Unbekannt'}</p>
+        <p className="text-sm font-medium truncate">{item.item_name ?? t("packages.unknown")}</p>
         {(item.item_category || item.item_location) && (
           <p className="text-xs text-muted-foreground truncate">
             {[item.item_category, item.item_location].filter(Boolean).join(' · ')}
@@ -342,6 +344,7 @@ function PackageEditorSheet({ pkg, open, onClose, inventoryItems, onAddItem, onR
   onQtyChange: (pkgItemId: string, qty: number) => Promise<void>;
   onReorder: (packageId: string, orderedIds: string[]) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [invSearch,   setInvSearch]   = useState('');
   const [activeId,    setActiveId]    = useState<string | null>(null);
   const [overId,      setOverId]      = useState<string | null>(null);
@@ -424,7 +427,7 @@ function PackageEditorSheet({ pkg, open, onClose, inventoryItems, onAddItem, onR
               <IconComp className="h-4 w-4" style={{ color: pkg.color }} />
             </div>
             {pkg.name}
-            <Badge variant="secondary" className="ml-1 text-xs">{localItems.length} Artikel</Badge>
+            <Badge variant="secondary" className="ml-1 text-xs">{t("packages.item_count_other", { count: localItems.length })}</Badge>
           </SheetTitle>
           {pkg.description && (
             <SheetDescription>{pkg.description}</SheetDescription>
@@ -442,19 +445,19 @@ function PackageEditorSheet({ pkg, open, onClose, inventoryItems, onAddItem, onR
             {/* Linke Spalte: Inventar (nur Desktop) */}
             <div className="hidden lg:flex flex-col w-72 shrink-0 border-r border-border overflow-hidden px-4 py-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Inventar
+                {t("packages.inventory_header")}
               </p>
               <div className="relative mb-2">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
-                  placeholder="Suchen..."
+                  placeholder={t("packages.inventory_search")}
                   value={invSearch}
                   onChange={e => setInvSearch(e.target.value)}
                   className="pl-8 h-8 text-xs"
                 />
               </div>
               <p className="text-[11px] text-muted-foreground mb-3">
-                Auf das Paket ziehen oder <span className="text-foreground">+</span> klicken
+                {t("packages.inventory_hint")}
               </p>
               <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
                 {filteredInv.map(item => (
@@ -466,7 +469,7 @@ function PackageEditorSheet({ pkg, open, onClose, inventoryItems, onAddItem, onR
                   />
                 ))}
                 {filteredInv.length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-6">Keine Artikel gefunden</p>
+                  <p className="text-xs text-muted-foreground text-center py-6">{t("packages.no_results")}</p>
                 )}
               </div>
             </div>
@@ -474,7 +477,7 @@ function PackageEditorSheet({ pkg, open, onClose, inventoryItems, onAddItem, onR
             {/* Rechte Spalte: Paketinhalt */}
             <div className="flex flex-col flex-1 overflow-hidden px-4 lg:px-6 py-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 shrink-0">
-                Paketinhalt
+                {t("packages.package_header")}
               </p>
 
               <SortableContext
@@ -485,15 +488,15 @@ function PackageEditorSheet({ pkg, open, onClose, inventoryItems, onAddItem, onR
                   {localItems.length === 0 && !isOverPkgZone && (
                     <div className="flex flex-col items-center justify-center h-32 text-center text-muted-foreground">
                       <Package className="h-8 w-8 mb-2 opacity-25" />
-                      <p className="text-xs">Noch keine Artikel im Paket</p>
+                      <p className="text-xs">{t("packages.package_empty")}</p>
                       <p className="text-xs mt-0.5 opacity-70 hidden lg:block">
-                        Aus dem Inventar hierher ziehen
+                        {t("packages.package_empty_mobile")}
                       </p>
                     </div>
                   )}
                   {isOverPkgZone && localItems.length === 0 && (
                     <div className="flex items-center justify-center h-32 text-xs text-primary/80 font-medium">
-                      Hier loslassen ↓
+                      {t("packages.drop_here")}
                     </div>
                   )}
                   <div className="space-y-1.5 overflow-y-auto">
@@ -512,12 +515,12 @@ function PackageEditorSheet({ pkg, open, onClose, inventoryItems, onAddItem, onR
               {/* Mobile: Artikel hinzufügen */}
               <div className="lg:hidden mt-4 shrink-0 space-y-2 border-t border-border pt-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Artikel hinzufügen
+                  {t("packages.add_items")}
                 </p>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
-                    placeholder="Suchen..."
+                    placeholder={t("packages.inventory_search")}
                     value={invSearch}
                     onChange={e => setInvSearch(e.target.value)}
                     className="pl-8 h-8 text-xs"
@@ -565,6 +568,7 @@ function PackageCard({ pkg, onOpen, onEdit, onDelete }: {
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   const IconComp = getIcon(pkg.icon);
   const totalQty = pkg.items.reduce((s, i) => s + i.quantity, 0);
 
@@ -611,14 +615,14 @@ function PackageCard({ pkg, onOpen, onEdit, onDelete }: {
       <CardContent className="p-4 pt-0">
         <div className="flex items-center gap-2 flex-wrap">
           <Badge variant="secondary" className="text-[10px]">
-            {pkg.items.length} Artikel
+            {t("packages.item_count_other", { count: pkg.items.length })}
           </Badge>
           {totalQty > 0 && (
-            <Badge variant="secondary" className="text-[10px]">{totalQty} Stück</Badge>
+            <Badge variant="secondary" className="text-[10px]">{t("packages.quantity_count", { count: totalQty })}</Badge>
           )}
         </div>
         <div className="flex items-center gap-1 mt-3 text-xs text-muted-foreground">
-          <span>Bearbeiten</span>
+          <span>{t("packages.edit_action")}</span>
           <ChevronRight className="h-3 w-3" />
         </div>
       </CardContent>
@@ -641,6 +645,7 @@ export default function PackagesPage({ embedded = false }: PackagesPageProps) {
     removeItemFromPackage, reorderPackageItems,
   } = usePackages();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [formOpen,  setFormOpen]  = useState(false);
   const [editPkg,   setEditPkg]   = useState<PackageWithItems | null>(null);
@@ -662,13 +667,13 @@ export default function PackagesPage({ embedded = false }: PackagesPageProps) {
 
   const handleCreate = async (data: PackageFormData) => {
     await createPackage(data);
-    toast({ title: 'Paket erstellt', description: `"${data.name}" wurde angelegt.` });
+    toast({ title: t("packages.created_title"), description: t("packages.created_desc", { name: data.name }) });
   };
 
   const handleUpdate = async (data: PackageFormData) => {
     if (!editPkg) return;
     await updatePackage(editPkg.id, data);
-    toast({ title: 'Paket aktualisiert' });
+    toast({ title: t("packages.updated_title") });
     setEditPkg(null);
   };
 
@@ -688,7 +693,7 @@ export default function PackagesPage({ embedded = false }: PackagesPageProps) {
     }
 
     await deletePackage(deleteId);
-    toast({ title: 'Paket gelöscht' });
+    toast({ title: t("packages.deleted_title") });
     if (editorPkg?.id === deleteId) setEditorPkg(null);
     setDeleteId(null);
   };
@@ -714,7 +719,7 @@ export default function PackagesPage({ embedded = false }: PackagesPageProps) {
           <div className="relative flex-1 min-w-[160px] max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Pakete durchsuchen..."
+              placeholder={t("packages.search_placeholder")}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-9 h-9 text-sm"
@@ -726,8 +731,8 @@ export default function PackagesPage({ embedded = false }: PackagesPageProps) {
 
         <Button onClick={() => setFormOpen(true)} className="gap-1.5 h-9 shrink-0 active:scale-95 transition-transform">
           <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Neues Paket</span>
-          <span className="sm:hidden">Neu</span>
+          <span className="hidden sm:inline">{t("packages.btn_new")}</span>
+          <span className="sm:hidden">{t("packages.btn_new_short")}</span>
         </Button>
       </div>
 
@@ -741,12 +746,12 @@ export default function PackagesPage({ embedded = false }: PackagesPageProps) {
             <Card className="border-dashed">
               <CardContent className="flex flex-col items-center justify-center py-14 text-center">
                 <Layers className="h-12 w-12 text-muted-foreground/40 mb-3" />
-                <p className="text-sm font-medium">Noch keine Pakete erstellt</p>
+                <p className="text-sm font-medium">{t("packages.no_packages")}</p>
                 <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-                  Erstelle wiederverwendbare Vorlagen wie „DJ-Set" oder „Licht-Basic" und füge sie dann deinen Projekten hinzu.
+                  {t("packages.no_packages_desc")}
                 </p>
                 <Button className="mt-4 gap-1.5" size="sm" onClick={() => setFormOpen(true)}>
-                  <Plus className="h-4 w-4" /> Erstes Paket erstellen
+                  <Plus className="h-4 w-4" /> {t("packages.btn_first")}
                 </Button>
               </CardContent>
             </Card>
@@ -756,7 +761,7 @@ export default function PackagesPage({ embedded = false }: PackagesPageProps) {
           {packages.length > 0 && filtered.length === 0 && (
             <div className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
               <Search className="h-8 w-8 opacity-20" />
-              <p className="text-sm">Keine Pakete für „{search}"</p>
+              <p className="text-sm">{t("packages.no_search_results", { search })}</p>
             </div>
           )}
 
@@ -784,19 +789,19 @@ export default function PackagesPage({ embedded = false }: PackagesPageProps) {
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
                   <Layers className="h-5 w-5 text-primary" />
                 </div>
-                <p className="text-sm font-semibold">Was sind Pakete?</p>
+                <p className="text-sm font-semibold">{t("packages.what_are_packages")}</p>
                 <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                  Pakete sind wiederverwendbare Equipment-Vorlagen. Erstelle z.B. ein „DJ-Set" einmal und füge es dann beliebigen Projekten hinzu.
+                  {t("packages.packages_description")}
                 </p>
               </CardContent>
             </Card>
             <Card className="border-dashed">
               <CardContent className="p-5">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Tipps</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t("packages.tips")}</p>
                 <ul className="text-xs text-muted-foreground space-y-2">
-                  <li className="flex gap-2"><span className="text-primary shrink-0">→</span> Klicke auf ein Paket um Artikel hinzuzufügen</li>
-                  <li className="flex gap-2"><span className="text-primary shrink-0">→</span> Auf Desktop per Drag & Drop befüllen</li>
-                  <li className="flex gap-2"><span className="text-primary shrink-0">→</span> Ein Paket kann in beliebig vielen Projekten verwendet werden</li>
+                  <li className="flex gap-2"><span className="text-primary shrink-0">→</span> {t("packages.tip_1")}</li>
+                  <li className="flex gap-2"><span className="text-primary shrink-0">→</span> {t("packages.tip_2")}</li>
+                  <li className="flex gap-2"><span className="text-primary shrink-0">→</span> {t("packages.tip_3")}</li>
                 </ul>
               </CardContent>
             </Card>
@@ -839,18 +844,18 @@ export default function PackagesPage({ embedded = false }: PackagesPageProps) {
       <AlertDialog open={!!deleteId} onOpenChange={v => !v && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Paket löschen?</AlertDialogTitle>
+            <AlertDialogTitle>{t("packages.delete_title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Das Paket wird unwiderruflich gelöscht. Projekte, die dieses Paket bereits verwenden, behalten ihre Artikel.
+              {t("packages.delete_description")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Löschen
+              {t("packages.delete_button")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

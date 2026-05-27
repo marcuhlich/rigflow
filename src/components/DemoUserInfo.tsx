@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Lock, Sparkles, Shield, Slash, BadgeAlert } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 function Ring({ size, delay = 0 }: { size: number; delay?: number }) {
   return (
@@ -15,6 +16,9 @@ function Ring({ size, delay = 0 }: { size: number; delay?: number }) {
 
 export default function DemoBlockedSettings() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const blockedItems: string[] = t('demo.blocked_items', { returnObjects: true }) as string[];
 
   return (
     <div className="relative overflow-hidden text-[#F9FAFB] pt-6 pb-20">
@@ -29,39 +33,31 @@ export default function DemoBlockedSettings() {
           <section className="rounded-2xl border border-white/10 bg-[rgba(31,41,55,0.65)] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl sm:p-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#34D399]/20 bg-[#34D399]/10 px-3 py-1 text-[12px] font-medium text-[#34D399]">
               <BadgeAlert size={14} />
-              Demo-Account
+              {t('demo.badge')}
             </div>
 
             <div className="mt-6 max-w-xl">
               <h1 className="text-3xl font-semibold tracking-tight text-[#F9FAFB] sm:text-4xl">
-                Einstellungen sind im Demo-Modus nicht verfügbar.
+                {t('demo.title')}
               </h1>
               <p className="mt-4 text-[15px] leading-7 text-[#9CA3AF] sm:text-[16px]">
-                Du verwendest gerade den Demo-Account. Alle Einstellungen sind deshalb
-                schreibgeschützt. So bleibt die Demo für alle Nutzer stabil
-                und unverändert.
+                {t('demo.description')}
               </p>
             </div>
 
             <div className="mt-8 rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
-                {[
-                    "Profilinformationen bearbeiten",
-                    "Passwort ändern",
-                    "Zwei-Faktor-Authentifizierung",
-                    "Benachrichtigungseinstellungen",
-                    "Erscheinungsbild anpassen",
-                ].map((item, index) => (
-                    <motion.div
-                    key={item}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.08 * index, duration: 0.25 }}
-                    className="flex items-center gap-3 text-sm text-[#9CA3AF]"
-                    >
-                    <Lock size={13} className="shrink-0 text-red-400" />
-                    {item}
-                    </motion.div>
-                ))}
+              {blockedItems.map((item, index) => (
+                <motion.div
+                  key={item}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.08 * index, duration: 0.25 }}
+                  className="flex items-center gap-3 text-sm text-[#9CA3AF]"
+                >
+                  <Lock size={13} className="shrink-0 text-red-400" />
+                  {item}
+                </motion.div>
+              ))}
             </div>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -69,14 +65,14 @@ export default function DemoBlockedSettings() {
                 onClick={() => navigate("/")}
                 className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[#34D399] px-5 py-3 text-sm font-medium text-[#0B1F1A] shadow-[0_10px_30px_rgba(52,211,153,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_40px_rgba(52,211,153,0.24)] active:translate-y-0"
               >
-                Zum Dashboard
+                {t('demo.go_dashboard')}
                 <ArrowRight className="transition group-hover:translate-x-0.5" size={16} />
               </button>
               <button
                 onClick={() => navigate("/auth")}
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-transparent px-5 py-3 text-sm font-medium text-[#F9FAFB] transition hover:border-white/20 hover:bg-white/[0.04]"
               >
-                Mit eigenem Konto anmelden
+                {t('demo.sign_in_own_account')}
               </button>
             </div>
           </section>
@@ -102,14 +98,14 @@ export default function DemoBlockedSettings() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-[#9CA3AF]">
                     <Shield size={16} className="text-[#34D399]" />
-                    Geschützter Bereich
+                    {t('demo.protected_area')}
                   </div>
                   <motion.div
                     animate={{ scale: [1, 1.06, 1] }}
                     transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
                     className="rounded-full border border-[#34D399]/20 bg-[#34D399]/10 px-3 py-1 text-[12px] text-[#34D399]"
                   >
-                    Gesperrt
+                    {t('demo.locked')}
                   </motion.div>
                 </div>
 
@@ -133,11 +129,10 @@ export default function DemoBlockedSettings() {
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <div className="flex items-center gap-2 text-sm font-medium text-[#F9FAFB]">
                     <Sparkles size={15} className="text-[#F59E0B]" />
-                    Kein Fehler — so gewollt.
+                    {t('demo.not_a_bug_title')}
                   </div>
                   <p className="mt-2 text-sm leading-6 text-[#9CA3AF]">
-                    Die Einstellungen sind eingefroren, damit der Demo-Account für alle
-                    Besucher gleich aussieht und niemand versehentlich etwas verändert.
+                    {t('demo.not_a_bug_desc')}
                   </p>
                 </div>
               </motion.div>

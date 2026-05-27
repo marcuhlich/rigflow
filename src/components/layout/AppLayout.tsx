@@ -1,6 +1,6 @@
 import { ReactNode, useRef, useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, Sliders, FolderKanban, HandCoins, MoreHorizontal, Search } from "lucide-react";
+import { LayoutDashboard, Package, Sliders, FolderKanban, HandCoins, MoreHorizontal } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { UndoRedoButtons } from "@/components/UndoRedoButtons";
@@ -11,6 +11,8 @@ import { injectSpeedInsights } from '@vercel/speed-insights';
 import { Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { hapticFeedback } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 injectSpeedInsights();
 
@@ -18,17 +20,31 @@ interface AppLayoutProps {
   children: ReactNode;
 }
 
-const navItems = [
-  { to: "/",          icon: LayoutDashboard, label: "Dashboard", mobileLabel: "Home"     },
-  { to: "/inventory", icon: Package,         label: "Inventar",  mobileLabel: "Inventar" },
-  { to: "/projects",  icon: FolderKanban,    label: "Projekte",  mobileLabel: "Projekte" },
-  { to: "/lending",   icon: HandCoins,       label: "Verleih",   mobileLabel: "Verleih"  },
-  { to: "/dmx",       icon: Sliders,         label: "DMX",       mobileLabel: "DMX"      },
-];
+interface NavItem {
+  to: string;
+  icon: React.ElementType;
+  label: string;
+  mobileLabel: string;
+}
+
+function getNavItems(t: TFunction): NavItem[] {
+  return [
+    { to: "/",          icon: LayoutDashboard, label: t("nav.dashboard"), mobileLabel: t("nav.home")      },
+    { to: "/inventory", icon: Package,         label: t("nav.inventory"), mobileLabel: t("nav.inventory") },
+    { to: "/projects",  icon: FolderKanban,    label: t("nav.projects"),  mobileLabel: t("nav.projects")  },
+    { to: "/lending",   icon: HandCoins,       label: t("nav.lending"),   mobileLabel: t("nav.lending")   },
+    { to: "/dmx",       icon: Sliders,         label: t("nav.dmx"),       mobileLabel: t("nav.dmx")       },
+  ];
+}
 
 const MOBILE_NAV_COUNT = 5;
 
-function LiquidGlassNav() {
+interface LiquidGlassNavProps {
+  navItems: NavItem[];
+}
+
+function LiquidGlassNav({ navItems }: LiquidGlassNavProps) {
+  const { t } = useTranslation();
   const location = useLocation();
   const navRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
@@ -157,22 +173,22 @@ function LiquidGlassNav() {
           })}
 
           {moreItems.length > 0 && (
-          <button
-            ref={(el) => { itemRefs.current[MOBILE_NAV_COUNT] = el as any; }}
-            onClick={() => setMoreOpen((v) => !v)}
-            className={cn(
-              "relative z-10 flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-[16px] text-[10px] font-medium transition-all duration-300 min-w-[52px]",
-              isMoreActive || moreOpen ? "text-primary" : "text-muted-foreground/70 active:scale-95"
-            )}
-          >
-            <MoreHorizontal
-              className={cn("h-[22px] w-[22px] transition-all duration-300", (isMoreActive || moreOpen) && "drop-shadow-[0_0_6px_hsl(var(--primary)/0.4)]")}
-              strokeWidth={isMoreActive || moreOpen ? 2.2 : 1.8}
-            />
-            <span className={cn("transition-all duration-300", isMoreActive || moreOpen ? "opacity-100" : "opacity-60")}>
-              Mehr
-            </span>
-          </button>
+            <button
+              ref={(el) => { itemRefs.current[MOBILE_NAV_COUNT] = el as any; }}
+              onClick={() => setMoreOpen((v) => !v)}
+              className={cn(
+                "relative z-10 flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-[16px] text-[10px] font-medium transition-all duration-300 min-w-[52px]",
+                isMoreActive || moreOpen ? "text-primary" : "text-muted-foreground/70 active:scale-95"
+              )}
+            >
+              <MoreHorizontal
+                className={cn("h-[22px] w-[22px] transition-all duration-300", (isMoreActive || moreOpen) && "drop-shadow-[0_0_6px_hsl(var(--primary)/0.4)]")}
+                strokeWidth={isMoreActive || moreOpen ? 2.2 : 1.8}
+              />
+              <span className={cn("transition-all duration-300", isMoreActive || moreOpen ? "opacity-100" : "opacity-60")}>
+                {t("nav.more")}
+              </span>
+            </button>
           )}
         </nav>
       </div>
@@ -181,6 +197,7 @@ function LiquidGlassNav() {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { canUndo, canRedo, onUndo, onRedo } = useUndoRedoContext();
   const isMobile = useIsMobile();
@@ -189,25 +206,27 @@ export function AppLayout({ children }: AppLayoutProps) {
   const isSettingsRoute = location.pathname.startsWith("/settings");
   const isActive = isSettingsRoute;
 
+  const navItems = getNavItems(t);
+
   return (
     <div className="h-screen flex flex-col relative overflow-hidden">
       {/* ── Header ── */}
       <header
-          className="shrink-0 top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40 pt-[env(safe-area-inset-top)]"
-          style={{
-            '--header-h': 'calc(3rem + env(safe-area-inset-top))',
-          } as React.CSSProperties}
-        >
+        className="shrink-0 top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40 pt-[env(safe-area-inset-top)]"
+        style={{
+          '--header-h': 'calc(3rem + env(safe-area-inset-top))',
+        } as React.CSSProperties}
+      >
         <div className="max-w-7xl mx-auto px-3 sm:px-6 h-12 lg:h-14 flex items-center justify-between gap-2">
 
           {/* Left: Logo */}
           <div className="flex items-center gap-2 shrink-0 lg:w-[180px]">
             <img
               src="/pwa-192x192.png"
-              alt="Rigflow Logo"
+              alt="RigFlow"
               className="w-7 h-7 sm:w-7 sm:h-7 rounded-lg object-cover"
             />
-            <span className="text-sm font-semibold tracking-tight xs:block">Rigflow</span>
+            <span className="text-sm font-semibold tracking-tight xs:block">RigFlow</span>
 
             {showUndoRedo && isMobile && (
               <div className="ml-1 scale-90 origin-left">
@@ -276,22 +295,16 @@ export function AppLayout({ children }: AppLayoutProps) {
       </header>
 
       {/* Mobile Bottom Nav */}
-      <LiquidGlassNav />
+      <LiquidGlassNav navItems={navItems} />
 
       {/* Main Content */}
       <main
         className={cn(
           "flex-1 overflow-x-hidden pb-24 lg:pb-8",
-          // Settings routes own their own layout — no padding or max-w centering here.
-          // SettingsLayout takes full width and positions itself flush to the viewport.
           !isSettingsRoute && "px-3 sm:px-4 lg:px-8"
         )}
       >
         {isSettingsRoute ? (
-          // Render settings children directly — SettingsLayout handles its own
-          // animated Outlet wrapper, so we don't add a key/transform here.
-          // This prevents SettingsLayout (and its sidebar) from remounting on
-          // every sub-page navigation.
           children
         ) : (
           <div

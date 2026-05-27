@@ -18,6 +18,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { InventoryItem } from "@/types/inventory";
+import { useTranslation } from "react-i18next";
 
 interface TrashDrawerProps {
   open: boolean;
@@ -35,10 +36,11 @@ function getDaysRemaining(deletedAt: string): number {
   return Math.max(0, 30 - daysInTrash);
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("de-DE", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-  });
+function formatDate(dateStr: string, lang: string): string {
+  return new Date(dateStr).toLocaleDateString(
+    lang.startsWith("de") ? "de-DE" : "en-US",
+    { day: "2-digit", month: "2-digit", year: "numeric" },
+  );
 }
 
 export function TrashDrawer({
@@ -46,6 +48,7 @@ export function TrashDrawer({
 }: TrashDrawerProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t, i18n } = useTranslation();
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
@@ -83,14 +86,14 @@ export function TrashDrawer({
       setSelectedIds(prev => { const n = new Set(prev); n.delete(id); return n; });
       if (restored) {
         toast({
-          title: "Item wiederhergestellt",
-          description: `„${restored.name}" ist wieder verfügbar.`,
+          title: t("trash.restored_title"),
+          description: t("trash.restored_description", { name: restored.name }),
           action: (
             <ToastAction
-              altText="Zum Item"
+              altText={t("trash.go_to_item")}
               onClick={() => { onClose(); navigate(`/inventory/${restored.id}`); }}
             >
-              Zum Item
+              {t("trash.go_to_item")}
             </ToastAction>
           ),
         });
@@ -103,7 +106,10 @@ export function TrashDrawer({
       await onRestore(id);
     }
     setSelectedIds(new Set());
-    toast({ title: "Items wiederhergestellt", description: "Alle ausgewählten Items sind wieder verfügbar." });
+    toast({
+      title: t("trash.bulk_restored_title"),
+      description: t("trash.bulk_restored_description"),
+    });
   };
 
   const handlePermanentDelete = async (id: string) => {
@@ -127,7 +133,10 @@ export function TrashDrawer({
       await onEmptyTrash();
       setSelectedIds(new Set());
       setConfirmEmptyOpen(false);
-      toast({ title: "Papierkorb geleert", description: "Alle Items wurden endgültig gelöscht." });
+      toast({
+        title: t("trash.emptied_title"),
+        description: t("trash.emptied_description"),
+      });
     } catch { /* handled in hook */ }
   };
 
@@ -142,9 +151,13 @@ export function TrashDrawer({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <Trash2 className="h-5 w-5 text-muted-foreground" />
-                <SheetTitle className="text-base font-semibold">Papierkorb</SheetTitle>
+                <SheetTitle className="text-base font-semibold">
+                  {t("trash.title")}
+                </SheetTitle>
                 {trashedItems.length > 0 && (
-                  <Badge variant="secondary" className="text-xs tabular-nums">{trashedItems.length}</Badge>
+                  <Badge variant="secondary" className="text-xs tabular-nums">
+                    {trashedItems.length}
+                  </Badge>
                 )}
               </div>
               {trashedItems.length > 0 && (
@@ -154,12 +167,12 @@ export function TrashDrawer({
                   className="text-destructive hover:text-destructive hover:bg-destructive/10 text-xs h-8 px-3"
                   onClick={() => setConfirmEmptyOpen(true)}
                 >
-                  Leeren
+                  {t("trash.empty_button")}
                 </Button>
               )}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5 text-left font-normal">
-              Items werden nach 30 Tagen automatisch endgültig gelöscht.
+              {t("trash.auto_delete_hint")}
             </p>
           </SheetHeader>
 
@@ -174,7 +187,9 @@ export function TrashDrawer({
                 className="overflow-hidden flex-shrink-0"
               >
                 <div className="flex items-center justify-between px-5 py-3 bg-muted/50 border-b border-border">
-                  <span className="text-xs text-muted-foreground">{selectedIds.size} ausgewählt</span>
+                  <span className="text-xs text-muted-foreground">
+                    {t("batch.selected_count", { count: selectedIds.size })}
+                  </span>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
@@ -183,7 +198,7 @@ export function TrashDrawer({
                       onClick={handleBulkRestore}
                     >
                       <RotateCcw className="h-3 w-3" />
-                      Wiederherstellen
+                      {t("trash.restore")}
                     </Button>
                     <Button
                       size="sm"
@@ -192,7 +207,7 @@ export function TrashDrawer({
                       onClick={() => setConfirmBulkDelete(true)}
                     >
                       <Trash2 className="h-3 w-3" />
-                      Löschen
+                      {t("common.delete")}
                     </Button>
                   </div>
                 </div>
@@ -211,7 +226,9 @@ export function TrashDrawer({
                 onCheckedChange={toggleSelectAll}
                 className="h-3.5 w-3.5 pointer-events-none"
               />
-              <span className="text-xs text-muted-foreground">Alle auswählen</span>
+              <span className="text-xs text-muted-foreground">
+                {t("trash.select_all")}
+              </span>
             </div>
           )}
 
@@ -231,9 +248,11 @@ export function TrashDrawer({
                 <div className="w-16 h-16 rounded-2xl bg-muted/60 flex items-center justify-center mb-4">
                   <PackageX className="h-7 w-7 text-muted-foreground/40" />
                 </div>
-                <p className="font-semibold text-sm text-foreground mb-1.5">Alles sauber!</p>
+                <p className="font-semibold text-sm text-foreground mb-1.5">
+                  {t("trash.empty_title")}
+                </p>
                 <p className="text-xs text-muted-foreground leading-relaxed max-w-[220px]">
-                  Gelöschte Items erscheinen hier für 30 Tage, bevor sie endgültig entfernt werden.
+                  {t("trash.empty_description")}
                 </p>
               </motion.div>
             ) : (
@@ -254,46 +273,48 @@ export function TrashDrawer({
                             ? "border-destructive/30 bg-destructive/5"
                             : "border-border bg-card hover:bg-muted/30"
                             }`}
-                        >
+                      >
                         <Checkbox
-                            checked={selectedIds.has(item.id)}
-                            onCheckedChange={() => toggleSelect(item.id)}
-                            className="h-4 w-4 flex-shrink-0"
+                          checked={selectedIds.has(item.id)}
+                          onCheckedChange={() => toggleSelect(item.id)}
+                          className="h-4 w-4 flex-shrink-0"
                         />
                         <div className="flex-1 min-w-0 space-y-1">
-                            <p className="text-sm font-medium truncate">{item.name}</p>
-                            <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-sm font-medium truncate">{item.name}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <Badge variant="outline" className="text-[10px] px-1.5 h-4 font-normal">
-                                {item.category}
+                              {item.category}
                             </Badge>
                             <Badge
-                                variant={isUrgent ? "destructive" : "secondary"}
-                                className="text-[10px] px-1.5 h-4"
+                              variant={isUrgent ? "destructive" : "secondary"}
+                              className="text-[10px] px-1.5 h-4"
                             >
-                                {daysRemaining}d verbleibend
+                              {t("trash.days_remaining", { count: daysRemaining })}
                             </Badge>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground">{formatDate(item.deleted_at!)}</p>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">
+                            {formatDate(item.deleted_at!, i18n.language)}
+                          </p>
                         </div>
                         <div className="flex gap-1.5 flex-shrink-0">
-                            <Button
+                          <Button
                             variant="outline"
                             size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5"
-                            title="Wiederherstellen"
+                            title={t("trash.restore")}
                             onClick={() => handleRestore(item.id)}
-                            >
+                          >
                             <RotateCcw className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
+                          </Button>
+                          <Button
                             variant="outline"
                             size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/5"
-                            title="Endgültig löschen"
+                            title={t("trash.permanent_delete")}
                             onClick={() => setConfirmDeleteId(item.id)}
-                            >
+                          >
                             <X className="h-3.5 w-3.5" />
-                            </Button>
+                          </Button>
                         </div>
                       </motion.li>
                     );
@@ -311,20 +332,19 @@ export function TrashDrawer({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />
-              Papierkorb leeren?
+              {t("trash.confirm_empty_title")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {trashedItems.length} Item{trashedItems.length !== 1 ? "s" : ""} werden endgültig
-              gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
+              {t("trash.confirm_empty_description", { count: trashedItems.length })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={handleEmptyTrash}
             >
-              Endgültig löschen
+              {t("trash.permanent_delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -336,19 +356,19 @@ export function TrashDrawer({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />
-              Endgültig löschen?
+              {t("trash.confirm_delete_title")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Dieses Item wird dauerhaft entfernt und kann nicht wiederhergestellt werden.
+              {t("trash.confirm_delete_description")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => confirmDeleteId && handlePermanentDelete(confirmDeleteId)}
             >
-              Löschen
+              {t("trash.permanent_delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -360,20 +380,19 @@ export function TrashDrawer({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />
-              {selectedIds.size} Items endgültig löschen?
+              {t("trash.confirm_bulk_delete_title", { count: selectedIds.size })}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Diese {selectedIds.size} Items werden dauerhaft entfernt und können nicht
-              wiederhergestellt werden.
+              {t("trash.confirm_bulk_delete_description", { count: selectedIds.size })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={handleBulkDelete}
             >
-              Endgültig löschen
+              {t("trash.permanent_delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

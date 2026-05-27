@@ -1,34 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
+  CommandDialog, CommandEmpty, CommandGroup, CommandInput,
+  CommandItem, CommandList, CommandSeparator,
 } from '@/components/ui/command';
 import {
-  Home,
-  Package,
-  Calendar,
-  Moon,
-  Sun,
-  MessageSquare,
-  FileText,
-  Plus,
-  LogOut,
-  Clock,
-  Search,
-  QrCode,
-  LayoutGrid,
-  CheckSquare,
+  Home, Package, Calendar, Moon, Sun, MessageSquare,
+  FileText, Plus, LogOut, Clock, Search, QrCode, LayoutGrid, CheckSquare,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRecentItems } from '@/hooks/useRecentItems';
 import { useToast } from '@/hooks/use-toast';
-import styles from './CommandPalette.module.css';
+import { useTranslation } from 'react-i18next';
+import styles from '@/styles/CommandPalette.module.css';
 
 interface CommandItem {
   id: string;
@@ -47,6 +31,7 @@ interface CommandGroup {
 }
 
 export function CommandPalette() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(
     () => document.documentElement.classList.contains('dark')
@@ -56,7 +41,6 @@ export function CommandPalette() {
   const { recentItems, addItem } = useRecentItems();
   const { toast } = useToast();
 
-  // Listen to dark mode changes
   useEffect(() => {
     const observer = new MutationObserver(() => {
       setIsDarkMode(document.documentElement.classList.contains('dark'));
@@ -68,182 +52,101 @@ export function CommandPalette() {
     return () => observer.disconnect();
   }, []);
 
-  // Keyboard Listener für Shortcuts
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       const isMeta = e.metaKey || e.ctrlKey;
-      const isTyping = document.activeElement?.tagName === "INPUT" || 
+      const isTyping = document.activeElement?.tagName === "INPUT" ||
                        document.activeElement?.tagName === "TEXTAREA";
 
-      // ⌘/Ctrl + K: Toggle Command Palette
       if (e.key === 'k' && isMeta) {
         e.preventDefault();
         setOpen((open) => !open);
       }
 
-      // Nur wenn die Palette geschlossen ist und man nicht in einem Input-Feld tippt
       if (open || isTyping) return;
 
-      // ⌘/Ctrl + I: Go to Inventory
       if (e.key === 'i' && isMeta) {
         e.preventDefault();
         navigate('/inventory');
-        addItem({
-          id: 'go-inventory',
-          title: 'Zum Inventar',
-          category: 'Navigation',
-          path: '/inventory',
-        });
+        addItem({ id: 'go-inventory', title: t('command.nav.inventory_title'), category: t('command.groups.navigation'), path: '/inventory' });
       }
-
-      // ⌘/Ctrl + E: Go to Events
       if (e.key === 'e' && isMeta) {
         e.preventDefault();
         navigate('/projects');
-        addItem({
-          id: 'go-projects',
-          title: 'Zu den Projekten',
-          category: 'Navigation',
-          path: '/projects',
-        });
+        addItem({ id: 'go-projects', title: t('command.nav.projects_title'), category: t('command.groups.navigation'), path: '/projects' });
       }
-
-      // ⌘/Ctrl + F: Focus on Search (opens palette)
-      if (e.key === 'f' && isMeta) {
-        e.preventDefault();
-        setOpen(true);
-      }
-
-      // ⌘/Ctrl + N: New Item
+      if (e.key === 'f' && isMeta) { e.preventDefault(); setOpen(true); }
       if (e.key === 'n' && isMeta) {
         e.preventDefault();
         navigate('/inventory');
-        addItem({
-          id: 'new-item',
-          title: 'Neues Item erstellen',
-          category: 'Aktionen',
-        });
+        addItem({ id: 'new-item', title: t('command.actions.new_item_title'), category: t('command.groups.actions') });
       }
-
-      // ⌘/Ctrl + Shift + Q: Logout
-      if (e.key === 'Q' && isMeta && e.shiftKey) {
-        e.preventDefault();
-        signOut();
-      }
-
-      // ⌘/Ctrl + S: Open QR Scanner
-      if (e.key === 's' && isMeta) {
-        e.preventDefault();
-        navigate('/scanner');
-      }
-
-      // --- Einfache Tasten (nur wenn NICHT in Input und NICHT beim Tippen) ---
-
-      // / - Focus Search (opens palette)
-      if (e.key === '/') {
-        e.preventDefault();
-        setOpen(true);
-      }
-
-      // n - New Item
+      if (e.key === 'Q' && isMeta && e.shiftKey) { e.preventDefault(); signOut(); }
+      if (e.key === 's' && isMeta) { e.preventDefault(); navigate('/scanner'); }
+      if (e.key === '/') { e.preventDefault(); setOpen(true); }
       if (e.key === 'n' && !isMeta) {
         e.preventDefault();
         navigate('/inventory');
-        addItem({
-          id: 'new-item',
-          title: 'Neues Item erstellen',
-          category: 'Aktionen',
-        });
+        addItem({ id: 'new-item', title: t('command.actions.new_item_title'), category: t('command.groups.actions') });
       }
-
-      // + - New Item (alternative)
       if (e.key === '+') {
         e.preventDefault();
         navigate('/inventory');
-        addItem({
-          id: 'new-item',
-          title: 'Neues Item erstellen',
-          category: 'Aktionen',
-        });
+        addItem({ id: 'new-item', title: t('command.actions.new_item_title'), category: t('command.groups.actions') });
       }
-
-      // s - Open QR Scanner (navigates to scanner)
-      if (e.key === 's') {
-        e.preventDefault();
-        navigate('/scanner');
-      }
-
-      // v - Toggle View (navigates to inventory)
-      if (e.key === 'v') {
-        e.preventDefault();
-        navigate('/inventory');
-      }
-
-      // m - Selection Mode (navigates to inventory)
-      if (e.key === 'm') {
-        e.preventDefault();
-        navigate('/inventory');
-      }
+      if (e.key === 's') { e.preventDefault(); navigate('/scanner'); }
+      if (e.key === 'v') { e.preventDefault(); navigate('/inventory'); }
+      if (e.key === 'm') { e.preventDefault(); navigate('/inventory'); }
     };
 
     document.addEventListener('keydown', down);
     return () => document.removeEventListener('keydown', down);
-  }, [open, navigate, addItem, signOut]);
+  }, [open, navigate, addItem, signOut, t]);
 
   const handleNavigation = (href: string, title: string, id: string) => {
     navigate(href);
-    // Recent Item hinzufügen
-    addItem({
-      id,
-      title,
-      category: 'Navigation',
-      path: href,
-    });
+    addItem({ id, title, category: t('command.groups.navigation'), path: href });
     setOpen(false);
   };
 
   const handleAction = (action: () => void, title: string) => {
     action();
-    addItem({
-      id: title.toLowerCase().replace(/\s/g, '-'),
-      title,
-      category: 'Aktionen',
-    });
+    addItem({ id: title.toLowerCase().replace(/\s/g, '-'), title, category: t('command.groups.actions') });
     setOpen(false);
   };
 
   const groups: CommandGroup[] = [
     {
       id: 'navigation',
-      title: 'Navigation',
+      title: t('command.groups.navigation'),
       items: [
         {
           id: 'go-inventory',
-          title: 'Zum Inventar',
-          description: 'Alle deine Gegenstände verwalten',
+          title: t('command.nav.inventory_title'),
+          description: t('command.nav.inventory_desc'),
           icon: <Package className="h-4 w-4" />,
           shortcut: '⌘ I',
           href: '/inventory',
         },
         {
           id: 'go-projects',
-          title: 'Zu den Projekten',
-          description: 'Projekt-Management und Event-Planung',
+          title: t('command.nav.projects_title'),
+          description: t('command.nav.projects_desc'),
           icon: <Calendar className="h-4 w-4" />,
           shortcut: '⌘ E',
           href: '/projects',
         },
         {
           id: 'go-lending',
-          title: 'Ausleih-Geschichte',
-          description: 'Leih- und Rückgabeverlauf',
+          title: t('command.nav.lending_title'),
+          description: t('command.nav.lending_desc'),
           icon: <Clock className="h-4 w-4" />,
           href: '/lending',
         },
         {
           id: 'go-profile',
-          title: 'Profil',
-          description: 'Kontoinformationen & Einstellungen',
+          title: t('command.nav.profile_title'),
+          description: t('command.nav.profile_desc'),
           icon: <Home className="h-4 w-4" />,
           href: '/settings',
         },
@@ -251,74 +154,57 @@ export function CommandPalette() {
     },
     {
       id: 'actions',
-      title: 'Aktionen',
+      title: t('command.groups.actions'),
       items: [
         {
           id: 'new-item',
-          title: 'Neues Item erstellen',
-          description: 'Ein neues Inventar-Item hinzufügen',
+          title: t('command.actions.new_item_title'),
+          description: t('command.actions.new_item_desc'),
           icon: <Plus className="h-4 w-4" />,
           shortcut: '⌘ N / n / +',
-          action: () => {
-            navigate('/inventory');
-          },
+          action: () => { navigate('/inventory'); },
         },
         {
           id: 'search-inventory',
-          title: 'Inventar durchsuchen',
-          description: 'Nach Items suchen',
+          title: t('command.actions.search_title'),
+          description: t('command.actions.search_desc'),
           icon: <Search className="h-4 w-4" />,
           shortcut: '⌘ F / /',
-          action: () => {
-            navigate('/inventory');
-            setOpen(true);
-          },
+          action: () => { navigate('/inventory'); setOpen(true); },
         },
         {
           id: 'qr-scanner',
-          title: 'QR Scanner öffnen',
-          description: 'Items per QR-Code scannen',
+          title: t('command.actions.qr_title'),
+          description: t('command.actions.qr_desc'),
           icon: <QrCode className="h-4 w-4" />,
           shortcut: '⌘ S',
           action: () => {
             navigate('/scanner');
-            addItem({
-              id: 'qr-scanner',
-              title: 'QR Scanner öffnen',
-              category: 'Aktionen',
-            });
+            addItem({ id: 'qr-scanner', title: t('command.actions.qr_title'), category: t('command.groups.actions') });
             setOpen(false);
           },
         },
         {
           id: 'toggle-view',
-          title: 'Ansicht umschalten',
-          description: 'Zwischen Kacheln- und Listenansicht wechseln',
+          title: t('command.actions.toggle_view_title'),
+          description: t('command.actions.toggle_view_desc'),
           icon: <LayoutGrid className="h-4 w-4" />,
           shortcut: 'v',
           action: () => {
             navigate('/inventory?action=toggle-view');
-            addItem({
-              id: 'toggle-view',
-              title: 'Ansicht umschalten',
-              category: 'Aktionen',
-            });
+            addItem({ id: 'toggle-view', title: t('command.actions.toggle_view_title'), category: t('command.groups.actions') });
             setOpen(false);
           },
         },
         {
           id: 'selection-mode',
-          title: 'Mehrfachauswahl',
-          description: 'Mehrere Items gleichzeitig auswählen',
+          title: t('command.actions.selection_title'),
+          description: t('command.actions.selection_desc'),
           icon: <CheckSquare className="h-4 w-4" />,
           shortcut: 'm',
           action: () => {
             navigate('/inventory?action=toggle-selection');
-            addItem({
-              id: 'selection-mode',
-              title: 'Mehrfachauswahl',
-              category: 'Aktionen',
-            });
+            addItem({ id: 'selection-mode', title: t('command.actions.selection_title'), category: t('command.groups.actions') });
             setOpen(false);
           },
         },
@@ -326,74 +212,55 @@ export function CommandPalette() {
     },
     {
       id: 'appearance',
-      title: 'Design',
+      title: t('command.groups.appearance'),
       items: [
         {
           id: 'toggle-theme',
-          title: isDarkMode ? 'Hell-Modus' : 'Dunkel-Modus',
-          description: `Schalte auf ${isDarkMode ? 'Hellmodus' : 'Dunkelmodus'} um`,
-          icon:
-            isDarkMode ? (
-              <Sun className="h-4 w-4" />
-            ) : (
-              <Moon className="h-4 w-4" />
-            ),
+          title: isDarkMode ? t('command.appearance.light_mode') : t('command.appearance.dark_mode'),
+          description: isDarkMode ? t('command.appearance.switch_to_light') : t('command.appearance.switch_to_dark'),
+          icon: isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />,
           action: () => {
             const root = document.documentElement;
             const newTheme = isDarkMode ? 'hell' : 'dunkel';
             localStorage.setItem('rigflow:theme', newTheme);
-            if (newTheme === 'dunkel') {
-              root.classList.add('dark');
-            } else {
-              root.classList.remove('dark');
-            }
+            if (newTheme === 'dunkel') { root.classList.add('dark'); } else { root.classList.remove('dark'); }
             setIsDarkMode(!isDarkMode);
-            toast({
-              title: `${isDarkMode ? 'Hellmodus' : 'Dunkelmodus'} aktiviert`,
-            });
+            toast({ title: isDarkMode ? t('command.appearance.light_activated') : t('command.appearance.dark_activated') });
           },
         },
       ],
     },
     {
       id: 'support',
-      title: 'Support',
+      title: t('command.groups.support'),
       items: [
         {
           id: 'help',
-          title: 'Dokumentation',
-          description: 'Anleitung & Hilfe lesen',
+          title: t('command.support.docs_title'),
+          description: t('command.support.docs_desc'),
           icon: <FileText className="h-4 w-4" />,
-          action: () => {
-            window.open('/help', '_blank');
-          },
+          action: () => { window.open('/help', '_blank'); },
         },
         {
           id: 'feedback',
-          title: 'Feedback senden',
-          description: 'Fehler melden oder Features vorschlagen',
+          title: t('command.support.feedback_title'),
+          description: t('command.support.feedback_desc'),
           icon: <MessageSquare className="h-4 w-4" />,
-          action: () => {
-            window.location.href =
-              'mailto:?subject=Feedback - RigFlow';
-          },
+          action: () => { window.location.href = 'mailto:?subject=Feedback - RigFlow'; },
         },
       ],
     },
     {
       id: 'account',
-      title: 'Konto',
+      title: t('command.groups.account'),
       items: [
         {
           id: 'logout',
-          title: 'Abmelden',
-          description: `Abmelden als ${user?.email}`,
+          title: t('auth.logout'),
+          description: t('command.account.logout_desc', { email: user?.email }),
           icon: <LogOut className="h-4 w-4" />,
           shortcut: '⌘ ⇧ Q',
-          action: () => {
-            signOut();
-            setOpen(false);
-          },
+          action: () => { signOut(); setOpen(false); },
         },
       ],
     },
@@ -403,104 +270,81 @@ export function CommandPalette() {
     <CommandDialog open={open} onOpenChange={setOpen}>
       <div className={`${styles.commandPaletteContent} ${styles.commandPalette}`}>
         <CommandInput
-          placeholder="Suchst du nach einer Aktion oder Seite? Oder möchtest du etwas machen?"
+          placeholder={t('command.placeholder')}
           className="placeholder-muted-foreground/60"
         />
 
         <CommandList className="max-h-[400px]">
-        {/* Zuletzt verwendet */}
-        {recentItems.length > 0 && (
-          <>
-            <CommandGroup heading="Zuletzt verwendet" className="overflow-hidden">
-              {recentItems.map((item) => (
-                <CommandItem
-                  key={`recent-${item.id}`}
-                  value={`${item.title} ${item.category}`}
-                  onSelect={() => {
-                    if (item.path) {
-                      navigate(item.path);
-                      setOpen(false);
-                    }
-                  }}
-                  className="cursor-pointer"
-                >
-                  <Clock className="mr-2 h-4 w-4 opacity-60" />
-                  <span>{item.title}</span>
-                  <span className="ml-auto text-xs opacity-50">
-                    {item.category}
-                  </span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-            <CommandSeparator />
-          </>
-        )}
+          {recentItems.length > 0 && (
+            <>
+              <CommandGroup heading={t('command.recent')} className="overflow-hidden">
+                {recentItems.map((item) => (
+                  <CommandItem
+                    key={`recent-${item.id}`}
+                    value={`${item.title} ${item.category}`}
+                    onSelect={() => { if (item.path) { navigate(item.path); setOpen(false); } }}
+                    className="cursor-pointer"
+                  >
+                    <Clock className="mr-2 h-4 w-4 opacity-60" />
+                    <span>{item.title}</span>
+                    <span className="ml-auto text-xs opacity-50">{item.category}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+              <CommandSeparator />
+            </>
+          )}
 
-        {/* Alle Groups */}
-        {groups.map((group) => (
-          <div key={group.id}>
-            <CommandGroup heading={group.title}>
-              {group.items.map((item) => (
-                <CommandItem
-                  key={item.id}
-                  value={`${item.title} ${item.description || ''}`}
-                  onSelect={() => {
-                    if (item.href) {
-                      handleNavigation(item.href, item.title, item.id);
-                    } else if (item.action) {
-                      handleAction(item.action, item.title);
-                    }
-                  }}
-                  className="cursor-pointer"
-                >
-                  <div className="mr-2 h-4 w-4 flex items-center justify-center">
-                    {item.icon}
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">{item.title}</div>
-                    {item.description && (
-                      <div className="text-xs text-muted-foreground">
-                        {item.description}
-                      </div>
+          {groups.map((group) => (
+            <div key={group.id}>
+              <CommandGroup heading={group.title}>
+                {group.items.map((item) => (
+                  <CommandItem
+                    key={item.id}
+                    value={`${item.title} ${item.description || ''}`}
+                    onSelect={() => {
+                      if (item.href) { handleNavigation(item.href, item.title, item.id); }
+                      else if (item.action) { handleAction(item.action, item.title); }
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <div className="mr-2 h-4 w-4 flex items-center justify-center">{item.icon}</div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">{item.title}</div>
+                      {item.description && (
+                        <div className="text-xs text-muted-foreground">{item.description}</div>
+                      )}
+                    </div>
+                    {item.shortcut && (
+                      <span className="ml-auto text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
+                        {item.shortcut}
+                      </span>
                     )}
-                  </div>
-                  {item.shortcut && (
-                    <span className="ml-auto text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
-                      {item.shortcut}
-                    </span>
-                  )}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </div>
-        ))}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </div>
+          ))}
 
-        <CommandEmpty>
-          <div className="py-6 text-center text-sm">
-            <p className="text-muted-foreground mb-2">
-              Keine Aktion gefunden für „{/* search term */}"
-            </p>
-            <a
-              href="/help"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline text-xs"
-            >
-              Zur Dokumentation →
-            </a>
-          </div>
-        </CommandEmpty>
-      </CommandList>
+          <CommandEmpty>
+            <div className="py-6 text-center text-sm">
+              <p className="text-muted-foreground mb-2">{t('command.empty')}</p>
+              <a href="/help" rel="noopener noreferrer" className="text-primary hover:underline text-xs">
+                {t('command.docs_link')}
+              </a>
+            </div>
+          </CommandEmpty>
+        </CommandList>
 
-      {/* Footer Hinweis */}
-      <div className="border-t border-border/50 px-2 py-2 text-xs text-muted-foreground text-center">
-        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-foreground opacity-100">
-          <span className="text-xs">ESC</span>
-        </kbd>
-        <kbd className="pointer-events-none ml-2 inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-foreground opacity-100">
-          <span className="text-xs">⌘K</span>
-        </kbd>
-        {' zum Schließen'}{' '}
-      </div>
+        <div className="border-t border-border/50 px-2 py-2 text-xs text-muted-foreground text-center">
+          <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-foreground opacity-100">
+            <span className="text-xs">ESC</span>
+          </kbd>
+          <kbd className="pointer-events-none ml-2 inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-foreground opacity-100">
+            <span className="text-xs">⌘K</span>
+          </kbd>
+          {' '}{t('command.close_hint')}
+        </div>
       </div>
     </CommandDialog>
   );

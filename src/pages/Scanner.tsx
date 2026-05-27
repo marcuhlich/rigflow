@@ -1,11 +1,6 @@
 /**
  * Scanner.tsx — Wizard-basierter QR-Scanner
- *
- * Fixes in dieser Version:
- * - Race Condition fix: projectItemIds wird vollständig geladen bevor Scanner öffnet
- * - Auto-packed: gescannte Items werden in project_items als packed=true markiert
- * - Location update: bei Aufbau+Projekt wird location auf Projektnamen gesetzt
- * - Bestätigen-Bug: explizite Felder an updateItem, navigate ohne reset()
+ * i18n: scanner.*, condition.*, common.*
  */
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -32,7 +27,8 @@ import { useProjects } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { InventoryItem, ItemCondition } from "@/types/inventory";
-import { hapticFeedback, hapticStop } from '@/lib/utils';
+import { hapticFeedback } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,44 +40,11 @@ interface ScannedEntry {
   scannedAt: Date;
   targetStatus: ItemCondition;
   overrideStatus?: ItemCondition;
-  /** true = Item ist im Projekt erwartet, false = nicht im Projekt, undefined = kein Projekt gewählt */
   inSet?: boolean;
 }
 
 // ─── Konstanten ───────────────────────────────────────────────────────────────
 
-const MODES: {
-  id: ScanMode; label: string; description: string;
-  Icon: LucideIcon; colorClass: string; targetStatus: ItemCondition;
-}[] = [
-  {
-    id: "verleih", label: "Verleih", targetStatus: "verliehen",
-    Icon: Truck, colorClass: "text-blue-400 bg-blue-400/10 border-blue-400/20 hover:bg-blue-400/15",
-    description: "Equipment an eine Person ausgeben und als verliehen markieren",
-  },
-  {
-    id: "aufbau", label: "Aufbau", targetStatus: "in-einsatz",
-    Icon: Package, colorClass: "text-primary bg-primary/10 border-primary/20 hover:bg-primary/15",
-    description: "Items als 'Im Einsatz' markieren – optional gegen ein Projekt prüfen",
-  },
-  {
-    id: "abbau", label: "Abbau / Rückgabe", targetStatus: "verfügbar",
-    Icon: RotateCcw, colorClass: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20 hover:bg-emerald-400/15",
-    description: "Items zurückbuchen und Zustand beim Scannen erfassen",
-  },
-  {
-    id: "inventur", label: "Inventur", targetStatus: "verfügbar",
-    Icon: ClipboardList, colorClass: "text-muted-foreground bg-muted/10 border-muted/20 hover:bg-muted/15",
-    description: "Vorhandene Items erfassen und den Bestand überprüfen",
-  },
-];
-
-const COND_LABELS: Record<ItemCondition, string> = {
-  "verfügbar":  "Verfügbar",
-  "verliehen":  "Verliehen",
-  "in-einsatz": "Im Einsatz",
-  "defekt":     "Defekt",
-};
 const COND_COLORS: Record<ItemCondition, string> = {
   "verfügbar":  "bg-emerald-400/20 text-emerald-400 border-emerald-400/30",
   "verliehen":  "bg-blue-400/20 text-blue-400 border-blue-400/30",
@@ -97,6 +60,7 @@ const slide: MotionProps = {
 // ─── Hauptkomponente ──────────────────────────────────────────────────────────
 
 export default function Scanner() {
+  const { t } = useTranslation();
   const navigate       = useNavigate();
   const [searchParams] = useSearchParams();
   const { allItems, updateItem } = useInventory();
@@ -112,11 +76,53 @@ export default function Scanner() {
   const [dueDate,           setDueDate]          = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState<string>(urlProjectId);
   const [projectItemIds,    setProjectItemIds]   = useState<Set<string>>(new Set());
-  const [projectIdsLoaded,  setProjectIdsLoaded] = useState(false); // Fix 4: Race Condition
+  const [projectIdsLoaded,  setProjectIdsLoaded] = useState(false);
   const [scannerOpen,       setScannerOpen]      = useState(false);
   const [scannerKey,        setScannerKey]       = useState(0);
   const [entries,           setEntries]          = useState<ScannedEntry[]>([]);
   const [isProcessing,      setIsProcessing]     = useState(false);
+
+  // MODES wird hier gebaut, damit t() greift
+  const MODES: {
+    id: ScanMode; label: string; description: string;
+    Icon: LucideIcon; colorClass: string; targetStatus: ItemCondition;
+  }[] = [
+    {
+      id: "verleih", label: t('scanner.mode.verleih.label'),
+      targetStatus: "verliehen",
+      Icon: Truck,
+      colorClass: "text-blue-400 bg-blue-400/10 border-blue-400/20 hover:bg-blue-400/15",
+      description: t('scanner.mode.verleih.description'),
+    },
+    {
+      id: "aufbau", label: t('scanner.mode.aufbau.label'),
+      targetStatus: "in-einsatz",
+      Icon: Package,
+      colorClass: "text-primary bg-primary/10 border-primary/20 hover:bg-primary/15",
+      description: t('scanner.mode.aufbau.description'),
+    },
+    {
+      id: "abbau", label: t('scanner.mode.abbau.label'),
+      targetStatus: "verfügbar",
+      Icon: RotateCcw,
+      colorClass: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20 hover:bg-emerald-400/15",
+      description: t('scanner.mode.abbau.description'),
+    },
+    {
+      id: "inventur", label: t('scanner.mode.inventur.label'),
+      targetStatus: "verfügbar",
+      Icon: ClipboardList,
+      colorClass: "text-muted-foreground bg-muted/10 border-muted/20 hover:bg-muted/15",
+      description: t('scanner.mode.inventur.description'),
+    },
+  ];
+
+  const stepLabels: Record<WizardStep, string> = {
+    mode:    t('scanner.step.mode'),
+    context: t('scanner.step.context'),
+    scan:    t('scanner.step.scan'),
+    summary: t('scanner.step.summary'),
+  };
 
   const modeConfig      = MODES.find(m => m.id === mode);
   const selectedProject = (selectedProjectId && selectedProjectId !== "none")
@@ -128,7 +134,6 @@ export default function Scanner() {
   const progress = totalInProject > 0 ? Math.round((scannedInProject / totalInProject) * 100) : 0;
 
   // ── Projekt-Items laden ────────────────────────────────────────────────────
-  // Fix 4: Erst wenn geladen, Scanner öffnen (verhindert Race Condition bei inSet)
   useEffect(() => {
     if (!selectedProjectId || selectedProjectId === "none") {
       setProjectItemIds(new Set());
@@ -151,15 +156,12 @@ export default function Scanner() {
     if (!urlMode) return;
     setMode(urlMode);
     if ((urlMode === 'aufbau' || urlMode === 'abbau') && urlProjectId) {
-      // Scanner erst öffnen nachdem projectItemIds geladen
-      // (projectIdsLoaded wird via useEffect oben gesetzt)
       setStep('scan');
     } else {
       setStep('context');
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Wenn von URL-Param gestartet und IDs geladen → Scanner öffnen
   const scannerOpenedForUrl = useRef(false);
   useEffect(() => {
     if (urlMode && urlProjectId && projectIdsLoaded && step === 'scan' && !scannerOpenedForUrl.current) {
@@ -175,7 +177,7 @@ export default function Scanner() {
     setMode(m);
     setSelectedProjectId('');
     setProjectItemIds(new Set());
-    setProjectIdsLoaded(true); // kein Projekt gewählt → sofort bereit
+    setProjectIdsLoaded(true);
     if (m === "inventur") {
       setStep("scan");
       setScannerOpen(true);
@@ -189,18 +191,20 @@ export default function Scanner() {
 
   const handleContextNext = () => {
     if (mode === "verleih" && !person.trim()) {
-      toast({ title: "Person erforderlich", description: "Bitte gib an, wer die Items mitnimmt.", variant: "destructive" });
+      toast({
+        title: t('scanner.toast.person_required_title'),
+        description: t('scanner.toast.person_required_desc'),
+        variant: "destructive",
+      });
       return;
     }
     setStep("scan");
-    // Fix 4: Scanner erst öffnen wenn projectItemIds vollständig geladen
     if (projectIdsLoaded) {
       setScannerOpen(true);
       setScannerKey(k => k + 1);
     }
   };
 
-  // Wenn projectIdsLoaded wird true nachdem Context-Next geklickt → Scanner öffnen
   useEffect(() => {
     if (step === "scan" && projectIdsLoaded && !scannerOpen && entries.length === 0 && !urlProjectId) {
       setScannerOpen(true);
@@ -213,7 +217,11 @@ export default function Scanner() {
   const handleScan = useCallback((itemId: string) => {
     const item = allItems.find(i => i.id === itemId);
     if (!item) {
-      toast({ title: "Item nicht gefunden", description: "Dieses QR-Label gehört zu keinem bekannten Item.", variant: "destructive" });
+      toast({
+        title: t('scanner.toast.item_not_found_title'),
+        description: t('scanner.toast.item_not_found_desc'),
+        variant: "destructive",
+      });
       return;
     }
 
@@ -224,34 +232,39 @@ export default function Scanner() {
     }
 
     if (entries.some(e => e.item.id === itemId)) {
-      toast({ title: "Bereits gescannt", description: `${item.name} ist schon in der Liste.`, variant: "destructive" });
+      toast({
+        title: t('scanner.toast.already_scanned_title'),
+        description: t('scanner.toast.already_scanned_desc', { name: item.name }),
+        variant: "destructive",
+      });
       hapticFeedback([50, 30, 50]);
       return;
     }
 
     const targetStatus = modeConfig?.targetStatus ?? "verfügbar";
-
-    // Fix 4: inSet erst setzen wenn projectItemIds wirklich geladen (projectIdsLoaded)
     const hasProject = (mode === "aufbau" || mode === "abbau")
       && selectedProjectId
       && selectedProjectId !== "none"
       && projectIdsLoaded;
-
     const inSet = hasProject ? projectItemIds.has(itemId) : undefined;
 
     setEntries(prev => [...prev, { item, scannedAt: new Date(), targetStatus, inSet }]);
     hapticFeedback(60);
     toast({
       title: `✓ ${item.name}`,
-      description: inSet === false ? "⚠ Nicht im gewählten Projekt" : undefined,
+      description: inSet === false ? t('scanner.toast.not_in_project') : undefined,
     });
-  }, [allItems, entries, modeConfig, mode, selectedProjectId, projectItemIds, projectIdsLoaded, toast, navigate]);
+  }, [allItems, entries, modeConfig, mode, selectedProjectId, projectItemIds, projectIdsLoaded, toast, navigate, t]);
 
   // ── Schritt 3 → 4 ─────────────────────────────────────────────────────────
 
   const goToSummary = () => {
     if (entries.length === 0) {
-      toast({ title: "Noch keine Items", description: "Scanne mindestens ein Item.", variant: "destructive" });
+      toast({
+        title: t('scanner.toast.no_items_title'),
+        description: t('scanner.toast.no_items_desc'),
+        variant: "destructive",
+      });
       return;
     }
     setScannerOpen(false);
@@ -274,7 +287,6 @@ export default function Scanner() {
         const finalStatus = entry.overrideStatus ?? entry.targetStatus;
         const item = entry.item;
 
-        // Fix 5: Bei Aufbau+Projekt → Location auf Projektnamen setzen
         const newLocation = (mode === "aufbau" && selectedProject)
           ? selectedProject.name
           : item.location;
@@ -303,7 +315,6 @@ export default function Scanner() {
           deleted_at:        item.deleted_at     ?? null,
         });
 
-        // Fix 5: Originalstandort für spätere Restaurierung sichern
         if (mode === "aufbau" && selectedProjectId && selectedProjectId !== "none") {
           await supabase
             .from("project_items")
@@ -313,7 +324,6 @@ export default function Scanner() {
             .is("original_location", null);
         }
 
-        // Fix 6: Gescannte Items automatisch als "gepackt" markieren
         if ((mode === "aufbau" || mode === "abbau") && selectedProjectId && selectedProjectId !== "none") {
           await supabase
             .from("project_items")
@@ -323,20 +333,23 @@ export default function Scanner() {
         }
       }
 
-      const label = mode === "verleih" ? "Verleih gebucht"
-        : mode === "aufbau" ? "Aufbau gebucht"
-        : mode === "abbau"  ? "Rückgabe gebucht"
-        : "Inventur abgeschlossen";
+      const labelKey = mode === "verleih" ? 'scanner.confirm.booked_verleih'
+        : mode === "aufbau" ? 'scanner.confirm.booked_aufbau'
+        : mode === "abbau"  ? 'scanner.confirm.booked_abbau'
+        : 'scanner.confirm.booked_inventur';
 
-      toast({ title: `✓ ${label}`, description: `${entries.length} Item(s) aktualisiert.` });
+      toast({
+        title: `✓ ${t(labelKey)}`,
+        description: t('scanner.confirm.items_updated', { count: entries.length }),
+      });
       setIsProcessing(false);
       navigate(urlProjectId ? `/projects/${urlProjectId}` : "/");
 
     } catch (err) {
       setIsProcessing(false);
       toast({
-        title: "Fehler beim Speichern",
-        description: err instanceof Error ? err.message : "Unbekannter Fehler",
+        title: t('scanner.toast.save_error_title'),
+        description: err instanceof Error ? err.message : t('scanner.toast.save_error_unknown'),
         variant: "destructive",
       });
     }
@@ -352,10 +365,6 @@ export default function Scanner() {
   };
 
   const stepOrder: WizardStep[] = ["mode", "context", "scan", "summary"];
-  const stepLabels: Record<WizardStep, string> = {
-    mode: "Modus wählen", context: "Details eingeben",
-    scan: "Items scannen", summary: "Zusammenfassung",
-  };
   const stepIndex = stepOrder.indexOf(step);
   const aufbauProjects = projects.filter(p => ['planned','packed','transit'].includes(p.status));
   const abbauProjects  = projects.filter(p => ['transit','live','returning'].includes(p.status));
@@ -369,13 +378,13 @@ export default function Scanner() {
       <div className="flex items-center justify-between pt-1">
         <div>
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <ScanLine className="h-6 w-6 text-primary" /> Scanner
+            <ScanLine className="h-6 w-6 text-primary" /> {t('scanner.title')}
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">{stepLabels[step]}</p>
         </div>
         {step !== "mode" && (
           <Button variant="ghost" size="sm" onClick={reset} className="gap-1.5 text-muted-foreground">
-            <X className="h-4 w-4" /> Abbrechen
+            <X className="h-4 w-4" /> {t('common.cancel')}
           </Button>
         )}
       </div>
@@ -413,34 +422,36 @@ export default function Scanner() {
 
               {mode === "verleih" && (<>
                 <div className="space-y-1.5">
-                  <Label htmlFor="person">An wen wird verliehen? *</Label>
-                  <Input id="person" placeholder="Name der Person oder Organisation"
+                  <Label htmlFor="person">{t('scanner.context.lend_to_label')}</Label>
+                  <Input id="person" placeholder={t('scanner.context.lend_to_placeholder')}
                     value={person} onChange={e => setPerson(e.target.value)} autoFocus />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="due">Rückgabe bis (optional)</Label>
+                  <Label htmlFor="due">{t('scanner.context.due_date_label')}</Label>
                   <Input id="due" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
                 </div>
               </>)}
 
               {mode === "aufbau" && (
                 <div className="space-y-1.5">
-                  <Label>Projekt zur Prüfung (optional)</Label>
+                  <Label>{t('scanner.context.project_optional_label')}</Label>
                   <Select value={selectedProjectId} onValueChange={v => { setSelectedProjectId(v); setProjectIdsLoaded(false); }}>
-                    <SelectTrigger><SelectValue placeholder="Kein Projekt – frei scannen" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t('scanner.context.no_project_placeholder')} /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Ohne Projekt</SelectItem>
+                      <SelectItem value="none">{t('scanner.context.no_project_option')}</SelectItem>
                       {aufbauProjects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   {selectedProjectId && selectedProjectId !== "none" && !projectIdsLoaded && (
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Loader2 className="h-3 w-3 animate-spin" /> Projekt wird geladen…
+                      <Loader2 className="h-3 w-3 animate-spin" /> {t('scanner.context.project_loading')}
                     </p>
                   )}
                   {selectedProjectId && selectedProjectId !== "none" && projectIdsLoaded && (
                     <p className="text-xs text-muted-foreground">
-                      {totalInProject > 0 ? `${totalInProject} Items im Projekt erwartet` : "Projekt hat noch keine Items"}
+                      {totalInProject > 0
+                        ? t('scanner.context.project_item_count', { count: totalInProject })
+                        : t('scanner.context.project_empty')}
                     </p>
                   )}
                 </div>
@@ -449,21 +460,23 @@ export default function Scanner() {
               {mode === "abbau" && (
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <Label>Projekt (optional)</Label>
+                    <Label>{t('scanner.context.project_label')}</Label>
                     <Select value={selectedProjectId} onValueChange={v => { setSelectedProjectId(v); setProjectIdsLoaded(false); }}>
-                      <SelectTrigger><SelectValue placeholder="Kein Projekt – frei scannen" /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder={t('scanner.context.no_project_placeholder')} /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Ohne Projekt</SelectItem>
+                        <SelectItem value="none">{t('scanner.context.no_project_option')}</SelectItem>
                         {abbauProjects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     {selectedProjectId && selectedProjectId !== "none" && projectIdsLoaded && totalInProject > 0 && (
-                      <p className="text-xs text-muted-foreground">{totalInProject} Items im Projekt</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t('scanner.context.project_item_count', { count: totalInProject })}
+                      </p>
                     )}
                   </div>
                   <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-xs text-muted-foreground">
-                    <p className="font-medium text-foreground mb-1">Zustand beim Abbau</p>
-                    <p>Den Zustand jedes Items kannst du in der Zusammenfassung festlegen.</p>
+                    <p className="font-medium text-foreground mb-1">{t('scanner.context.condition_hint_title')}</p>
+                    <p>{t('scanner.context.condition_hint_desc')}</p>
                   </div>
                 </div>
               )}
@@ -471,14 +484,12 @@ export default function Scanner() {
 
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setStep("mode")} className="gap-2">
-                <ArrowLeft className="h-4 w-4" /> Zurück
+                <ArrowLeft className="h-4 w-4" /> {t('common.back')}
               </Button>
-              {/* Fix 4: Disabled bis Projekt-IDs geladen */}
-              <Button onClick={handleContextNext} className="flex-1 gap-2"
-                disabled={!projectIdsLoaded}>
+              <Button onClick={handleContextNext} className="flex-1 gap-2" disabled={!projectIdsLoaded}>
                 {!projectIdsLoaded
-                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Laden…</>
-                  : <>Weiter – Scanner öffnen <ArrowRight className="h-4 w-4" /></>
+                  ? <><Loader2 className="h-4 w-4 animate-spin" /> {t('common.loading')}</>
+                  : <>{t('scanner.context.next_button')} <ArrowRight className="h-4 w-4" /></>
                 }
               </Button>
             </div>
@@ -499,7 +510,7 @@ export default function Scanner() {
                 <Progress value={progress} className="h-2" />
                 {scannedInProject === totalInProject && totalInProject > 0 && (
                   <p className="text-xs text-emerald-400 flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Alle Projekt-Items gescannt!
+                    <CheckCircle2 className="h-3.5 w-3.5" /> {t('scanner.scan.all_scanned')}
                   </p>
                 )}
               </Card>
@@ -511,12 +522,12 @@ export default function Scanner() {
               <div className="p-4 rounded-full bg-primary/20"><QrCode className="h-8 w-8 text-primary" /></div>
               <div className="text-center">
                 <p className="font-semibold text-primary">
-                  {entries.length === 0 ? "QR-Code scannen" : "Weiteren scannen"}
+                  {entries.length === 0 ? t('scanner.scan.cta_first') : t('scanner.scan.cta_more')}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {entries.length === 0
-                    ? "Tippe hier um den Scanner zu öffnen"
-                    : `${entries.length} Item(s) gescannt`}
+                    ? t('scanner.scan.cta_hint')
+                    : t('scanner.scan.scanned_count', { count: entries.length })}
                 </p>
               </div>
             </button>
@@ -537,7 +548,7 @@ export default function Scanner() {
                       <p className="text-xs text-muted-foreground">{entry.item.category}</p>
                     </div>
                     <Badge className={`text-xs shrink-0 border ${COND_COLORS[entry.overrideStatus ?? entry.targetStatus]}`}>
-                      {COND_LABELS[entry.overrideStatus ?? entry.targetStatus]}
+                      {t(`condition.${entry.overrideStatus ?? entry.targetStatus}`)}
                     </Badge>
                     <button onClick={() => removeEntry(idx)}
                       className="shrink-0 p-1 text-muted-foreground hover:text-destructive transition-colors">
@@ -548,14 +559,14 @@ export default function Scanner() {
               </Card>
             )}
 
-            {/* Nicht-im-Projekt Warnung (Scan-Schritt) */}
+            {/* Nicht-im-Projekt Warnung */}
             {(mode === "aufbau" || mode === "abbau") && selectedProject && entries.some(e => e.inSet === false) && (
               <div className="flex items-start gap-2 text-xs text-amber-400 p-3 rounded-lg bg-amber-400/10 border border-amber-400/20">
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                {entries.filter(e => e.inSet === false).length === 1
-                  ? `1 Artikel ist nicht im Projekt „${selectedProject.name}"`
-                  : `${entries.filter(e => e.inSet === false).length} Artikel sind nicht im Projekt „${selectedProject.name}"`
-                }
+                {t('scanner.scan.not_in_project_warning', {
+                  count: entries.filter(e => e.inSet === false).length,
+                  project: selectedProject.name,
+                })}
               </div>
             )}
 
@@ -566,7 +577,7 @@ export default function Scanner() {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <Button onClick={goToSummary} className="flex-1 gap-2" disabled={entries.length === 0}>
-                Zur Zusammenfassung ({entries.length}) <ArrowRight className="h-4 w-4" />
+                {t('scanner.scan.to_summary', { count: entries.length })} <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           </motion.div>
@@ -577,7 +588,9 @@ export default function Scanner() {
           <motion.div key="summary" {...slide} className="space-y-4">
 
             <Card className="glass-card p-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Aktion</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                {t('scanner.summary.action_label')}
+              </p>
               <div className="flex items-center gap-3">
                 {modeConfig && (
                   <div className={`p-2.5 rounded-lg border ${modeConfig.colorClass}`}>
@@ -588,11 +601,14 @@ export default function Scanner() {
                   <p className="font-semibold text-sm">{modeConfig?.label}</p>
                   {mode === "verleih" && (
                     <p className="text-xs text-muted-foreground">
-                      An: {person}{dueDate && ` · bis ${new Date(dueDate).toLocaleDateString("de-DE")}`}
+                      {t('scanner.summary.lend_to', { person })}
+                      {dueDate && ` · ${t('scanner.summary.lend_until', { date: new Date(dueDate).toLocaleDateString() })}`}
                     </p>
                   )}
                   {(mode === "aufbau" || mode === "abbau") && selectedProject && (
-                    <p className="text-xs text-muted-foreground">Projekt: {selectedProject.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t('scanner.summary.project', { name: selectedProject.name })}
+                    </p>
                   )}
                 </div>
               </div>
@@ -601,7 +617,7 @@ export default function Scanner() {
             <Card className="glass-card divide-y divide-border/50 overflow-hidden p-0">
               <div className="px-4 py-3 bg-muted/20">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  {entries.length} Item(s)
+                  {t('scanner.summary.item_count', { count: entries.length })}
                 </p>
               </div>
               {entries.map((entry, idx) => (
@@ -612,7 +628,7 @@ export default function Scanner() {
                       <p className="text-xs text-muted-foreground">{entry.item.category}</p>
                     </div>
                     <Badge className={`text-xs shrink-0 border ${COND_COLORS[entry.overrideStatus ?? entry.targetStatus]}`}>
-                      {COND_LABELS[entry.overrideStatus ?? entry.targetStatus]}
+                      {t(`condition.${entry.overrideStatus ?? entry.targetStatus}`)}
                     </Badge>
                   </div>
 
@@ -620,9 +636,9 @@ export default function Scanner() {
                   {mode === "abbau" && (
                     <div className="grid grid-cols-3 gap-1.5">
                       {[
-                        { s: "verfügbar" as ItemCondition,  label: "✓ OK",         cls: "bg-emerald-400/20 border-emerald-400/40 text-emerald-400"  },
-                        { s: "defekt"    as ItemCondition,  label: "! Beschädigt",  cls: "bg-amber-400/20 border-amber-400/40 text-amber-400"        },
-                        { s: "verliehen" as ItemCondition,  label: "? Fehlt",        cls: "bg-destructive/20 border-destructive/40 text-destructive" },
+                        { s: "verfügbar" as ItemCondition, labelKey: 'scanner.summary.cond_ok',      cls: "bg-emerald-400/20 border-emerald-400/40 text-emerald-400" },
+                        { s: "defekt"    as ItemCondition, labelKey: 'scanner.summary.cond_damaged',  cls: "bg-amber-400/20 border-amber-400/40 text-amber-400"       },
+                        { s: "verliehen" as ItemCondition, labelKey: 'scanner.summary.cond_missing',  cls: "bg-destructive/20 border-destructive/40 text-destructive"  },
                       ].map(opt => (
                         <button key={opt.s} onClick={() => setOverride(idx, opt.s)}
                           className={`text-xs py-1.5 rounded-lg border transition-all ${
@@ -630,7 +646,7 @@ export default function Scanner() {
                               ? opt.cls
                               : "border-border/50 text-muted-foreground hover:border-border"
                           }`}>
-                          {opt.label}
+                          {t(opt.labelKey)}
                         </button>
                       ))}
                     </div>
@@ -643,28 +659,28 @@ export default function Scanner() {
             {(mode === "aufbau" || mode === "abbau") && selectedProject && entries.some(e => e.inSet === false) && (
               <div className="flex items-start gap-2 text-xs text-amber-400 p-3 rounded-lg bg-amber-400/10 border border-amber-400/20">
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                {entries.filter(e => e.inSet === false).length === 1
-                  ? `1 Artikel ist nicht im Projekt „${selectedProject.name}"`
-                  : `${entries.filter(e => e.inSet === false).length} Artikel sind nicht im Projekt „${selectedProject.name}"`
-                }
+                {t('scanner.scan.not_in_project_warning', {
+                  count: entries.filter(e => e.inSet === false).length,
+                  project: selectedProject.name,
+                })}
               </div>
             )}
 
             {mode === "inventur" && (
               <div className="flex items-start gap-2 text-xs text-muted-foreground p-3 rounded-lg bg-muted/20">
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                Inventur ändert keine Status — es wird nur protokolliert was gescannt wurde.
+                {t('scanner.summary.inventur_hint')}
               </div>
             )}
 
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => { setStep("scan"); setScannerOpen(false); }} className="gap-2">
-                <ArrowLeft className="h-4 w-4" /> Zurück
+                <ArrowLeft className="h-4 w-4" /> {t('common.back')}
               </Button>
               <Button onClick={handleConfirm} disabled={isProcessing} className="flex-1 gap-2">
                 {isProcessing
-                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Wird gespeichert…</>
-                  : <><CheckCircle2 className="h-4 w-4" /> Bestätigen</>
+                  ? <><Loader2 className="h-4 w-4 animate-spin" /> {t('scanner.summary.saving')}</>
+                  : <><CheckCircle2 className="h-4 w-4" /> {t('scanner.summary.confirm')}</>
                 }
               </Button>
             </div>

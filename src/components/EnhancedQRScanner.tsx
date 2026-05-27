@@ -1,14 +1,11 @@
-/**
- * Enhanced QR Scanner mit Item-Vorschau und direkten Aktionen
- * Zeigt gescannte Item-Details sofort an mit schnellen Aktionen
- */
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { 
-  Camera, Check, AlertTriangle, Plus, Edit2, Eye,
+import {
+  Camera, Check, AlertTriangle, Eye,
   Package, MapPin, Calendar, Zap, X, Layers
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -36,6 +33,7 @@ export function EnhancedQRScanner({
   onItemFound,
   onNavigateToItem,
 }: EnhancedQRScannerProps) {
+  const { t, i18n } = useTranslation();
   const [scanMethod, setScanMethod] = useState<'camera' | 'manual'>('camera');
   const [scannedItem, setScannedItem] = useState<InventoryItem | null>(null);
   const [isLoadingItem, setIsLoadingItem] = useState(false);
@@ -57,41 +55,34 @@ export function EnhancedQRScanner({
   const { projects } = useProjects();
   const [itemProjects, setItemProjects] = useState<typeof projects>([]);
 
+  // Locale-aware date formatter
+  const dateLocale = i18n.language.startsWith('de') ? 'de-DE' : 'en-GB';
+
   useEffect(() => {
     if (!scannedItem) { setItemProjects([]); return; }
     supabase
-      .from("project_items")
-      .select("project_id")
-      .eq("inventory_item_id", scannedItem.id)
+      .from('project_items')
+      .select('project_id')
+      .eq('inventory_item_id', scannedItem.id)
       .then(({ data }) => {
         const ids = new Set((data ?? []).map((r: any) => r.project_id));
         setItemProjects(projects.filter(p => ids.has(p.id)));
       });
   }, [scannedItem, projects]);
 
-  // Start scanning when dialog opens
   useEffect(() => {
     if (isOpen && scanMethod === 'camera' && !scannedItem) {
       startScanning();
     }
-    return () => {
-      stopScanning();
-    };
+    return () => { stopScanning(); };
   }, [isOpen, scanMethod, scannedItem, startScanning, stopScanning]);
 
-  // Scanning loop
   useEffect(() => {
     if (isScanning) {
       const handleScanResult = (result: { itemId: string; isValid: boolean }) => {
-        if (result.isValid) {
-          handleScannedId(result.itemId);
-        }
+        if (result.isValid) handleScannedId(result.itemId);
       };
-
-      const startScan = async () => {
-        await scanFrame(handleScanResult);
-      };
-
+      const startScan = async () => { await scanFrame(handleScanResult); };
       startScan();
     }
   }, [isScanning, scanFrame]);
@@ -109,8 +100,8 @@ export function EnhancedQRScanner({
         onItemFound?.(itemId);
       } else {
         toast({
-          title: 'Item nicht gefunden',
-          description: `Item mit ID ${itemId.slice(0, 8)}... konnte nicht gefunden werden`,
+          title: t('qr_scanner.item_not_found'),
+          description: t('qr_scanner.item_not_found_desc', { id: itemId.slice(0, 8) }),
           variant: 'destructive',
         });
         clear();
@@ -118,8 +109,8 @@ export function EnhancedQRScanner({
     } catch (error) {
       logger.error('Error processing scanned ID:', error);
       toast({
-        title: 'Fehler',
-        description: 'QR-Code konnte nicht verarbeitet werden',
+        title: t('common.error'),
+        description: t('qr_scanner.processing_error'),
         variant: 'destructive',
       });
     } finally {
@@ -130,8 +121,8 @@ export function EnhancedQRScanner({
   const handleManualSubmit = () => {
     if (!isValid) {
       toast({
-        title: 'Fehler',
-        description: 'Bitte geben Sie eine gültige Item-ID ein',
+        title: t('common.error'),
+        description: t('qr_scanner.invalid_id'),
         variant: 'destructive',
       });
       return;
@@ -154,12 +145,11 @@ export function EnhancedQRScanner({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Camera className="h-5 w-5" />
-              {scannedItem ? 'Item gescannt!' : 'QR-Code Scanner'}
+              {scannedItem ? t('qr_scanner.title_scanned') : t('qr_scanner.title')}
             </DialogTitle>
           </DialogHeader>
 
           {!scannedItem ? (
-            // Scanner Interface
             <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
               {/* Methoden-Auswahl */}
               <div className="flex gap-2">
@@ -170,7 +160,7 @@ export function EnhancedQRScanner({
                   className="flex-1"
                 >
                   <Camera className="h-4 w-4 mr-2" />
-                  Kamera
+                  {t('qr_scanner.method_camera')}
                 </Button>
                 <Button
                   variant={scanMethod === 'manual' ? 'default' : 'outline'}
@@ -178,7 +168,7 @@ export function EnhancedQRScanner({
                   onClick={() => setScanMethod('manual')}
                   className="flex-1"
                 >
-                  Manuell
+                  {t('qr_scanner.method_manual')}
                 </Button>
               </div>
 
@@ -192,7 +182,7 @@ export function EnhancedQRScanner({
                     autoPlay
                     muted
                     playsInline
-                    onPlaying={(e) => (e.currentTarget.style.opacity = '1')}
+                    onPlaying={e => (e.currentTarget.style.opacity = '1')}
                   />
                   <canvas ref={canvasRef} style={{ display: 'none' }} />
 
@@ -200,10 +190,10 @@ export function EnhancedQRScanner({
                     {isScanning ? (
                       <div className="flex items-center justify-center gap-2">
                         <div className="animate-pulse h-2 w-2 bg-green-500 rounded-full" />
-                        Scanner aktiv - Richte einen QR-Code auf die Kamera
+                        {t('qr_scanner.scanner_active')}
                       </div>
                     ) : (
-                      'Scanner wird gestartet...'
+                      t('qr_scanner.scanner_starting')
                     )}
                   </div>
 
@@ -214,12 +204,12 @@ export function EnhancedQRScanner({
                     </div>
                   )}
 
-                  <div className="p-4 rounded-lg bg-muted/20 border border-primary/20 group">
-                    <strong>💡 Tipps:</strong>
+                  <div className="p-4 rounded-lg bg-muted/20 border border-primary/20">
+                    <strong>💡 {t('qr_scanner.tips.title')}</strong>
                     <ul className="list-disc list-inside mt-2 space-y-1 text-xs">
-                      <li>Gute Beleuchtung erforderlich</li>
-                      <li>QR-Code frontal zur Kamera</li>
-                      <li>Langsam bewegen</li>
+                      <li>{t('qr_scanner.tips.lighting')}</li>
+                      <li>{t('qr_scanner.tips.angle')}</li>
+                      <li>{t('qr_scanner.tips.movement')}</li>
                     </ul>
                   </div>
                 </div>
@@ -229,26 +219,26 @@ export function EnhancedQRScanner({
               {scanMethod === 'manual' && (
                 <div className="space-y-3">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Item-ID eingeben</label>
+                    <label className="text-sm font-medium">{t('qr_scanner.manual_label')}</label>
                     <input
                       type="text"
-                      placeholder="Paste gescannten QR-Code oder geben Sie Item-ID ein"
+                      placeholder={t('qr_scanner.manual_placeholder')}
                       value={itemId}
                       onChange={e => handleInputChange(e.target.value)}
                       onPaste={handlePaste}
-                      className="w-full px-3 py-2 rounded-lg border bg-muted/20 border-primary/20 group font-mono text-sm"
+                      className="w-full px-3 py-2 rounded-lg border bg-muted/20 border-primary/20 font-mono text-sm"
                     />
                     {itemId && (
                       <div className="text-xs">
                         {isValid ? (
                           <div className="flex items-center gap-1 text-green-600">
                             <Check className="h-3 w-3" />
-                            Gültige Item-ID
+                            {t('qr_scanner.valid_id')}
                           </div>
                         ) : (
                           <div className="flex items-center gap-1 text-destructive">
                             <AlertTriangle className="h-3 w-3" />
-                            Ungültiges Format
+                            {t('qr_scanner.invalid_format')}
                           </div>
                         )}
                       </div>
@@ -262,7 +252,7 @@ export function EnhancedQRScanner({
                       className="flex-1"
                       disabled={!itemId}
                     >
-                      Löschen
+                      {t('common.clear')}
                     </Button>
                     <Button
                       onClick={handleManualSubmit}
@@ -272,12 +262,12 @@ export function EnhancedQRScanner({
                       {isLoadingItem ? (
                         <>
                           <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                          Laden...
+                          {t('common.loading')}
                         </>
                       ) : (
                         <>
                           <Check className="h-4 w-4 mr-2" />
-                          Bestätigen
+                          {t('common.confirm')}
                         </>
                       )}
                     </Button>
@@ -286,10 +276,9 @@ export function EnhancedQRScanner({
               )}
             </div>
           ) : (
-            // Item Preview with Actions
+            // Item Preview
             <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
               <Card className="p-3 sm:p-4 space-y-2 sm:space-y-3">
-                {/* Header */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-base sm:text-lg truncate">{scannedItem.name}</h3>
@@ -300,26 +289,22 @@ export function EnhancedQRScanner({
                   <StatusBadge condition={scannedItem.condition} />
                 </div>
 
-                {/* Info Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                   <div className="flex items-center gap-2">
                     <Package className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Kategorie:</span>
+                    <span className="text-muted-foreground">{t('fields.category')}:</span>
                     <span className="font-medium">{scannedItem.category}</span>
                   </div>
-
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Standort:</span>
+                    <span className="text-muted-foreground">{t('fields.location')}:</span>
                     <span className="font-medium">{scannedItem.location}</span>
                   </div>
-
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Menge:</span>
+                    <span className="text-muted-foreground">{t('fields.quantity')}:</span>
                     <Badge variant="outline">{scannedItem.quantity}</Badge>
                   </div>
-
                   {scannedItem.dmx_start_address && (
                     <div className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-muted-foreground" />
@@ -331,49 +316,39 @@ export function EnhancedQRScanner({
                   )}
                 </div>
 
-                {/* Notes */}
                 {scannedItem.notes && (
                   <div className="bg-muted/50 rounded p-2 text-xs">
-                    <p className="font-medium text-muted-foreground mb-1">Notizen:</p>
+                    <p className="font-medium text-muted-foreground mb-1">{t('fields.notes')}:</p>
                     <p>{scannedItem.notes}</p>
                   </div>
                 )}
               </Card>
 
-              {/* Quick Actions */}
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    onNavigateToItem?.(scannedItem.id);
-                    handleClose();
-                  }}
+                  onClick={() => { onNavigateToItem?.(scannedItem.id); handleClose(); }}
                   className="gap-2"
                 >
                   <Eye className="h-4 w-4" />
-                  <span className="hidden sm:inline">Details</span>
+                  <span className="hidden sm:inline">{t('qr_scanner.action_details')}</span>
                 </Button>
-
                 <Button
                   variant="outline"
                   onClick={() => setShowPositionModal(true)}
                   className="gap-2"
                 >
                   <MapPin className="h-4 w-4" />
-                  <span className="hidden sm:inline">Position</span>
+                  <span className="hidden sm:inline">{t('qr_scanner.action_position')}</span>
                 </Button>
               </div>
 
-              {/* Close Button */}
               <Button
-                onClick={() => {
-                  setScannedItem(null);
-                  clear();
-                }}
+                onClick={() => { setScannedItem(null); clear(); }}
                 variant="secondary"
                 className="w-full"
               >
-                Weiterer QR-Code
+                {t('qr_scanner.scan_another')}
               </Button>
             </div>
           )}
@@ -387,20 +362,19 @@ export function EnhancedQRScanner({
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-primary" />
-                Position anzeigen
+                {t('qr_scanner.position_modal.title')}
               </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4 py-2">
-              {/* Item-Name als Kontext */}
               <p className="text-sm text-muted-foreground">
-                Wo gehört <span className="font-semibold text-foreground">{scannedItem.name}</span> hin?
+                {t('qr_scanner.position_modal.subtitle', { name: scannedItem.name })}
               </p>
 
-              {/* ── Sektion 1: Standort ── */}
+              {/* Standort */}
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  📍 Standort
+                  📍 {t('qr_scanner.position_modal.section_location')}
                 </p>
                 <Card className="p-3">
                   <div className="flex items-center gap-3">
@@ -409,17 +383,19 @@ export function EnhancedQRScanner({
                     </div>
                     <div>
                       <p className="font-semibold text-sm">{scannedItem.location}</p>
-                      <p className="text-xs text-muted-foreground">Eingelagerter Standort</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t('qr_scanner.position_modal.stored_location')}
+                      </p>
                     </div>
                   </div>
                 </Card>
               </div>
 
-              {/* ── Sektion 2: Event-Sets ── */}
+              {/* Projekte */}
               {itemProjects.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    📁 Projekte
+                    📁 {t('qr_scanner.position_modal.section_projects')}
                   </p>
                   <div className="space-y-2">
                     {itemProjects.map(project => (
@@ -432,22 +408,19 @@ export function EnhancedQRScanner({
                             <p className="font-semibold text-sm truncate">{project.name}</p>
                             {project.event_date_start && (
                               <p className="text-xs text-muted-foreground">
-                                {new Date(project.event_date_start).toLocaleDateString('de-DE')}
-                                {project.event_date_end && ` – ${new Date(project.event_date_end).toLocaleDateString('de-DE')}`}
+                                {new Date(project.event_date_start).toLocaleDateString(dateLocale)}
+                                {project.event_date_end && ` – ${new Date(project.event_date_end).toLocaleDateString(dateLocale)}`}
                               </p>
                             )}
                           </div>
                           <span className={cn(
-                            "text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0",
+                            'text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0',
                             project.status === 'live'    ? 'bg-primary/20 text-primary' :
                             project.status === 'packed'  ? 'bg-amber-500/20 text-amber-400' :
                             project.status === 'transit' ? 'bg-orange-500/20 text-orange-400' :
                             'bg-muted/60 text-muted-foreground'
                           )}>
-                            {project.status === 'live' ? 'Live' :
-                            project.status === 'packed' ? 'Gepackt' :
-                            project.status === 'transit' ? 'Unterwegs' :
-                            project.status === 'planned' ? 'Geplant' : 'Entwurf'}
+                            {t(`project_status.${project.status}`, { defaultValue: project.status })}
                           </span>
                         </div>
                       </Card>
@@ -456,16 +429,16 @@ export function EnhancedQRScanner({
                 </div>
               )}
 
-              {/* ── Sektion 3: Meta ── */}
+              {/* Weitere Infos */}
               {(scannedItem.notes || scannedItem.dmx_start_address || scannedItem.accessories) && (
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    🗒️ Weitere Infos
+                    🗒️ {t('qr_scanner.position_modal.section_meta')}
                   </p>
                   <Card className="p-3 space-y-2">
                     {scannedItem.notes && (
                       <div className="text-xs">
-                        <p className="font-medium text-muted-foreground mb-0.5">Notizen</p>
+                        <p className="font-medium text-muted-foreground mb-0.5">{t('fields.notes')}</p>
                         <p>{scannedItem.notes}</p>
                       </div>
                     )}
@@ -474,14 +447,17 @@ export function EnhancedQRScanner({
                         <Zap className="h-3.5 w-3.5 text-muted-foreground" />
                         <span className="text-muted-foreground">DMX:</span>
                         <span className="font-mono">
-                          Universe {scannedItem.dmx_universe || 1}, Adresse {scannedItem.dmx_start_address}
-                          {scannedItem.dmx_channels && ` (${scannedItem.dmx_channels} Ch)`}
+                          {t('qr_scanner.position_modal.dmx_info', {
+                            universe: scannedItem.dmx_universe || 1,
+                            address: scannedItem.dmx_start_address,
+                            channels: scannedItem.dmx_channels,
+                          })}
                         </span>
                       </div>
                     )}
                     {scannedItem.accessories && (
                       <div className="text-xs">
-                        <p className="font-medium text-muted-foreground mb-0.5">Zubehör</p>
+                        <p className="font-medium text-muted-foreground mb-0.5">{t('fields.accessories')}</p>
                         <p>{scannedItem.accessories}</p>
                       </div>
                     )}
@@ -489,14 +465,13 @@ export function EnhancedQRScanner({
                 </div>
               )}
 
-              {/* Schließen */}
               <Button
                 variant="secondary"
                 className="w-full"
                 onClick={() => setShowPositionModal(false)}
               >
                 <X className="h-4 w-4 mr-2" />
-                Schließen
+                {t('common.close')}
               </Button>
             </div>
           </DialogContent>

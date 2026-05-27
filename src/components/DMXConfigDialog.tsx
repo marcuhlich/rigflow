@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { InventoryItem, DMX_CATEGORIES } from '@/types/inventory';
 import {
   Dialog,
@@ -36,6 +37,8 @@ export function DMXConfigDialog({
   loading = false,
   hasConflict = false,
 }: DMXConfigDialogProps) {
+  const { t } = useTranslation();
+
   const [config, setConfig] = useState<DMXConfig>({
     dmx_universe: 1,
     dmx_start_address: 1,
@@ -63,13 +66,18 @@ export function DMXConfigDialog({
       config.dmx_start_address > 512 ||
       config.dmx_channels < 1
     ) {
-      alert('Ungültige DMX-Werte');
+      alert(t('dmx.invalid_values'));
       return;
     }
 
     const endAddress = config.dmx_start_address + config.dmx_channels * item.quantity - 1;
     if (endAddress > 512) {
-      alert(`Zu viele Kanäle! Benötigt: ${config.dmx_channels * item.quantity}, verfügbar: ${512 - config.dmx_start_address + 1}`);
+      alert(
+        t('dmx.too_many_channels_alert', {
+          needed: config.dmx_channels * item.quantity,
+          available: 512 - config.dmx_start_address + 1,
+        })
+      );
       return;
     }
 
@@ -87,7 +95,7 @@ export function DMXConfigDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sliders className="h-5 w-5 text-primary" />
-            DMX-Konfiguration
+            {t('dmx.title')}
           </DialogTitle>
           <DialogDescription>
             {item.name} ({item.quantity}x)
@@ -100,14 +108,14 @@ export function DMXConfigDialog({
             <Alert variant="destructive" className="border-destructive/50">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription className="ml-2 text-sm">
-                Diese Konfiguration verursacht Adresskonflikte!
+                {t('dmx.conflict_warning')}
               </AlertDescription>
             </Alert>
           )}
 
           {/* Universum */}
           <div className="space-y-2">
-            <Label htmlFor="dmx_universe">DMX-Universum</Label>
+            <Label htmlFor="dmx_universe">{t('dmx.universe_label')}</Label>
             <Input
               id="dmx_universe"
               type="number"
@@ -118,12 +126,12 @@ export function DMXConfigDialog({
               }
               disabled={loading}
             />
-            <p className="text-xs text-muted-foreground">Standard ist Universe 1</p>
+            <p className="text-xs text-muted-foreground">{t('dmx.universe_hint')}</p>
           </div>
 
           {/* Start-Adresse */}
           <div className="space-y-2">
-            <Label htmlFor="dmx_start_address">Start-Adresse</Label>
+            <Label htmlFor="dmx_start_address">{t('dmx.start_address_label')}</Label>
             <Input
               id="dmx_start_address"
               type="number"
@@ -138,12 +146,12 @@ export function DMXConfigDialog({
               }
               disabled={loading}
             />
-            <p className="text-xs text-muted-foreground">1-512</p>
+            <p className="text-xs text-muted-foreground">{t('dmx.start_address_hint')}</p>
           </div>
 
           {/* Kanäle pro Gerät */}
           <div className="space-y-2">
-            <Label htmlFor="dmx_channels">Kanäle pro Gerät</Label>
+            <Label htmlFor="dmx_channels">{t('dmx.channels_label')}</Label>
             <Input
               id="dmx_channels"
               type="number"
@@ -154,41 +162,49 @@ export function DMXConfigDialog({
               }
               disabled={loading}
             />
-            <p className="text-xs text-muted-foreground">z.B. 16 für Moving Head</p>
+            <p className="text-xs text-muted-foreground">{t('dmx.channels_hint')}</p>
           </div>
 
           {/* Zusammenfassung */}
           <div className="p-3 bg-muted/40 rounded-lg border border-border/50 space-y-2">
             <div className="text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Instanzen:</span>
+                <span className="text-muted-foreground">{t('dmx.summary.instances')}</span>
                 <span className="font-medium">{item.quantity}x</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Kanäle pro Instanz:</span>
+                <span className="text-muted-foreground">{t('dmx.summary.channels_per_instance')}</span>
                 <span className="font-mono">{config.dmx_channels}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Adressbereich:</span>
+                <span className="text-muted-foreground">{t('dmx.summary.address_range')}</span>
                 <span className="font-mono font-bold">
-                  {config.dmx_start_address}-{Math.min(endAddress, 512)}
+                  {config.dmx_start_address}–{Math.min(endAddress, 512)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Gesamtkanäle:</span>
-                <span className={totalChannelsNeeded > 512 - config.dmx_start_address + 1 ? 'text-destructive font-medium' : 'font-mono'}>
+                <span className="text-muted-foreground">{t('dmx.summary.total_channels')}</span>
+                <span
+                  className={
+                    totalChannelsNeeded > 512 - config.dmx_start_address + 1
+                      ? 'text-destructive font-medium'
+                      : 'font-mono'
+                  }
+                >
                   {totalChannelsNeeded}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Warnung wenn es zu viele Kanäle sind */}
+          {/* Warnung zu viele Kanäle */}
           {endAddress > 512 && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription className="ml-2 text-sm">
-                Zu viele Kanäle! Maximal {512 - config.dmx_start_address + 1} verfügbar.
+                {t('dmx.too_many_channels_inline', {
+                  available: 512 - config.dmx_start_address + 1,
+                })}
               </AlertDescription>
             </Alert>
           )}
@@ -196,14 +212,14 @@ export function DMXConfigDialog({
 
         <div className="flex gap-3 pt-2">
           <Button variant="ghost" onClick={onClose} className="flex-1" disabled={loading}>
-            Abbrechen
+            {t('common.cancel')}
           </Button>
           <Button
             onClick={handleSave}
             className="flex-1"
             disabled={loading || endAddress > 512}
           >
-            {loading ? 'Speichern...' : 'Speichern'}
+            {loading ? t('common.saving') : t('common.save')}
           </Button>
         </div>
       </DialogContent>

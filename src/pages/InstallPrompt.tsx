@@ -18,59 +18,22 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 import { isNative } from '@/services/platform';
+import { useTranslation } from 'react-i18next';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-const features = [
-  {
-    icon: Zap,
-    title: 'Blitzschnell',
-    desc: 'Startet direkt vom Startbildschirm ohne Ladezeit.',
-  },
-  {
-    icon: Wifi,
-    title: 'Offline-Ready',
-    desc: 'Funktioniert ohne Internetverbindung und synchronisiert automatisch.',
-  },
-  {
-    icon: Lock,
-    title: 'Sicher',
-    desc: 'Deine Daten bleiben lokal gespeichert bis zur Synchronisierung.',
-  },
-  {
-    icon: HardDrive,
-    title: 'Kompakt',
-    desc: 'Unter 5 MB – funktioniert wie eine native App.',
-  },
-];
-
-const completeFeatures = [
-  {
-    icon: Smartphone,
-    title: 'Startbildschirm',
-    desc: 'Tippe auf das RigFlow-Icon, um die App sofort zu starten.',
-  },
-  {
-    icon: Zap,
-    title: 'Sofort bereit',
-    desc: 'Keine Wartezeit, kein Browser – direkt einsatzbereit.',
-  },
-  {
-    icon: Wifi,
-    title: 'Offline-fähig',
-    desc: 'Arbeite überall, auch ohne aktive Internetverbindung.',
-  },
-];
-
 export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [step, setStep] = useState<'intro' | 'complete'>('intro');
+
   const navigate = useNavigate();
   const { isMobile, os } = useDeviceDetection();
+  const { t } = useTranslation();
+
   const isAndroid = isMobile && os === 'android';
 
   useEffect(() => {
@@ -84,11 +47,14 @@ export default function InstallPrompt() {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
       setStep('complete');
     }
+
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
@@ -96,42 +62,84 @@ export default function InstallPrompt() {
     if (!deferredPrompt) return;
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
+
     if (outcome === 'accepted') {
       setIsInstalled(true);
       setStep('complete');
     }
+
     setDeferredPrompt(null);
   };
 
   const handleAndroidInstall = () => {
-    // Try to trigger install prompt on Android
     if (deferredPrompt) {
       handleInstall();
     } else {
-      // Fallback: Show detailed instructions
-      alert('Tippe auf das Menü (⋮) → "Zum Startbildschirm hinzufügen" um die App zu installieren');
+      alert(t("install.android_fallback"));
     }
   };
+
+  const features = [
+    {
+      icon: Zap,
+      title: t("install.features.fast.title"),
+      desc: t("install.features.fast.desc"),
+    },
+    {
+      icon: Wifi,
+      title: t("install.features.offline.title"),
+      desc: t("install.features.offline.desc"),
+    },
+    {
+      icon: Lock,
+      title: t("install.features.secure.title"),
+      desc: t("install.features.secure.desc"),
+    },
+    {
+      icon: HardDrive,
+      title: t("install.features.light.title"),
+      desc: t("install.features.light.desc"),
+    },
+  ];
+
+  const completeFeatures = [
+    {
+      icon: Smartphone,
+      title: t("install.complete.startscreen.title"),
+      desc: t("install.complete.startscreen.desc"),
+    },
+    {
+      icon: Zap,
+      title: t("install.complete.ready.title"),
+      desc: t("install.complete.ready.desc"),
+    },
+    {
+      icon: Wifi,
+      title: t("install.complete.offline.title"),
+      desc: t("install.complete.offline.desc"),
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
 
-      {/* ── Intro ── */}
       {step === 'intro' && (
         <div className="w-full max-w-lg space-y-6">
 
-          {/* Header */}
           <div className="text-center space-y-2 pt-4">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-2">
               <Download className="h-7 w-7 text-primary" />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight">App installieren</h1>
+
+            <h1 className="text-3xl font-bold tracking-tight">
+              {t("install.title")}
+            </h1>
+
             <p className="text-muted-foreground text-sm">
-              Installiere RigFlow für das vollständige Erlebnis.
+              {t("install.subtitle")}
             </p>
           </div>
 
-          {/* Feature List */}
           <Card className="glass-card divide-y divide-border/50 p-0 overflow-hidden">
             {features.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="flex items-start gap-4 px-5 py-4">
@@ -146,40 +154,43 @@ export default function InstallPrompt() {
             ))}
           </Card>
 
-          {/* Install Button or Manual Instructions */}
-          {deferredPrompt || isAndroid ? (
-            <Button onClick={isAndroid ? handleAndroidInstall : handleInstall} size="lg" className="w-full gap-2">
+          {(deferredPrompt || isAndroid) ? (
+            <Button
+              onClick={isAndroid ? handleAndroidInstall : handleInstall}
+              size="lg"
+              className="w-full gap-2"
+            >
               <Download className="h-4 w-4" />
-              Jetzt installieren
+              {t("install.button")}
             </Button>
           ) : (
             <Card className="glass-card p-0 overflow-hidden divide-y divide-border/50">
               <div className="px-5 py-3">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Manuelle Installation
+                  {t("install.manual_title")}
                 </p>
               </div>
+
               <div className="flex items-start gap-4 px-5 py-4">
                 <div className="shrink-0 w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
                   <Apple className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold">iOS / Safari</p>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1 flex-wrap">
-                    Tippe auf <Share2 className="h-3.5 w-3.5 inline" /> Share
-                    → <span className="font-medium text-foreground">„Zum Homebildschirm"</span>
+                  <p className="text-sm text-muted-foreground">
+                    {t("install.ios_instructions")}
                   </p>
                 </div>
               </div>
+
               <div className="flex items-start gap-4 px-5 py-4">
                 <div className="shrink-0 w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
                   <Chrome className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold">Android / Chrome</p>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1 flex-wrap">
-                    Tippe auf <MoreVertical className="h-3.5 w-3.5 inline" /> Menü
-                    → <span className="font-medium text-foreground">„Zum Startbildschirm"</span>
+                  <p className="text-sm text-muted-foreground">
+                    {t("install.android_instructions")}
                   </p>
                 </div>
               </div>
@@ -187,27 +198,28 @@ export default function InstallPrompt() {
           )}
 
           <Button variant="ghost" onClick={() => navigate('/')} className="w-full text-muted-foreground">
-            Später
+            {t("common.later")}
           </Button>
         </div>
       )}
 
-      {/* ── Complete ── */}
       {step === 'complete' && (
         <div className="w-full max-w-lg space-y-6">
 
-          {/* Header */}
           <div className="text-center space-y-2 pt-4">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-2">
               <CheckCircle2 className="h-7 w-7 text-primary" />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight">Bereit</h1>
+
+            <h1 className="text-3xl font-bold tracking-tight">
+              {t("install.complete_title")}
+            </h1>
+
             <p className="text-muted-foreground text-sm">
-              RigFlow ist installiert und einsatzbereit.
+              {t("install.complete_subtitle")}
             </p>
           </div>
 
-          {/* Feature list */}
           <Card className="glass-card divide-y divide-border/50 p-0 overflow-hidden">
             {completeFeatures.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="flex items-start gap-4 px-5 py-4">
@@ -222,16 +234,14 @@ export default function InstallPrompt() {
             ))}
           </Card>
 
-          {/* Hint */}
           <div className="rounded-xl border border-primary/20 bg-primary/5 px-5 py-4">
             <p className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">Tipp:</span> Aktiviere Benachrichtigungen
-              in den Einstellungen, um über Synchronisierungen informiert zu werden.
+              {t("install.tip")}
             </p>
           </div>
 
           <Button onClick={() => navigate('/')} size="lg" className="w-full gap-2">
-            Zur App
+            {t("install.go_app")}
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

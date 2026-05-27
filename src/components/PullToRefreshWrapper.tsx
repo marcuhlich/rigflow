@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
 interface Props {
@@ -8,10 +9,27 @@ interface Props {
   disabled?: boolean;
 }
 
-export function PullToRefreshWrapper({ onRefresh, children, disabled }: Props) {
+export function PullToRefreshWrapper({
+  onRefresh,
+  children,
+  disabled,
+}: Props) {
+  const { t } = useTranslation();
+
   const THRESHOLD = 72;
-  const { indicatorRef, isRefreshing, onTouchStart, onTouchMove, onTouchEnd, onTouchCancel } =
-    usePullToRefresh({ onRefresh, threshold: THRESHOLD, disabled });
+
+  const {
+    indicatorRef,
+    isRefreshing,
+    onTouchStart,
+    onTouchMove,
+    onTouchEnd,
+    onTouchCancel,
+  } = usePullToRefresh({
+    onRefresh,
+    threshold: THRESHOLD,
+    disabled,
+  });
 
   return (
     <div
@@ -36,19 +54,30 @@ export function PullToRefreshWrapper({ onRefresh, children, disabled }: Props) {
         {isRefreshing ? (
           <div className="flex items-center gap-2">
             <Loader2 className="h-5 w-5 text-primary animate-spin" />
-            <span className="text-xs text-muted-foreground font-medium">Wird aktualisiert…</span>
+
+            <span className="text-xs text-muted-foreground font-medium">
+              {t("common.refreshing")}
+            </span>
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <div style={{
-              width: 20, height: 20, borderRadius: "50%",
-              border: "2px solid hsl(var(--primary) / 0.3)",
-              borderTopColor: "hsl(var(--primary))",
-            }} />
-            <span className="text-xs text-muted-foreground font-medium">Loslassen zum Aktualisieren</span>
+            <div
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: "50%",
+                border: "2px solid hsl(var(--primary) / 0.3)",
+                borderTopColor: "hsl(var(--primary))",
+              }}
+            />
+
+            <span className="text-xs text-muted-foreground font-medium">
+              {t("common.release_to_refresh")}
+            </span>
           </div>
         )}
       </div>
+
       {children}
     </div>
   );

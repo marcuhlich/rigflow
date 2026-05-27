@@ -2,9 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
 
   useEffect(() => {
@@ -14,13 +17,16 @@ export default function AuthCallback() {
 
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) { setStatus('error'); return; }
+        if (error) {
+          setStatus('error');
+          return;
+        }
       }
 
       const { data: { session } } = await supabase.auth.getSession();
+
       if (session) {
         setStatus('success');
-        // Nach kurzer Pause zur App navigieren
         setTimeout(() => navigate("/", { replace: true }), 1500);
       } else {
         setStatus('error');
@@ -30,30 +36,44 @@ export default function AuthCallback() {
     handleCallback();
   }, [navigate]);
 
-  if (status === 'loading') return (
-    <div className="min-h-screen flex items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    </div>
-  );
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-  if (status === 'error') return (
-    <div className="min-h-screen flex items-center justify-center flex-col gap-4">
-      <p className="text-destructive">Link abgelaufen oder ungültig.</p>
-      <a href="/auth" className="text-primary underline">Zum Login</a>
-    </div>
-  );
+  if (status === 'error') {
+    return (
+      <div className="min-h-screen flex items-center justify-center flex-col gap-4">
+        <p className="text-destructive">
+          {t("auth.callback_error")}
+        </p>
+        <a href="/auth" className="text-primary underline">
+          {t("auth.back_to_login")}
+        </a>
+      </div>
+    );
+  }
 
-  // success — im Browser anzeigen mit "In App öffnen"-Option
   return (
     <div className="min-h-screen flex items-center justify-center flex-col gap-6 p-6 text-center">
       <div className="text-4xl">✅</div>
-      <h1 className="text-xl font-bold">E-Mail bestätigt!</h1>
-      <p className="text-muted-foreground">Du wirst weitergeleitet…</p>
+
+      <h1 className="text-xl font-bold">
+        {t("auth.email_verified_title")}
+      </h1>
+
+      <p className="text-muted-foreground">
+        {t("auth.redirect_info")}
+      </p>
+
       <a
         href="com.rigflow.app://auth/callback"
         className="text-sm text-primary underline"
       >
-        Nicht weitergeleitet? App öffnen
+        {t("auth.open_app_fallback")}
       </a>
     </div>
   );

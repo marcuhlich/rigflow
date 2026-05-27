@@ -1,8 +1,9 @@
-// src/components/MaintenanceTimeline.tsx
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { format, differenceInDays, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
-import { cn } from "@/lib/utils"
+import type { Locale } from 'date-fns';
+import { de, enUS } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import {
   CheckCheck, Wrench, Sparkles, Search,
   Clock, AlertTriangle, CheckCircle2,
@@ -12,17 +13,15 @@ import { Button }   from '@/components/ui/button';
 import { Card }     from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input }    from '@/components/ui/input';
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Popover, PopoverTrigger, PopoverContent,
-} from '@/components/ui/popover';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import {
   MaintenanceRecord, MaintenanceType,
-  MAINTENANCE_TYPES, MAINTENANCE_TYPE_LABELS,
-  MAINTENANCE_TYPE_DOT_COLOR,
+  MAINTENANCE_TYPES, MAINTENANCE_TYPE_DOT_COLOR,
 } from '@/types/maintenance';
+import { getMaintenanceTypeLabel } from '@/i18n/helpers';
 import { useMaintenanceRecords } from '@/hooks/useMaintenanceRecords';
-import "@/styles/maintenance.css";
+import '@/styles/maintenance.css';
 
 const GLOBAL_DEFAULT_INTERVAL = 180;
 
@@ -46,6 +45,9 @@ export function MaintenanceTimeline({
   maintenanceIntervalDays,
   onStatusChange,
 }: MaintenanceTimelineProps) {
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language.startsWith('de') ? de : enUS;
+
   const {
     records, loading,
     addRecord, updateRecord, deleteRecord, uploadPhoto,
@@ -63,9 +65,8 @@ export function MaintenanceTimeline({
     onStatusChange?.(isOverdue, isWarning);
   }, [isOverdue, isWarning]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Form-State ─────────────────────────────────────────────────────────────
   const [showForm,      setShowForm]      = useState(false);
-  const [formVisible,   setFormVisible]   = useState(false); // steuert CSS-Animation
+  const [formVisible,   setFormVisible]   = useState(false);
   const [formType,      setFormType]      = useState<MaintenanceType>('check');
   const [formDate,      setFormDate]      = useState(todayIso);
   const [formNotes,     setFormNotes]     = useState('');
@@ -79,6 +80,7 @@ export function MaintenanceTimeline({
   const [newEntryId,    setNewEntryId]    = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // ── DatePicker (nutzt dateLocale aus äußerem Scope via Closure) ───────────
   function DatePicker({
     value,
     onChange,
@@ -86,20 +88,27 @@ export function MaintenanceTimeline({
     value: Date | undefined;
     onChange: (d: Date | undefined) => void;
   }) {
-    const [open, setOpen] = useState(false);
-    const [month, setMonth] = useState(value ?? new Date());
+    const [open, setOpen]       = useState(false);
+    const [month, setMonth]     = useState(value ?? new Date());
     const [slideDir, setSlideDir] = useState<'left' | 'right' | null>(null);
     const prevMonth = useRef(value ?? new Date());
-  
-    const DOW = ['So','Mo','Di','Mi','Do','Fr','Sa'];
-    const MONTHS = ['Januar','Februar','März','April','Mai','Juni',
-                    'Juli','August','September','Oktober','November','Dezember'];
-  
+
+    // Lokalisierte Wochentag- und Monatsnamen via date-fns
+    // Jan 7 2024 = Sonntag → 7 aufeinanderfolgende Tage = So..Sa
+    const DOW = Array.from({ length: 7 }, (_, i) =>
+      format(new Date(2024, 0, 7 + i), 'EEEEEE', { locale: dateLocale })
+    );
+    const MONTHS = Array.from({ length: 12 }, (_, i) =>
+      format(new Date(2024, i, 1), 'LLLL', { locale: dateLocale })
+    );
+
+    const dateFormat = t('maintenance.date_format');
+
     const eq = (a: Date, b: Date) =>
       a.getFullYear() === b.getFullYear() &&
-      a.getMonth() === b.getMonth() &&
-      a.getDate() === b.getDate();
-  
+      a.getMonth()    === b.getMonth()    &&
+      a.getDate()     === b.getDate();
+
     const handleMonthChange = (delta: number) => {
       const next = new Date(month.getFullYear(), month.getMonth() + delta, 1);
       setSlideDir(delta > 0 ? 'left' : 'right');
@@ -107,20 +116,18 @@ export function MaintenanceTimeline({
       setMonth(next);
       setTimeout(() => setSlideDir(null), 220);
     };
-  
+
     const handleDayClick = (day: Date) => {
       onChange(day);
       setTimeout(() => setOpen(false), 120);
     };
-  
+
     const label = value
-      ? format(value, 'dd.MM.yyyy', { locale: de })
-      : 'Datum wählen';
-  
-    // Tage generieren
-    const firstDow = new Date(month.getFullYear(), month.getMonth(), 1).getDay();
+      ? format(value, dateFormat, { locale: dateLocale })
+      : t('maintenance.date_picker.placeholder');
+
+    const firstDow   = new Date(month.getFullYear(), month.getMonth(), 1).getDay();
     const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
-  
     const cells: (Date | null)[] = [
       ...Array(firstDow).fill(null),
       ...Array.from({ length: daysInMonth }, (_, i) =>
@@ -128,97 +135,61 @@ export function MaintenanceTimeline({
       ),
     ];
     while (cells.length % 7 !== 0) cells.push(null);
-  
+
     const getDayStyle = (day: Date): React.CSSProperties => {
-      const isSelected = value && eq(day, value);
-      const isToday = eq(day, new Date());
-  
-      if (isSelected) {
-        return {
-          background: 'hsl(var(--primary))',
-          color: 'hsl(var(--primary-foreground))',
-          borderRadius: '9999px',
-        };
-      }
-  
-      if (isToday) {
-        return {
-          boxShadow: 'inset 0 0 0 1.5px hsl(var(--primary) / 0.5)',
-          borderRadius: '9999px',
-        };
-      }
-  
+      if (value && eq(day, value)) return {
+        background: 'hsl(var(--primary))',
+        color: 'hsl(var(--primary-foreground))',
+        borderRadius: '9999px',
+      };
+      if (eq(day, new Date())) return {
+        boxShadow: 'inset 0 0 0 1.5px hsl(var(--primary) / 0.5)',
+        borderRadius: '9999px',
+      };
       return {};
     };
-  
+
     return (
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             className={cn(
-              "w-full justify-start text-left font-normal text-xs h-9 gap-1.5",
-              !value && "text-muted-foreground"
+              'w-full justify-start text-left font-normal text-xs h-9 gap-1.5',
+              !value && 'text-muted-foreground'
             )}
           >
             <CalendarDays className="h-3.5 w-3.5" />
             <span className="flex-1">{label}</span>
-  
             {value && (
-              <span
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onChange(undefined);
-                }}
-              >
+              <span onClick={e => { e.stopPropagation(); onChange(undefined); }}>
                 <X className="h-3 w-3" />
               </span>
             )}
           </Button>
         </PopoverTrigger>
-  
+
         <PopoverContent className="w-auto p-0" align="start">
           <div className="p-3 select-none" style={{ width: 280 }}>
-            
-            {/* Header */}
             <div className="flex items-center justify-between mb-3">
-              <button onClick={() => handleMonthChange(-1)}>
-                ‹
-              </button>
-  
-              <span
-                style={{
-                  animation: slideDir
-                    ? `cal-${slideDir} .2s ease-out`
-                    : undefined,
-                }}
-              >
+              <button onClick={() => handleMonthChange(-1)}>‹</button>
+              <span style={{ animation: slideDir ? `cal-${slideDir} .2s ease-out` : undefined }}>
                 {MONTHS[month.getMonth()]} {month.getFullYear()}
               </span>
-  
-              <button onClick={() => handleMonthChange(1)}>
-                ›
-              </button>
+              <button onClick={() => handleMonthChange(1)}>›</button>
             </div>
-  
-            {/* Wochentage */}
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
               {DOW.map(d => (
                 <div
                   key={d}
-                  style={{
-                    textAlign: 'center',
-                    fontSize: 11,
-                    color: 'hsl(var(--muted-foreground))',
-                    padding: '2px 0 6px'
-                  }}
+                  style={{ textAlign: 'center', fontSize: 11, color: 'hsl(var(--muted-foreground))', padding: '2px 0 6px' }}
                 >
                   {d}
                 </div>
               ))}
             </div>
-  
-            {/* Tage */}
+
             <table style={{ width: '100%' }}>
               <tbody>
                 {Array.from({ length: cells.length / 7 }, (_, row) => (
@@ -228,15 +199,7 @@ export function MaintenanceTimeline({
                         {day && (
                           <button
                             onClick={() => handleDayClick(day)}
-                            style={{
-                              width: '100%',
-                              aspectRatio: '1',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: 13,
-                              ...getDayStyle(day),
-                            }}
+                            style={{ width: '100%', aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, ...getDayStyle(day) }}
                             className="hover:bg-muted rounded-full"
                           >
                             {day.getDate()}
@@ -254,20 +217,14 @@ export function MaintenanceTimeline({
     );
   }
 
-  // ── Formular öffnen mit Enter-Animation ───────────────────────────────────
   function openForm() {
     setShowForm(true);
-    // kleiner Delay damit overflow:hidden nicht sofort greift
     requestAnimationFrame(() => requestAnimationFrame(() => setFormVisible(true)));
   }
 
-  // ── Formular schließen mit Squeeze-Animation ───────────────────────────────
   function closeForm(cb?: () => void) {
     setFormVisible(false);
-    setTimeout(() => {
-      setShowForm(false);
-      cb?.();
-    }, 280); // muss mit CSS-Transition übereinstimmen
+    setTimeout(() => { setShowForm(false); cb?.(); }, 280);
   }
 
   function resetForm() {
@@ -281,7 +238,6 @@ export function MaintenanceTimeline({
     });
   }
 
-  // ── Quick-Confirm mit Erfolgs-Feedback ────────────────────────────────────
   async function handleQuickConfirm() {
     setQuickSaving(true);
     const { data: record } = await addRecord({
@@ -319,7 +275,6 @@ export function MaintenanceTimeline({
       if (url) await updateRecord(record.id, { image_url: url });
     }
     setSaving(false);
-    // Squeeze-Animation: Form schließen, dann neuen Eintrag highlighten
     if (record) setNewEntryId(record.id);
     closeForm(() => {
       setFormType('check');
@@ -341,25 +296,25 @@ export function MaintenanceTimeline({
   const statusConfig = (() => {
     if (daysSinceLast === null) return {
       icon: <AlertTriangle className="h-4 w-4 shrink-0" />,
-      text: 'Noch keine Wartung erfasst',
+      text: t('maintenance.status.never'),
       cls:  'bg-destructive/10 text-destructive border-destructive/20',
       pulse: true,
     };
     if (isOverdue) return {
       icon: <AlertTriangle className="h-4 w-4 shrink-0" />,
-      text: `Wartung überfällig – letzte vor ${daysSinceLast} Tagen`,
+      text: t('maintenance.status.overdue', { count: daysSinceLast }),
       cls:  'bg-destructive/10 text-destructive border-destructive/20',
       pulse: true,
     };
     if (isWarning) return {
       icon: <Clock className="h-4 w-4 shrink-0" />,
-      text: `Wartung bald fällig – letzte vor ${daysSinceLast} Tagen`,
+      text: t('maintenance.status.warning', { count: daysSinceLast }),
       cls:  'bg-amber-500/10 text-amber-600 border-amber-500/20',
       pulse: false,
     };
     return {
       icon: <CheckCircle2 className="h-4 w-4 shrink-0" />,
-      text: `Letzte Wartung vor ${daysSinceLast} ${daysSinceLast === 1 ? 'Tag' : 'Tagen'}`,
+      text: t('maintenance.status.ok', { count: daysSinceLast }),
       cls:  'bg-green-500/10 text-green-600 border-green-500/20',
       pulse: false,
     };
@@ -368,28 +323,18 @@ export function MaintenanceTimeline({
   if (loading) {
     return (
       <div className="space-y-4">
-
-        {/* Status-Banner Skeleton */}
         <Skeleton className="h-12 w-full rounded-lg" />
-
-        {/* Buttons */}
         <div className="flex gap-2">
           <Skeleton className="h-9 flex-1 rounded-md" />
           <Skeleton className="h-9 w-24 rounded-md" />
         </div>
-
-        {/* Timeline Skeleton */}
         <div className="space-y-4 pt-2">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="flex gap-3">
-              
-              {/* Dot + Line */}
               <div className="flex flex-col items-center">
                 <Skeleton className="w-3 h-3 rounded-full" />
                 <Skeleton className="w-px flex-1 mt-1" />
               </div>
-
-              {/* Card */}
               <div className="flex-1 space-y-2">
                 <Skeleton className="h-16 w-full rounded-lg" />
               </div>
@@ -411,11 +356,11 @@ export function MaintenanceTimeline({
             ${statusConfig.cls}
             ${statusConfig.pulse ? 'status-overdue-pulse' : ''}`}
         >
-          <span className={statusConfig.pulse ? 'shrink-0' : 'shrink-0'}>
-            {statusConfig.icon}
-          </span>
+          <span className="shrink-0">{statusConfig.icon}</span>
           <span className="flex-1 min-w-0">{statusConfig.text}</span>
-          <span className="text-xs font-normal opacity-60 shrink-0">Intervall: {interval}d</span>
+          <span className="text-xs font-normal opacity-60 shrink-0">
+            {t('maintenance.interval_label', { days: interval })}
+          </span>
         </div>
 
         {/* Aktionszeile */}
@@ -435,7 +380,7 @@ export function MaintenanceTimeline({
             ) : (
               <CheckCheck className="h-4 w-4" />
             )}
-            {quickSuccess ? 'Gespeichert ✓' : 'Wartung heute bestätigt'}
+            {quickSuccess ? t('maintenance.quick_saved') : t('maintenance.quick_confirm')}
           </Button>
           <Button
             variant="outline"
@@ -446,20 +391,16 @@ export function MaintenanceTimeline({
             onClick={() => showForm ? resetForm() : openForm()}
             disabled={saving || quickSaving}
           >
-            <Plus
-              className={`h-4 w-4 transition-transform duration-250
-                ${showForm ? 'rotate-45' : 'rotate-0'}`}
-            />
-            Eintrag
+            <Plus className={`h-4 w-4 transition-transform duration-250 ${showForm ? 'rotate-45' : 'rotate-0'}`} />
+            {t('maintenance.add_entry')}
           </Button>
         </div>
 
-        {/* ── Inline-Formular mit Squeeze-Animation ── */}
+        {/* Inline-Formular */}
         {showForm && (
           <div className={formVisible ? 'form-enter-active' : 'form-exit-active'}>
             <Card className="p-4 space-y-3 border-primary/30 bg-primary/5">
 
-              {/* Typ-Auswahl mit Bounce */}
               <div className="flex flex-wrap gap-2">
                 {MAINTENANCE_TYPES.map(type => (
                   <TypePill
@@ -473,19 +414,16 @@ export function MaintenanceTimeline({
 
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">
-                  Datum
+                  {t('maintenance.form.date_label')}
                 </label>
-
                 <DatePicker
                   value={formDate ? new Date(formDate) : undefined}
-                  onChange={(date) =>
-                    setFormDate(date ? format(date, "yyyy-MM-dd") : "")
-                  }
+                  onChange={date => setFormDate(date ? format(date, 'yyyy-MM-dd') : '')}
                 />
               </div>
 
               <Textarea
-                placeholder="Notizen (optional)…"
+                placeholder={t('maintenance.form.notes_placeholder')}
                 value={formNotes}
                 onChange={e => setFormNotes(e.target.value)}
                 className="text-sm min-h-[72px] resize-none transition-shadow duration-150 focus:shadow-md"
@@ -493,7 +431,9 @@ export function MaintenanceTimeline({
 
               <div className="flex gap-2 items-end">
                 <div className="flex-1">
-                  <label className="text-xs text-muted-foreground mb-1 block">Kosten (optional)</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">
+                    {t('maintenance.form.cost_label')}
+                  </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">€</span>
                     <Input
@@ -518,14 +458,18 @@ export function MaintenanceTimeline({
                     onClick={() => fileRef.current?.click()}
                   >
                     <ImageIcon className="h-4 w-4" />
-                    {formPhotoFile ? '✓ Foto' : 'Foto'}
+                    {formPhotoFile ? t('maintenance.form.photo_selected') : t('maintenance.form.photo')}
                   </Button>
                 </div>
               </div>
 
               {formPhotoUrl && (
                 <div className="relative inline-block" style={{ animation: 'entry-pop-in 0.25s ease forwards' }}>
-                  <img src={formPhotoUrl} alt="Vorschau" className="w-28 h-20 object-cover rounded-lg border" />
+                  <img
+                    src={formPhotoUrl}
+                    alt={t('maintenance.photo_preview_alt')}
+                    className="w-28 h-20 object-cover rounded-lg border"
+                  />
                   <button
                     type="button"
                     onClick={() => { setFormPhotoFile(null); setFormPhotoUrl(null); }}
@@ -543,7 +487,7 @@ export function MaintenanceTimeline({
                   onClick={resetForm}
                   className="transition-all duration-150 hover:bg-muted/70 active:scale-95"
                 >
-                  Abbrechen
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   size="sm"
@@ -552,7 +496,7 @@ export function MaintenanceTimeline({
                   className="transition-all duration-150 hover:shadow-md hover:-translate-y-px active:translate-y-0 active:shadow-none"
                 >
                   {saving && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
-                  Speichern
+                  {t('common.save')}
                 </Button>
               </div>
             </Card>
@@ -562,7 +506,7 @@ export function MaintenanceTimeline({
         {/* Timeline */}
         {records.length === 0 ? (
           <p className="text-center py-8 text-sm text-muted-foreground">
-            Noch keine Wartungseinträge vorhanden.
+            {t('maintenance.empty')}
           </p>
         ) : (
           <div>
@@ -574,6 +518,7 @@ export function MaintenanceTimeline({
                 isDeleting={deletingId === record.id}
                 isNew={newEntryId === record.id}
                 onDelete={() => handleDelete(record.id)}
+                dateLocale={dateLocale}
               />
             ))}
           </div>
@@ -583,10 +528,9 @@ export function MaintenanceTimeline({
   );
 }
 
-// ── Typ-Pill mit Bounce-Effekt ─────────────────────────────────────────────────
-function TypePill({
-  type, isActive, onSelect,
-}: { type: MaintenanceType; isActive: boolean; onSelect: () => void }) {
+// ── TypePill ──────────────────────────────────────────────────────────────────
+function TypePill({ type, isActive, onSelect }: { type: MaintenanceType; isActive: boolean; onSelect: () => void }) {
+  const { t } = useTranslation();
   const [bouncing, setBouncing] = useState(false);
 
   function handleClick() {
@@ -610,36 +554,37 @@ function TypePill({
       `}
     >
       {TYPE_ICONS[type]}
-      {MAINTENANCE_TYPE_LABELS[type]}
+      {getMaintenanceTypeLabel(type, t)}
     </button>
   );
 }
 
-// ── Timeline-Eintrag ───────────────────────────────────────────────────────────
+// ── TimelineEntry ─────────────────────────────────────────────────────────────
 interface EntryProps {
   record:     MaintenanceRecord;
   isLast:     boolean;
   isDeleting: boolean;
   isNew:      boolean;
   onDelete:   () => void;
+  dateLocale: Locale;
 }
 
-function TimelineEntry({ record, isLast, isDeleting, isNew, onDelete }: EntryProps) {
+function TimelineEntry({ record, isLast, isDeleting, isNew, onDelete, dateLocale }: EntryProps) {
+  const { t } = useTranslation();
   const type     = record.type as MaintenanceType;
   const dotColor = MAINTENANCE_TYPE_DOT_COLOR[type] ?? '#6366f1';
 
   const dateLabel = (() => {
     const d    = parseISO(record.performed_at);
     const days = differenceInDays(new Date(), d);
-    if (days === 0) return 'Heute';
-    if (days === 1) return 'Gestern';
-    if (days < 7)  return `Vor ${days} Tagen`;
-    return format(d, 'dd. MMM yyyy', { locale: de });
+    if (days === 0) return t('maintenance.timeline.today');
+    if (days === 1) return t('maintenance.timeline.yesterday');
+    if (days < 7)  return t('maintenance.timeline.days_ago', { count: days });
+    return format(d, t('maintenance.date_format_long'), { locale: dateLocale });
   })();
 
   return (
     <div className={`flex gap-3 ${isNew ? 'entry-new' : ''}`}>
-      {/* Dot + Linie */}
       <div className="flex flex-col items-center shrink-0">
         <div className="h-[1.1rem] shrink-0" />
         <div
@@ -651,7 +596,6 @@ function TimelineEntry({ record, isLast, isDeleting, isNew, onDelete }: EntryPro
         {!isLast && <div className="w-px flex-1 bg-border mt-1 min-h-[0.75rem]" />}
       </div>
 
-      {/* Card */}
       <div className={`flex-1 min-w-0 ${isLast ? 'pb-1' : 'pb-3'}`}>
         <div
           className={`group rounded-lg border bg-card px-4 py-3 shadow-sm
@@ -662,10 +606,9 @@ function TimelineEntry({ record, isLast, isDeleting, isNew, onDelete }: EntryPro
         >
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              {/* Kopfzeile */}
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-medium">
-                  {MAINTENANCE_TYPE_LABELS[type] ?? record.type}
+                  {getMaintenanceTypeLabel(type, t)}
                 </span>
                 <span className="text-xs text-muted-foreground">{dateLabel}</span>
                 {record.cost != null && (
@@ -675,19 +618,13 @@ function TimelineEntry({ record, isLast, isDeleting, isNew, onDelete }: EntryPro
                   </span>
                 )}
               </div>
-
-              {/* Notizen */}
               {record.notes && (
-                <p className="text-sm text-muted-foreground mt-1 break-words">
-                  {record.notes}
-                </p>
+                <p className="text-sm text-muted-foreground mt-1 break-words">{record.notes}</p>
               )}
-
-              {/* Foto */}
               {record.image_url && (
                 <img
                   src={record.image_url}
-                  alt="Wartungsfoto"
+                  alt={t('maintenance.timeline.photo_alt')}
                   className="mt-2 w-32 h-24 object-cover rounded-lg border cursor-pointer
                     transition-all duration-200 hover:opacity-90 hover:scale-105 hover:shadow-md"
                   onClick={() => window.open(record.image_url!, '_blank')}
@@ -695,7 +632,6 @@ function TimelineEntry({ record, isLast, isDeleting, isNew, onDelete }: EntryPro
               )}
             </div>
 
-            {/* Löschen */}
             <button
               type="button"
               onClick={onDelete}
@@ -704,7 +640,7 @@ function TimelineEntry({ record, isLast, isDeleting, isNew, onDelete }: EntryPro
                 hover:text-destructive hover:bg-destructive/10
                 transition-all duration-150 hover:scale-110 active:scale-95
                 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-              title="Eintrag löschen"
+              title={t('maintenance.timeline.delete_title')}
             >
               {isDeleting
                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" />

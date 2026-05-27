@@ -1,20 +1,11 @@
 /**
- * ProjectDetail.tsx
- *
- * Features:
- * - Pakete in Projekten auto-refresh wenn neue Items hinzugefügt (refetchPackages nach addPackage)
- * - Defekte Artikel als Konflikt markiert (condition='defekt' → ConflictBadge)
- * - Aufbau: 2 Optionen — Scanner-Link ODER direkter "Alle markieren" Button
- * - Abbau: Scanner-first Banner + manuelle Fallback-Übersicht mit ConditionSelect
- * - Archived Status → vollständig readonly (kein Edit, kein Delete, kein Finalize-Banner)
- * - Bereits hinzugefügte Items im Picker blockiert (addedItemIds Set)
- * - Packfortschritt/Badge nur in packed/transit Phasen
- * - Conflict detection direkt aus availableInventory (kein extra DB-Query)
+ * ProjectDetail.tsx – i18n-translated
  */
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { format, isWithinInterval, isSameDay } from "date-fns";
-import { de } from "date-fns/locale";
+import { format } from "date-fns";
+import { de, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import {
   ChevronLeft, Edit2, Trash2, Star, Plus, Sliders,
   ChevronDown, ChevronRight, GripVertical, X,
@@ -33,7 +24,6 @@ import { Progress }  from "@/components/ui/progress";
 import { Checkbox }  from "@/components/ui/checkbox";
 import { Skeleton }  from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar }  from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -65,7 +55,6 @@ import { InventoryItem } from "@/types/inventory";
 import { cn } from "@/lib/utils";
 import { STATUS_ORDER, isWarningJump } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
-import { DateRange } from "react-day-picker";
 import { ProjectDMXTab } from "@/components/ProjectDMXTab";
 import { ProjectReportDialog } from "@/components/ProjectReportDialog";
 
@@ -76,6 +65,7 @@ const PACK_PHASES:      ProjectStatus[] = ['packed', 'transit'];
 const LOCKED_PHASES:    ProjectStatus[] = ['transit', 'live'];
 const CONDITION_PHASES: ProjectStatus[] = ['returning'];
 const AUFBAU_PHASES:    ProjectStatus[] = ['planned', 'packed'];
+const PHASES_WITH_TEMPLATES = new Set(['planned', 'packed', 'transit', 'live', 'returning']);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -98,23 +88,36 @@ interface EditFormData {
   dateStart: string | null; dateEnd: string | null; notes: string;
 }
 
-// ─── SlidingTabs ──────────────────────────────────────────────────────────────
-// Ersetzt <Tabs> + <TabsList> mit einem animierten Sliding-Indicator
+// ─── Status-Konfiguration (ohne Label — wird per t() gerendert) ───────────────
 
-interface SlidingTabItem {
-  value: string;
-  label: React.ReactNode;
-}
+const STATUS_CONFIG: Record<string, {
+  color: string; bg: string; border: string; dot: string;
+}> = {
+  draft:     { color: 'text-muted-foreground', bg: 'bg-muted/60',      border: 'border-border',         dot: '#6b7280' },
+  planned:   { color: 'text-blue-400',         bg: 'bg-blue-500/10',   border: 'border-blue-500/30',    dot: '#60a5fa' },
+  packed:    { color: 'text-amber-400',        bg: 'bg-amber-500/10',  border: 'border-amber-500/30',   dot: '#fbbf24' },
+  transit:   { color: 'text-orange-400',       bg: 'bg-orange-500/10', border: 'border-orange-500/30',  dot: '#fb923c' },
+  live:      { color: 'text-primary',          bg: 'bg-primary/10',    border: 'border-primary/30',     dot: '#34d399' },
+  returning: { color: 'text-purple-400',       bg: 'bg-purple-500/10', border: 'border-purple-500/30',  dot: '#a78bfa' },
+  archived:  { color: 'text-muted-foreground', bg: 'bg-muted/40',      border: 'border-border/50',      dot: '#374151' },
+};
+
+const ICON_MAP: Record<string, React.ElementType> = {
+  package: Package, music: Music, lightbulb: Lightbulb, zap: Zap,
+  wrench: Wrench, cable: Cable, star: Star, box: Box, layers: Layers,
+};
+const getPkgIcon = (name: string): React.ElementType => ICON_MAP[name] ?? Package;
+
+// ─── SlidingTabs ──────────────────────────────────────────────────────────────
+
+interface SlidingTabItem { value: string; label: React.ReactNode; }
 
 function SlidingTabsList({ tabs, value, onChange }: {
-  tabs: SlidingTabItem[];
-  value: string;
-  onChange: (v: string) => void;
+  tabs: SlidingTabItem[]; value: string; onChange: (v: string) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs     = useRef<(HTMLButtonElement | null)[]>([]);
   const [indicator,  setIndicator] = useState<{ left: number; width: number } | null>(null);
-
   const activeIdx = tabs.findIndex(t => t.value === value);
 
   useEffect(() => {
@@ -127,19 +130,11 @@ function SlidingTabsList({ tabs, value, onChange }: {
   }, [activeIdx, tabs]);
 
   return (
-    <div
-      ref={containerRef}
-      className="relative inline-flex items-center gap-0.5 rounded-lg bg-muted/60 p-1 h-9"
-    >
-      {/* Sliding Highlight */}
+    <div ref={containerRef} className="relative inline-flex items-center gap-0.5 rounded-lg bg-muted/60 p-1 h-9">
       {indicator && (
         <span
           className="absolute top-1 bottom-1 rounded-md bg-background shadow-sm pointer-events-none"
-          style={{
-            left:      indicator.left - 4, // offset by container padding
-            width:     indicator.width,
-            transition: 'left 0.25s cubic-bezier(0.4,0,0.2,1), width 0.2s cubic-bezier(0.4,0,0.2,1)',
-          }}
+          style={{ left: indicator.left - 4, width: indicator.width, transition: 'left 0.25s cubic-bezier(0.4,0,0.2,1), width 0.2s cubic-bezier(0.4,0,0.2,1)' }}
         />
       )}
       {tabs.map((tab, i) => (
@@ -149,37 +144,32 @@ function SlidingTabsList({ tabs, value, onChange }: {
           onClick={() => onChange(tab.value)}
           className={cn(
             "relative z-10 flex items-center gap-1.5 px-3 py-1 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap active:scale-95",
-            value === tab.value
-              ? "text-foreground"
-              : "text-muted-foreground hover:text-foreground"
+            value === tab.value ? "text-foreground" : "text-muted-foreground hover:text-foreground"
           )}
-        >
-          {tab.label}
-        </button>
+        >{tab.label}</button>
       ))}
     </div>
   );
 }
 
-// ─── DateRangePicker (custom calendar — kein shadcn-Klassen-Krieg) ────────────
+// ─── DateRangePicker ──────────────────────────────────────────────────────────
+
 function DateRangePicker({ dateStart, dateEnd, onChangeStart, onChangeEnd }: {
-  dateStart: Date | undefined;
-  dateEnd:   Date | undefined;
+  dateStart: Date | undefined; dateEnd: Date | undefined;
   onChangeStart: (d: Date | undefined) => void;
   onChangeEnd:   (d: Date | undefined) => void;
 }) {
-  const [open,     setOpen]    = useState(false);
-  const [month,    setMonth]   = useState(dateStart ?? new Date());
-  const [hovered,  setHovered] = useState<Date | null>(null);
+  const { t } = useTranslation();
+  const [open,     setOpen]     = useState(false);
+  const [month,    setMonth]    = useState(dateStart ?? new Date());
+  const [hovered,  setHovered]  = useState<Date | null>(null);
   const [slideDir, setSlideDir] = useState<'left' | 'right' | null>(null);
   const prevMonth  = useRef(dateStart ?? new Date());
   const clickCount = useRef(0);
 
-  const DOW = ['So','Mo','Di','Mi','Do','Fr','Sa'];
-  const MONTHS = ['Januar','Februar','März','April','Mai','Juni',
-                  'Juli','August','September','Oktober','November','Dezember'];
+  const DOW    = t('projects.date_picker.days',   { returnObjects: true }) as string[];
+  const MONTHS = t('projects.date_picker.months', { returnObjects: true }) as string[];
 
-  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const eq = (a: Date, b: Date) =>
     a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
@@ -197,77 +187,42 @@ function DateRangePicker({ dateStart, dateEnd, onChangeStart, onChangeEnd }: {
 
   const handleDayClick = (day: Date) => {
     if (clickCount.current === 0 || (dateStart && day < dateStart)) {
-      onChangeStart(day);
-      onChangeEnd(undefined);
-      clickCount.current = 1;
+      onChangeStart(day); onChangeEnd(undefined); clickCount.current = 1;
     } else {
-      if (eq(day, dateStart!)) {
-        onChangeEnd(day);
-      } else {
-        onChangeEnd(day);
-      }
-      clickCount.current = 0;
+      onChangeEnd(day); clickCount.current = 0;
       setTimeout(() => setOpen(false), 150);
     }
   };
 
-  const handleOpenChange = (v: boolean) => {
-    setOpen(v);
-    if (v) clickCount.current = 0;
-  };
+  const handleOpenChange = (v: boolean) => { setOpen(v); if (v) clickCount.current = 0; };
 
   const label = (() => {
     if (!dateStart) return null;
     if (dateEnd) {
-      if (eq(dateStart, dateEnd)) return format(dateStart, 'dd.MM.yyyy', { locale: de });
-      return `${format(dateStart, 'dd.MM.', { locale: de })} – ${format(dateEnd, 'dd.MM.yyyy', { locale: de })}`;
+      if (eq(dateStart, dateEnd)) return format(dateStart, 'dd.MM.yyyy');
+      return `${format(dateStart, 'dd.MM.')} – ${format(dateEnd, 'dd.MM.yyyy')}`;
     }
-    return format(dateStart, 'dd.MM.yyyy', { locale: de });
+    return format(dateStart, 'dd.MM.yyyy');
   })();
 
-  // Tage des aktuellen Monats aufbauen
   const firstDow = new Date(month.getFullYear(), month.getMonth(), 1).getDay();
   const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
   const cells: (Date | null)[] = [
     ...Array(firstDow).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, i) =>
-      new Date(month.getFullYear(), month.getMonth(), i + 1)
-    ),
+    ...Array.from({ length: daysInMonth }, (_, i) => new Date(month.getFullYear(), month.getMonth(), i + 1)),
   ];
   while (cells.length % 7 !== 0) cells.push(null);
 
-  const getDayStyle = (day: Date): React.CSSProperties & { extraClass?: string } => {
+  const getDayStyle = (day: Date): React.CSSProperties => {
     const isStart = dateStart && eq(day, dateStart);
     const isEnd   = rangeEnd && eq(day, rangeEnd);
     const inRange = dateStart && rangeEnd && day > dateStart && day < rangeEnd;
     const isToday = eq(day, new Date());
-
-    if (isStart && isEnd) {
-      return {
-        background: 'hsl(var(--primary))',
-        color: 'hsl(var(--primary-foreground))',
-        borderRadius: '9999px',
-      };
-    }
-    if (isStart) return {
-      background: 'hsl(var(--primary))',
-      color: 'hsl(var(--primary-foreground))',
-      borderRadius: '6px 0 0 6px',
-    };
-    if (isEnd) return {
-      background: 'hsl(var(--primary))',
-      color: 'hsl(var(--primary-foreground))',
-      borderRadius: '0 6px 6px 0',
-    };
-    if (inRange) return {
-      background: 'transparent',
-      color: 'inherit',
-      borderRadius: '0',
-    };
-    if (isToday) return {
-      boxShadow: 'inset 0 0 0 1.5px hsl(var(--primary) / 0.5)',
-      borderRadius: '9999px',
-    };
+    if (isStart && isEnd) return { background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: '9999px' };
+    if (isStart) return { background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: '6px 0 0 6px' };
+    if (isEnd)   return { background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: '0 6px 6px 0' };
+    if (inRange) return { background: 'transparent', color: 'inherit', borderRadius: '0' };
+    if (isToday) return { boxShadow: 'inset 0 0 0 1.5px hsl(var(--primary) / 0.5)', borderRadius: '9999px' };
     return {};
   };
 
@@ -275,7 +230,6 @@ function DateRangePicker({ dateStart, dateEnd, onChangeStart, onChangeEnd }: {
     const isStart = dateStart && eq(day, dateStart);
     const isEnd   = rangeEnd && eq(day, rangeEnd);
     const inRange = dateStart && rangeEnd && day > dateStart && day < rangeEnd;
-
     if (isStart && isEnd) return 'transparent';
     if (isStart) return `linear-gradient(to right, transparent 50%, hsl(var(--primary) / 0.13) 50%)`;
     if (isEnd)   return `linear-gradient(to left, transparent 50%, hsl(var(--primary) / 0.13) 50%)`;
@@ -286,145 +240,65 @@ function DateRangePicker({ dateStart, dateEnd, onChangeStart, onChangeEnd }: {
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className={cn(
-            "w-full justify-start text-left font-normal text-xs h-9 gap-1.5",
-            !dateStart && "text-muted-foreground"
-          )}
-        >
+        <Button variant="outline" className={cn("w-full justify-start text-left font-normal text-xs h-9 gap-1.5", !dateStart && "text-muted-foreground")}>
           <CalendarDays className="h-3.5 w-3.5 shrink-0" />
-          <span className="flex-1">{label ?? 'Zeitraum wählen'}</span>
+          <span className="flex-1">{label ?? t('projects.date_picker.range_placeholder')}</span>
           {(dateStart || dateEnd) && (
-            <span
-              role="button"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              onClick={e => {
-                e.stopPropagation();
-                onChangeStart(undefined);
-                onChangeEnd(undefined);
-                clickCount.current = 0;
-              }}
-            >
+            <span role="button" className="text-muted-foreground hover:text-foreground transition-colors"
+              onClick={e => { e.stopPropagation(); onChangeStart(undefined); onChangeEnd(undefined); clickCount.current = 0; }}>
               <X className="h-3 w-3" />
             </span>
           )}
         </Button>
       </PopoverTrigger>
-
       <PopoverContent className="w-auto p-0" align="start">
-        {/* Header */}
         <div className="px-4 pt-3 pb-2 flex items-center gap-2 text-xs border-b border-border/40">
-          <span className={cn("font-medium transition-colors",
-            !dateStart ? "text-primary" : "text-foreground")}>
-            {dateStart ? format(dateStart, 'dd.MM.yyyy') : 'Startdatum'}
+          <span className={cn("font-medium transition-colors", !dateStart ? "text-primary" : "text-foreground")}>
+            {dateStart ? format(dateStart, 'dd.MM.yyyy') : t('project_detail.date_picker.start_label')}
           </span>
           <span className="text-muted-foreground">→</span>
-          <span className={cn("font-medium transition-colors",
-            dateStart && !dateEnd ? "text-primary" : "text-foreground")}>
-            {dateEnd ? format(dateEnd, 'dd.MM.yyyy') : 'Enddatum'}
+          <span className={cn("font-medium transition-colors", dateStart && !dateEnd ? "text-primary" : "text-foreground")}>
+            {dateEnd ? format(dateEnd, 'dd.MM.yyyy') : t('project_detail.date_picker.end_label')}
           </span>
           {(dateStart || dateEnd) && (
-            <button
-              className="ml-auto text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => {
-                onChangeStart(undefined);
-                onChangeEnd(undefined);
-                clickCount.current = 0;
-              }}
-            >
-              Zurücksetzen
+            <button className="ml-auto text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => { onChangeStart(undefined); onChangeEnd(undefined); clickCount.current = 0; }}>
+              {t('projects.date_picker.reset')}
             </button>
           )}
         </div>
-
-        {/* Kalender */}
         <div className="p-3 select-none" style={{ width: 280 }}>
-          {/* Nav */}
           <div className="flex items-center justify-between mb-3">
-            <button
-              onClick={() => handleMonthChange(-1)}
-              className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            >
+            <button onClick={() => handleMonthChange(-1)} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span
-              className="text-sm font-medium overflow-hidden"
-              style={{
-                animation: slideDir
-                  ? `cal-${slideDir} .2s ease-out`
-                  : undefined,
-              }}
-            >
+            <span className="text-sm font-medium overflow-hidden" style={{ animation: slideDir ? `cal-${slideDir} .2s ease-out` : undefined }}>
               {MONTHS[month.getMonth()]} {month.getFullYear()}
             </span>
-            <button
-              onClick={() => handleMonthChange(1)}
-              className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            >
+            <button onClick={() => handleMonthChange(1)} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
-
-          <style>{`
-            @keyframes cal-left  { from { opacity:0; transform:translateX(10px)  } to { opacity:1; transform:translateX(0) } }
-            @keyframes cal-right { from { opacity:0; transform:translateX(-10px) } to { opacity:1; transform:translateX(0) } }
-          `}</style>
-
-          {/* Wochentage */}
+          <style>{`@keyframes cal-left{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:translateX(0)}}@keyframes cal-right{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}`}</style>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 2 }}>
             {DOW.map(d => (
-              <div key={d} style={{ textAlign: 'center', fontSize: 11, color: 'hsl(var(--muted-foreground))', padding: '2px 0 6px' }}>
-                {d}
-              </div>
+              <div key={d} style={{ textAlign: 'center', fontSize: 11, color: 'hsl(var(--muted-foreground))', padding: '2px 0 6px' }}>{d}</div>
             ))}
           </div>
-
-          {/* Tage */}
           <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <tbody>
               {Array.from({ length: cells.length / 7 }, (_, row) => (
                 <tr key={row}>
                   {cells.slice(row * 7, row * 7 + 7).map((day, col) => (
-                    <td
-                      key={col}
-                      style={{
-                        padding: 0,
-                        background: day ? getTdBackground(day) : 'transparent',
-                      }}
-                    >
+                    <td key={col} style={{ padding: 0, background: day ? getTdBackground(day) : 'transparent' }}>
                       {day ? (
                         <button
                           onClick={() => handleDayClick(day)}
                           onMouseEnter={() => setHovered(day)}
                           onMouseLeave={() => setHovered(null)}
-                          style={{
-                            width: '100%',
-                            aspectRatio: '1',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: 13,
-                            fontWeight: (dateStart && eq(day, dateStart)) || (rangeEnd && eq(day, rangeEnd)) ? 500 : 400,
-                            cursor: 'pointer',
-                            border: 'none',
-                            transition: 'background .1s, color .1s',
-                            ...getDayStyle(day),
-                            ...(
-                              !((dateStart && eq(day, dateStart)) || (rangeEnd && eq(day, rangeEnd)) || (dateStart && rangeEnd && day > dateStart && day < rangeEnd))
-                                ? { ':hover': { background: 'hsl(var(--muted))' } }
-                                : {}
-                            ),
-                          }}
-                          className={cn(
-                            "outline-none",
-                            !((dateStart && eq(day, dateStart)) || (rangeEnd && eq(day, rangeEnd))) &&
-                            !(dateStart && rangeEnd && day > dateStart && day < rangeEnd) &&
-                            "hover:bg-muted rounded-full",
-                          )}
-                        >
-                          {day.getDate()}
-                        </button>
+                          style={{ width: '100%', aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, cursor: 'pointer', border: 'none', transition: 'background .1s, color .1s', ...getDayStyle(day) }}
+                          className={cn("outline-none", !((dateStart && eq(day, dateStart)) || (rangeEnd && eq(day, rangeEnd))) && !(dateStart && rangeEnd && day > dateStart && day < rangeEnd) && "hover:bg-muted rounded-full")}
+                        >{day.getDate()}</button>
                       ) : null}
                     </td>
                   ))}
@@ -433,69 +307,42 @@ function DateRangePicker({ dateStart, dateEnd, onChangeStart, onChangeEnd }: {
             </tbody>
           </table>
         </div>
-
         <p className="px-4 pb-3 text-[10px] text-muted-foreground">
-          {!dateStart
-            ? 'Startdatum wählen'
-            : !dateEnd
-            ? 'Enddatum wählen'
-            : ''}
+          {!dateStart ? t('projects.date_picker.hint_start') : !dateEnd ? t('projects.date_picker.hint_end') : ''}
         </p>
       </PopoverContent>
     </Popover>
   );
 }
 
-// ─── Status-Konfiguration ─────────────────────────────────────────────────────
-
-const STATUS_CONFIG: Record<string, {
-  label: string; color: string; bg: string; border: string; dot: string;
-}> = {
-  draft:     { label: 'Entwurf',    color: 'text-muted-foreground', bg: 'bg-muted/60',      border: 'border-border',         dot: '#6b7280' },
-  planned:   { label: 'Geplant',    color: 'text-blue-400',         bg: 'bg-blue-500/10',   border: 'border-blue-500/30',    dot: '#60a5fa' },
-  packed:    { label: 'Gepackt',    color: 'text-amber-400',        bg: 'bg-amber-500/10',  border: 'border-amber-500/30',   dot: '#fbbf24' },
-  transit:   { label: 'Unterwegs',  color: 'text-orange-400',       bg: 'bg-orange-500/10', border: 'border-orange-500/30',  dot: '#fb923c' },
-  live:      { label: 'Live',       color: 'text-primary',          bg: 'bg-primary/10',    border: 'border-primary/30',     dot: '#34d399' },
-  returning: { label: 'Rücklauf',  color: 'text-purple-400',       bg: 'bg-purple-500/10', border: 'border-purple-500/30',  dot: '#a78bfa' },
-  archived:  { label: 'Archiviert', color: 'text-muted-foreground', bg: 'bg-muted/40',      border: 'border-border/50',      dot: '#374151' },
-};
-
-const ICON_MAP: Record<string, React.ElementType> = {
-  package: Package, music: Music, lightbulb: Lightbulb, zap: Zap,
-  wrench: Wrench, cable: Cable, star: Star, box: Box, layers: Layers,
-};
-const getPkgIcon = (name: string): React.ElementType => ICON_MAP[name] ?? Package;
-
-// ─── Phasen-Templates ────────────────────────────────────────────────────────
-
-const PHASE_TEMPLATES: Partial<Record<ProjectStatus, { label: string; icon: string; todos: string[] }>> = {
-  planned: { label: 'Vorbereitung', icon: '🔧', todos: ['Alle Equipment-Items checken', 'Beschädigte Geräte reparieren / ersetzen', 'Batterien & Akkus aufladen', 'Kabel und Adapter überprüfen', 'DMX-Konfiguration testen', 'Dokumentation ausdrucken', 'Team briefen'] },
-  packed:  { label: 'Einladen',     icon: '📦', todos: ['Equipment nach Packliste verladen', 'Vollständigkeit prüfen', 'Cases beschriften', 'Fahrzeug-Check (Beleuchtung, Ladungssicherung)', 'Routenplanung & ETA kommunizieren'] },
-  transit: { label: 'Aufbau',       icon: '🚛', todos: ['Ankunft am Veranstaltungsort', 'Venue-Check & Einweisung durch Location', 'Equipment ausladen & sortieren', 'Bühne / Stage aufbauen', 'Verkabelung & Patching', 'Licht einleuchten', 'Soundcheck durchführen'] },
-  live:    { label: 'Show',         icon: '🎤', todos: ['Ablaufplan final prüfen', 'Notfallkontakte überprüfen', 'Crew-Positionen zuweisen', 'Publikumseinlass koordinieren', 'Showbeginn bestätigen'] },
-  returning: { label: 'Abbau & Rücklauf', icon: '🏠', todos: ['Alle Equipment-Items zurück zum Lagerplatz', 'Inventur durchführen', 'Beschädigte Items dokumentieren', 'Schmutziges Equipment reinigen', 'Wartungs-Notizen hinzufügen', 'Abrechnung durchführen', 'Besitztümer überprüfen'] },
-};
-
 // ─── Hilfskomponenten ─────────────────────────────────────────────────────────
 
 function PhaseTemplateBanner({ status, onApply, onDismiss }: {
   status: ProjectStatus; onApply: (todos: string[]) => Promise<void>; onDismiss: () => void;
 }) {
-  const template = PHASE_TEMPLATES[status];
-  if (!template) return null;
+  const { t } = useTranslation();
   const [applying, setApplying] = useState(false);
+
+  const icon  = t(`project_detail.phase_template.phases.${status}.icon`, { defaultValue: '' });
+  const label = t(`project_detail.phase_template.phases.${status}.label`, { defaultValue: '' });
+  const todos = t(`project_detail.phase_template.phases.${status}.todos`, { returnObjects: true, defaultValue: [] }) as string[];
+
+  if (!icon || todos.length === 0) return null;
+
   return (
     <div className="rounded-lg border p-3 flex items-start gap-3 bg-blue-500/5 border-blue-500/20">
-      <span className="text-xl shrink-0 mt-0.5">{template.icon}</span>
+      <span className="text-xl shrink-0 mt-0.5">{icon}</span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold">Checkliste „{template.label}" verfügbar</p>
-        <p className="text-xs text-muted-foreground mt-0.5">{template.todos.length} Standard-Aufgaben hinzufügen?</p>
+        <p className="text-sm font-semibold">{t('project_detail.phase_template.available', { label })}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">{t('project_detail.phase_template.count_hint', { count: todos.length })}</p>
       </div>
       <div className="flex gap-1.5 shrink-0">
-        <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={onDismiss}>Nein</Button>
+        <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={onDismiss}>
+          {t('project_detail.phase_template.dismiss')}
+        </Button>
         <Button size="sm" className="h-7 text-xs px-2" disabled={applying}
-          onClick={async () => { setApplying(true); try { await onApply(template.todos); } finally { setApplying(false); } }}>
-          {applying ? '...' : 'Hinzufügen'}
+          onClick={async () => { setApplying(true); try { await onApply(todos); } finally { setApplying(false); } }}>
+          {applying ? '...' : t('project_detail.phase_template.apply')}
         </Button>
       </div>
     </div>
@@ -513,24 +360,27 @@ function ConflictBadge({ conflict }: { conflict: ConflictInfo }) {
   );
 }
 
-const CONDITION_OPTIONS = [
-  { value: 'ok',      label: 'OK',         color: 'text-primary'     },
-  { value: 'damaged', label: 'Beschädigt', color: 'text-amber-400'   },
-  { value: 'missing', label: 'Fehlt',      color: 'text-destructive' },
-] as const;
+const CONDITION_VALUES = ['ok', 'damaged', 'missing'] as const;
+const CONDITION_COLORS: Record<string, string> = {
+  ok:      'text-primary',
+  damaged: 'text-amber-400',
+  missing: 'text-destructive',
+};
 
 function ConditionSelect({ value, onChange, disabled }: {
   value: Condition; onChange: (v: Condition) => void; disabled?: boolean;
 }) {
-  const opt = CONDITION_OPTIONS.find(o => o.value === value) ?? CONDITION_OPTIONS[0];
+  const { t } = useTranslation();
   return (
     <Select value={value} onValueChange={v => onChange(v as Condition)} disabled={disabled}>
-      <SelectTrigger className={cn("h-6 text-[10px] w-24 px-2 border-border/60", opt.color)}>
+      <SelectTrigger className={cn("h-6 text-[10px] w-24 px-2 border-border/60", CONDITION_COLORS[value])}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {CONDITION_OPTIONS.map(o => (
-          <SelectItem key={o.value} value={o.value} className={cn("text-xs", o.color)}>{o.label}</SelectItem>
+        {CONDITION_VALUES.map(v => (
+          <SelectItem key={v} value={v} className={cn("text-xs", CONDITION_COLORS[v])}>
+            {t(`report.cond.${v}`)}
+          </SelectItem>
         ))}
       </SelectContent>
     </Select>
@@ -538,11 +388,12 @@ function ConditionSelect({ value, onChange, disabled }: {
 }
 
 function StatusBadgeLocal({ status }: { status: string }) {
+  const { t } = useTranslation();
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.draft;
   return (
     <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border", cfg.color, cfg.bg, cfg.border)}>
       <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: cfg.dot }} />
-      {cfg.label}
+      {t(`project_status.${status}`, { defaultValue: status })}
     </span>
   );
 }
@@ -550,6 +401,7 @@ function StatusBadgeLocal({ status }: { status: string }) {
 function StatusPickerLocal({ status, onChangeStatus, disabled }: {
   status: ProjectStatus; onChangeStatus: (s: ProjectStatus) => void; disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   if (disabled) return <StatusBadgeLocal status={status} />;
   return (
     <DropdownMenu>
@@ -562,12 +414,10 @@ function StatusPickerLocal({ status, onChangeStatus, disabled }: {
           const isCurrent = s === status;
           const isNext = STATUS_ORDER.indexOf(status) + 1 === idx;
           return (
-            <DropdownMenuItem key={s} disabled={isCurrent}
-              className={cn(isCurrent && "opacity-40 cursor-default")}
-              onClick={() => onChangeStatus(s)}>
+            <DropdownMenuItem key={s} disabled={isCurrent} className={cn(isCurrent && "opacity-40 cursor-default")} onClick={() => onChangeStatus(s)}>
               <span className="h-2 w-2 rounded-full mr-2 shrink-0" style={{ backgroundColor: cfg?.dot }} />
-              <span className={cfg?.color}>{cfg?.label}</span>
-              {isNext && <span className="ml-auto text-[10px] text-muted-foreground">→ nächster</span>}
+              <span className={cfg?.color}>{t(`project_status.${s}`, { defaultValue: s })}</span>
+              {isNext && <span className="ml-auto text-[10px] text-muted-foreground">{t('projects.status_next')}</span>}
             </DropdownMenuItem>
           );
         })}
@@ -584,6 +434,7 @@ function FinalizeProjectDialog({ open, onClose, projectName, allItems, condition
   onFinalize: (options: FinalizeOptions) => Promise<void>;
   onOpenReport: () => void;
 }) {
+  const { t } = useTranslation();
   const [step, setStep]         = useState<FinalizeStep>('confirm');
   const [options, setOptions]   = useState<FinalizeOptions>({ missingAction: null, sendDamagedToMaintenance: true });
   const [finalizing, setFinalizing] = useState(false);
@@ -597,43 +448,48 @@ function FinalizeProjectDialog({ open, onClose, projectName, allItems, condition
   const unpackedItems = allItems.filter(i => !i.packed);
   const okCount       = allItems.filter(i => (conditions[i.id] ?? 'ok') === 'ok').length;
 
+  const unknownLabel = t('packages.unknown');
+
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
       <DialogContent className="sm:max-w-md max-h-[90dvh] overflow-y-auto">
 
-        {/* Schritt 1: Übersicht */}
         {step === 'confirm' && (<>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Flag className="h-5 w-5 text-primary" /> Projekt abschließen</DialogTitle>
-            <DialogDescription>„{projectName}" wird archiviert. Aktueller Stand:</DialogDescription>
+            <DialogTitle className="flex items-center gap-2">
+              <Flag className="h-5 w-5 text-primary" />
+              {t('project_detail.finalize.title')}
+            </DialogTitle>
+            <DialogDescription>{t('project_detail.finalize.description', { name: projectName })}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="rounded-lg bg-primary/10 p-3">
                 <p className="text-2xl font-bold text-primary">{okCount}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">OK</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('project_detail.finalize.stat_ok')}</p>
               </div>
               <div className={cn("rounded-lg p-3", damagedItems.length > 0 ? "bg-amber-500/10" : "bg-muted/40")}>
                 <p className={cn("text-2xl font-bold", damagedItems.length > 0 ? "text-amber-400" : "text-muted-foreground")}>{damagedItems.length}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Beschädigt</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('project_detail.finalize.stat_damaged')}</p>
               </div>
               <div className={cn("rounded-lg p-3", missingItems.length > 0 ? "bg-destructive/10" : "bg-muted/40")}>
                 <p className={cn("text-2xl font-bold", missingItems.length > 0 ? "text-destructive" : "text-muted-foreground")}>{missingItems.length}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Fehlen</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('project_detail.finalize.stat_missing')}</p>
               </div>
             </div>
 
             {unpackedItems.length > 0 && (
               <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-1.5">
                 <p className="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
-                  <HelpCircle className="h-3.5 w-3.5" />{unpackedItems.length} Artikel nicht als „zurück" markiert
+                  <HelpCircle className="h-3.5 w-3.5" />
+                  {t('project_detail.finalize.unpacked_warning', { count: unpackedItems.length })}
                 </p>
                 <div className="max-h-24 overflow-y-auto space-y-0.5">
                   {unpackedItems.slice(0, 8).map(i => (
-                    <p key={i.id} className="text-xs text-muted-foreground pl-1">· {i.item_name ?? 'Unbekannt'} ×{i.quantity}</p>
+                    <p key={i.id} className="text-xs text-muted-foreground pl-1">· {i.item_name ?? unknownLabel} ×{i.quantity}</p>
                   ))}
                   {unpackedItems.length > 8 && (
-                    <p className="text-xs text-muted-foreground pl-1">… und {unpackedItems.length - 8} weitere</p>
+                    <p className="text-xs text-muted-foreground pl-1">{t('project_detail.finalize.unpacked_more', { count: unpackedItems.length - 8 })}</p>
                   )}
                 </div>
               </div>
@@ -642,10 +498,11 @@ function FinalizeProjectDialog({ open, onClose, projectName, allItems, condition
             {missingItems.length > 0 && (
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-1">
                 <p className="text-xs font-semibold text-destructive flex items-center gap-1.5">
-                  <AlertTriangle className="h-3.5 w-3.5" /> Als „fehlt" markiert
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {t('project_detail.finalize.missing_title')}
                 </p>
                 {missingItems.map(i => (
-                  <p key={i.id} className="text-xs text-muted-foreground pl-1">· {i.item_name ?? 'Unbekannt'} ×{i.quantity}</p>
+                  <p key={i.id} className="text-xs text-muted-foreground pl-1">· {i.item_name ?? unknownLabel} ×{i.quantity}</p>
                 ))}
               </div>
             )}
@@ -653,30 +510,31 @@ function FinalizeProjectDialog({ open, onClose, projectName, allItems, condition
             {missingItems.length === 0 && unpackedItems.length === 0 && damagedItems.length === 0 && (
               <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                <p className="text-sm text-primary font-medium">Alles vollständig und in Ordnung.</p>
+                <p className="text-sm text-primary font-medium">{t('project_detail.finalize.all_ok')}</p>
               </div>
             )}
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">Abbrechen</Button>
-            <Button onClick={() => setStep('actions')} className="w-full sm:w-auto">Weiter →</Button>
+            <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">{t('common.cancel')}</Button>
+            <Button onClick={() => setStep('actions')} className="w-full sm:w-auto">{t('project_detail.finalize.next')}</Button>
           </DialogFooter>
         </>)}
 
-        {/* Schritt 2: Aktionen */}
         {step === 'actions' && (<>
           <DialogHeader>
-            <DialogTitle>Abschluss-Aktionen</DialogTitle>
-            <DialogDescription>Was soll mit den offenen Punkten passieren?</DialogDescription>
+            <DialogTitle>{t('project_detail.finalize.actions_title')}</DialogTitle>
+            <DialogDescription>{t('project_detail.finalize.actions_desc')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             {(missingItems.length > 0 || unpackedItems.length > 0) && (
               <div className="space-y-2">
-                <p className="text-sm font-semibold">Ungeklärte Artikel ({missingItems.length + unpackedItems.length})</p>
+                <p className="text-sm font-semibold">
+                  {t('project_detail.finalize.unresolved_title', { count: missingItems.length + unpackedItems.length })}
+                </p>
                 {([
-                  { value: 'lost',  title: 'Als „verloren" markieren',          desc: 'Items erhalten Condition „defekt" und fallen aus der Verfügbarkeit.' },
-                  { value: 'found', title: 'Als „im Lager vorhanden" markieren', desc: 'Items werden als verfügbar zurückgebucht.' },
-                  { value: null,    title: 'Jetzt überspringen',                  desc: 'Items bleiben unverändert.' },
+                  { value: 'lost',  titleKey: 'project_detail.finalize.action_lost_title',  descKey: 'project_detail.finalize.action_lost_desc'  },
+                  { value: 'found', titleKey: 'project_detail.finalize.action_found_title', descKey: 'project_detail.finalize.action_found_desc' },
+                  { value: null,    titleKey: 'project_detail.finalize.action_skip_title',  descKey: 'project_detail.finalize.action_skip_desc'  },
                 ] as const).map(opt => (
                   <label key={String(opt.value)} className={cn("flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
                     opt.value === null ? "border-border/40 opacity-60" : "border-border hover:bg-muted/30")}>
@@ -686,8 +544,8 @@ function FinalizeProjectDialog({ open, onClose, projectName, allItems, condition
                       className="mt-0.5"
                     />
                     <div>
-                      <p className="text-sm font-medium">{opt.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
+                      <p className="text-sm font-medium">{t(opt.titleKey)}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{t(opt.descKey)}</p>
                     </div>
                   </label>
                 ))}
@@ -696,18 +554,18 @@ function FinalizeProjectDialog({ open, onClose, projectName, allItems, condition
 
             {damagedItems.length > 0 && (
               <div className="space-y-2">
-                <p className="text-sm font-semibold">Beschädigte Artikel ({damagedItems.length})</p>
+                <p className="text-sm font-semibold">{t('project_detail.finalize.damaged_title', { count: damagedItems.length })}</p>
                 <label className="flex items-start gap-3 p-3 rounded-lg border border-amber-500/30 bg-amber-500/5 cursor-pointer">
                   <Checkbox checked={options.sendDamagedToMaintenance}
                     onCheckedChange={v => setOptions(p => ({ ...p, sendDamagedToMaintenance: !!v }))}
                     className="mt-0.5"
                   />
                   <div>
-                    <p className="text-sm font-medium text-amber-300">In Wartung einplanen</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Wartungseintrag wird automatisch erstellt.</p>
+                    <p className="text-sm font-medium text-amber-300">{t('project_detail.finalize.damaged_maintenance')}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t('project_detail.finalize.damaged_maintenance_desc')}</p>
                     <div className="mt-1.5 space-y-0.5">
                       {damagedItems.map(i => (
-                        <p key={i.id} className="text-xs text-amber-400/80">· {i.item_name ?? 'Unbekannt'}</p>
+                        <p key={i.id} className="text-xs text-amber-400/80">· {i.item_name ?? unknownLabel}</p>
                       ))}
                     </div>
                   </div>
@@ -715,109 +573,99 @@ function FinalizeProjectDialog({ open, onClose, projectName, allItems, condition
               </div>
             )}
 
-            <div
-          className="rounded-lg border border-border/50 p-3 cursor-pointer hover:bg-muted/30 transition-colors"
-          onClick={() => { onClose(); setTimeout(() => onOpenReport(), 50); }}
-        >
-          <div className="flex items-center gap-2">
-            <ClipboardList className="h-4 w-4 text-muted-foreground" />
-            <p className="text-sm font-medium">Projektbericht als PDF</p>
-            <Badge variant="outline" className="text-[10px] ml-auto text-primary border-primary/40">Vorschau →</Badge>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1 pl-6">
-            Alle Items, Zustände und Todos als druckbares Dokument
-          </p>
-        </div>
+            <div className="rounded-lg border border-border/50 p-3 cursor-pointer hover:bg-muted/30 transition-colors"
+              onClick={() => { onClose(); setTimeout(() => onOpenReport(), 50); }}>
+              <div className="flex items-center gap-2">
+                <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                <p className="text-sm font-medium">{t('project_detail.finalize.report_title')}</p>
+                <Badge variant="outline" className="text-[10px] ml-auto text-primary border-primary/40">
+                  {t('project_detail.finalize.report_preview')}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1 pl-6">{t('project_detail.finalize.report_desc')}</p>
+            </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setStep('confirm')} className="w-full sm:w-auto">← Zurück</Button>
+            <Button variant="outline" onClick={() => setStep('confirm')} className="w-full sm:w-auto">{t('project_detail.finalize.back')}</Button>
             <Button disabled={finalizing} className="w-full sm:w-auto"
               onClick={async () => {
                 setFinalizing(true);
                 try { await onFinalize(options); setStep('done'); } finally { setFinalizing(false); }
               }}>
-              {finalizing ? 'Wird abgeschlossen...' : 'Abschließen & archivieren'}
+              {finalizing ? t('project_detail.finalize.submitting') : t('project_detail.finalize.submit')}
             </Button>
           </DialogFooter>
         </>)}
 
-        {/* Schritt 3: Fertig */}
         {step === 'done' && (<>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Archive className="h-5 w-5 text-primary" /> Projekt archiviert</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Archive className="h-5 w-5 text-primary" />
+              {t('project_detail.finalize.done_title')}
+            </DialogTitle>
           </DialogHeader>
           <div className="py-6 text-center space-y-3">
             <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
               <CheckCircle2 className="h-8 w-8 text-primary" />
             </div>
-            <p className="text-sm text-muted-foreground">
-              „{projectName}" wurde abgeschlossen. Alle Items wurden zurückgebucht.
-            </p>
+            <p className="text-sm text-muted-foreground">{t('project_detail.finalize.done_desc', { name: projectName })}</p>
           </div>
-          <DialogFooter><Button onClick={onClose} className="w-full">Schließen</Button></DialogFooter>
+          <DialogFooter>
+            <Button onClick={onClose} className="w-full">{t('project_detail.finalize.close')}</Button>
+          </DialogFooter>
         </>)}
       </DialogContent>
     </Dialog>
   );
 }
 
-function EditQuantityDialog({
-  open, onClose, itemName, currentQty, maxQty, onSave,
-}: {
+// ─── Mengen-Edit Dialog ───────────────────────────────────────────────────────
+
+function EditQuantityDialog({ open, onClose, itemName, currentQty, maxQty, onSave }: {
   open: boolean; onClose: () => void;
   itemName: string; currentQty: number; maxQty: number;
   onSave: (qty: number) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [qty, setQty]       = useState(currentQty);
   const [saving, setSaving] = useState(false);
- 
+
   useEffect(() => { if (open) setQty(currentQty); }, [open, currentQty]);
- 
+
   const handleSave = async () => {
     if (qty < 1 || qty > maxQty) return;
     setSaving(true);
-    try { await onSave(qty); onClose(); }
-    finally { setSaving(false); }
+    try { await onSave(qty); onClose(); } finally { setSaving(false); }
   };
- 
+
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
       <DialogContent className="sm:max-w-xs">
         <DialogHeader>
-          <DialogTitle>Menge bearbeiten</DialogTitle>
+          <DialogTitle>{t('project_detail.edit_quantity.title')}</DialogTitle>
           <DialogDescription className="truncate">{itemName}</DialogDescription>
         </DialogHeader>
         <div className="space-y-3 py-2">
           <div className="space-y-1">
-            <Label>Menge <span className="text-muted-foreground font-normal">(max. {maxQty})</span></Label>
+            <Label>
+              {t('project_detail.edit_quantity.label')}{' '}
+              <span className="text-muted-foreground font-normal">{t('project_detail.edit_quantity.max_hint', { max: maxQty })}</span>
+            </Label>
             <div className="flex items-center gap-2">
-              <button
-                className="h-8 w-8 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 text-lg leading-none active:scale-95 transition-transform"
-                onClick={() => setQty(q => Math.max(1, q - 1))}
-                disabled={qty <= 1}
-              >
-                −
-              </button>
-              <Input
-                type="number" min={1} max={maxQty}
-                value={qty}
+              <button className="h-8 w-8 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 text-lg leading-none active:scale-95 transition-transform"
+                onClick={() => setQty(q => Math.max(1, q - 1))} disabled={qty <= 1}>−</button>
+              <Input type="number" min={1} max={maxQty} value={qty}
                 onChange={e => setQty(Math.min(maxQty, Math.max(1, parseInt(e.target.value) || 1)))}
-                className="h-8 text-center w-16 tabular-nums"
-              />
-              <button
-                className="h-8 w-8 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 text-lg leading-none active:scale-95 transition-transform"
-                onClick={() => setQty(q => Math.min(maxQty, q + 1))}
-                disabled={qty >= maxQty}
-              >
-                +
-              </button>
+                className="h-8 text-center w-16 tabular-nums" />
+              <button className="h-8 w-8 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 text-lg leading-none active:scale-95 transition-transform"
+                onClick={() => setQty(q => Math.min(maxQty, q + 1))} disabled={qty >= maxQty}>+</button>
             </div>
           </div>
         </div>
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">Abbrechen</Button>
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">{t('common.cancel')}</Button>
           <Button onClick={handleSave} disabled={saving || qty < 1 || qty > maxQty} className="w-full sm:w-auto">
-            {saving ? 'Speichern...' : 'Speichern'}
+            {saving ? t('project_detail.edit_quantity.saving') : t('project_detail.edit_quantity.save')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -831,22 +679,19 @@ function ProjectEditDialog({ open, onClose, initial, onSubmit }: {
   open: boolean; onClose: () => void; initial: EditFormData;
   onSubmit: (d: EditFormData) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [name, setName]         = useState(initial.name);
   const [desc, setDesc]         = useState(initial.description);
   const [location, setLocation] = useState(initial.location);
-  const [dateStart, setDateStart] = useState<Date | undefined>(
-    initial.dateStart ? new Date(initial.dateStart) : undefined
-  );
-  const [dateEnd, setDateEnd] = useState<Date | undefined>(
-    initial.dateEnd ? new Date(initial.dateEnd) : undefined
-  );
+  const [dateStart, setDateStart] = useState<Date | undefined>(initial.dateStart ? new Date(initial.dateStart) : undefined);
+  const [dateEnd, setDateEnd]     = useState<Date | undefined>(initial.dateEnd   ? new Date(initial.dateEnd)   : undefined);
   const [notes, setNotes]   = useState(initial.notes);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setName(initial.name); setDesc(initial.description); setLocation(initial.location);
     setDateStart(initial.dateStart ? new Date(initial.dateStart) : undefined);
-    setDateEnd(initial.dateEnd   ? new Date(initial.dateEnd)   : undefined);
+    setDateEnd(initial.dateEnd     ? new Date(initial.dateEnd)   : undefined);
     setNotes(initial.notes);
   }, [open]);
 
@@ -868,37 +713,35 @@ function ProjectEditDialog({ open, onClose, initial, onSubmit }: {
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
       <DialogContent className="sm:max-w-md max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Projekt bearbeiten</DialogTitle>
-          <DialogDescription>Projektdetails anpassen.</DialogDescription>
+          <DialogTitle>{t('projects.form.title_edit')}</DialogTitle>
+          <DialogDescription>{t('projects.form.desc_edit')}</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
-          <div className="space-y-1"><Label>Name *</Label>
+          <div className="space-y-1">
+            <Label>{t('projects.form.name_label')}</Label>
             <Input value={name} onChange={e => setName(e.target.value)} autoFocus />
           </div>
-          <div className="space-y-1"><Label>Beschreibung</Label>
+          <div className="space-y-1">
+            <Label>{t('projects.form.description_label')}</Label>
             <Input value={desc} onChange={e => setDesc(e.target.value)} />
           </div>
-          <div className="space-y-1"><Label>Ort / Location</Label>
-            <Input placeholder="z.B. Marktplatz Musterhausen" value={location} onChange={e => setLocation(e.target.value)} />
-          </div>
-          {/* Fix 5: Hotel-Style Range-Picker */}
           <div className="space-y-1">
-            <Label>Zeitraum</Label>
-            <DateRangePicker
-              dateStart={dateStart}
-              dateEnd={dateEnd}
-              onChangeStart={setDateStart}
-              onChangeEnd={setDateEnd}
-            />
+            <Label>{t('projects.form.location_label')}</Label>
+            <Input placeholder={t('projects.form.location_placeholder')} value={location} onChange={e => setLocation(e.target.value)} />
           </div>
-          <div className="space-y-1"><Label>Notizen</Label>
+          <div className="space-y-1">
+            <Label>{t('projects.form.period_label')}</Label>
+            <DateRangePicker dateStart={dateStart} dateEnd={dateEnd} onChangeStart={setDateStart} onChangeEnd={setDateEnd} />
+          </div>
+          <div className="space-y-1">
+            <Label>{t('project_detail.edit_dialog.notes_label')}</Label>
             <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} />
           </div>
         </div>
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">Abbrechen</Button>
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">{t('common.cancel')}</Button>
           <Button onClick={handleSubmit} disabled={!name.trim() || saving} className="w-full sm:w-auto">
-            {saving ? 'Speichern...' : 'Speichern'}
+            {saving ? t('common.saving') : t('common.save')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -915,17 +758,16 @@ function EquipmentPickerDialog({
 }: {
   open: boolean; onClose: () => void;
   packages: PackageWithItems[]; inventoryItems: InventoryItem[];
-  addedPackageIds: Set<string>;
-  /** inventory_item_ids already in this project — blocks re-adding */
-  addedItemIds: Set<string>;
+  addedPackageIds: Set<string>; addedItemIds: Set<string>;
   conflicts: Record<string, ConflictInfo>;
   onAddPackage: (id: string) => Promise<void>;
   onAddItem: (id: string, qty: number) => Promise<void>;
 }) {
-  const [tab,     setTab]    = useState<'packages' | 'items'>('packages');
-  const [search,  setSearch] = useState('');
-  const [quantities, setQty] = useState<Record<string, number>>({});
-  const [adding,  setAdding] = useState<string | null>(null);
+  const { t } = useTranslation();
+  const [tab,        setTab]    = useState<'packages' | 'items'>('packages');
+  const [search,     setSearch] = useState('');
+  const [quantities, setQty]    = useState<Record<string, number>>({});
+  const [adding,     setAdding] = useState<string | null>(null);
 
   useEffect(() => { if (open) { setSearch(''); setTab('packages'); } }, [open]);
 
@@ -942,30 +784,31 @@ function EquipmentPickerDialog({
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
       <DialogContent className="sm:max-w-lg max-h-[80dvh] flex flex-col overflow-hidden p-0">
         <DialogHeader className="px-6 pt-6 pb-3 shrink-0">
-          <DialogTitle>Equipment hinzufügen</DialogTitle>
-          <DialogDescription>Pakete oder Einzelartikel zum Projekt hinzufügen.</DialogDescription>
+          <DialogTitle>{t('project_detail.picker.title')}</DialogTitle>
+          <DialogDescription>{t('project_detail.picker.desc')}</DialogDescription>
         </DialogHeader>
 
         <div className="flex gap-1 px-6 shrink-0">
-          {(['packages', 'items'] as const).map(t => (
-            <button key={t} onClick={() => { setTab(t); setSearch(''); }}
+          {(['packages', 'items'] as const).map(tabVal => (
+            <button key={tabVal} onClick={() => { setTab(tabVal); setSearch(''); }}
               className={cn("px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
-                tab === t ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}>
-              {t === 'packages' ? `Pakete (${packages.length})` : `Artikel (${inventoryItems.length})`}
+                tab === tabVal ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}>
+              {tabVal === 'packages'
+                ? t('project_detail.picker.tab_packages', { count: packages.length })
+                : t('project_detail.picker.tab_items',    { count: inventoryItems.length })}
             </button>
           ))}
         </div>
 
         <div className="px-6 pb-2 shrink-0">
-          <Input placeholder={tab === 'packages' ? 'Paket suchen...' : 'Artikel suchen...'}
+          <Input
+            placeholder={tab === 'packages' ? t('project_detail.picker.search_packages') : t('project_detail.picker.search_items')}
             value={search} onChange={e => setSearch(e.target.value)} className="h-8 text-sm" />
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-2">
-
-          {/* Pakete */}
           {tab === 'packages' && (filteredPkgs.length === 0
-            ? <p className="text-sm text-muted-foreground text-center py-8">Keine Pakete gefunden</p>
+            ? <p className="text-sm text-muted-foreground text-center py-8">{t('project_detail.picker.no_packages')}</p>
             : filteredPkgs.map(pkg => {
               const already = addedPackageIds.has(pkg.id);
               const IconComp = getPkgIcon(pkg.icon);
@@ -973,24 +816,24 @@ function EquipmentPickerDialog({
               return (
                 <div key={pkg.id} className={cn("flex items-center gap-3 p-3 rounded-lg border transition-colors",
                   already ? "opacity-50 bg-muted/30 border-border" : "bg-card border-border hover:border-primary/40")}>
-                  <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: pkg.color + '25' }}>
+                  <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: pkg.color + '25' }}>
                     <IconComp className="h-4 w-4" style={{ color: pkg.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{pkg.name}</p>
-                    <p className="text-xs text-muted-foreground">{pkg.items.length} Artikel</p>
+                    <p className="text-xs text-muted-foreground">{pkg.items.length} {t('packages.item_count_other', { count: pkg.items.length }).replace(/^\d+ /, '')}</p>
                   </div>
                   {pkgConflicts > 0 && !already && (
                     <Badge variant="outline" className="text-[10px] gap-1 border-amber-500/40 text-amber-400 bg-amber-500/10 shrink-0">
-                      <AlertTriangle className="h-3 w-3" />{pkgConflicts} Konflikt{pkgConflicts > 1 ? 'e' : ''}
+                      <AlertTriangle className="h-3 w-3" />
+                      {t('project_detail.picker.conflict_count', { count: pkgConflicts })}
                     </Badge>
                   )}
                   {already
-                    ? <Badge variant="secondary" className="text-[10px] shrink-0">Bereits hinzugefügt</Badge>
+                    ? <Badge variant="secondary" className="text-[10px] shrink-0">{t('project_detail.picker.already_added')}</Badge>
                     : <Button size="sm" className="h-7 px-3 shrink-0" disabled={adding === pkg.id}
                         onClick={async () => { setAdding(pkg.id); try { await onAddPackage(pkg.id); } finally { setAdding(null); } }}>
-                        {adding === pkg.id ? '...' : <><Plus className="h-3 w-3 mr-1" />Hinzufügen</>}
+                        {adding === pkg.id ? '...' : <><Plus className="h-3 w-3 mr-1" />{t('project_detail.picker.add_btn')}</>}
                       </Button>
                   }
                 </div>
@@ -998,9 +841,8 @@ function EquipmentPickerDialog({
             })
           )}
 
-          {/* Einzelartikel */}
           {tab === 'items' && (filteredItems.length === 0
-            ? <p className="text-sm text-muted-foreground text-center py-8">Keine Artikel gefunden</p>
+            ? <p className="text-sm text-muted-foreground text-center py-8">{t('project_detail.picker.no_items')}</p>
             : filteredItems.map(item => {
               const conflict = conflicts[item.id];
               const already  = addedItemIds.has(item.id);
@@ -1010,24 +852,20 @@ function EquipmentPickerDialog({
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{item.name}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {item.category} · {item.location} · Bestand: {item.quantity}
+                      {t('project_detail.picker.item_meta', { category: item.category, location: item.location, quantity: item.quantity })}
                     </p>
                     {conflict && <div className="mt-1"><ConflictBadge conflict={conflict} /></div>}
                   </div>
                   {already ? (
-                    <Badge variant="secondary" className="text-[10px] shrink-0">Im Projekt</Badge>
+                    <Badge variant="secondary" className="text-[10px] shrink-0">{t('project_detail.picker.in_project')}</Badge>
                   ) : (
                     <>
                       <Input type="number" min={1} max={item.quantity}
                         value={quantities[item.id] ?? 1}
-                        onChange={e => setQty(prev => ({
-                          ...prev,
-                          [item.id]: Math.min(item.quantity, Math.max(1, parseInt(e.target.value) || 1)),
-                        }))}
+                        onChange={e => setQty(prev => ({ ...prev, [item.id]: Math.min(item.quantity, Math.max(1, parseInt(e.target.value) || 1)) }))}
                         className="w-14 h-7 text-xs text-center"
                       />
-                      <Button size="sm" variant="outline" className="h-7 w-7 p-0 shrink-0"
-                        disabled={adding === item.id}
+                      <Button size="sm" variant="outline" className="h-7 w-7 p-0 shrink-0" disabled={adding === item.id}
                         onClick={async () => { setAdding(item.id); try { await onAddItem(item.id, quantities[item.id] ?? 1); } finally { setAdding(null); } }}>
                         {adding === item.id ? '…' : <Plus className="h-3 w-3" />}
                       </Button>
@@ -1043,13 +881,11 @@ function EquipmentPickerDialog({
   );
 }
 
-// ─── Item-Zeile (wiederverwendet in Paket + Direktartikel) ───────────────────
+// ─── Item-Zeile ───────────────────────────────────────────────────────────────
 
 function ItemRow({
-  itemName, itemCategory,
-  packed, showPack, showCond, isLocked, packDisabled,
-  conflict, condition, quantity,
-  onTogglePacked, onRemove, onConditionChange, onEdit,
+  itemName, itemCategory, packed, showPack, showCond, isLocked, packDisabled,
+  conflict, condition, quantity, onTogglePacked, onRemove, onConditionChange, onEdit,
 }: {
   itemName?: string; itemCategory?: string;
   packed: boolean; showPack: boolean; showCond: boolean;
@@ -1058,42 +894,33 @@ function ItemRow({
   onTogglePacked: (packed: boolean) => void;
   onRemove: () => void;
   onConditionChange: (c: Condition) => void;
-  /** undefined = kein Edit-Button (z.B. Paket-Items) */
   onEdit?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-2 px-4 py-2.5 flex-wrap">
       {showPack && (
-        <Checkbox checked={packed} disabled={packDisabled}
-          onCheckedChange={v => onTogglePacked(!!v)} className="shrink-0" />
+        <Checkbox checked={packed} disabled={packDisabled} onCheckedChange={v => onTogglePacked(!!v)} className="shrink-0" />
       )}
       <div className="flex-1 min-w-0">
         <p className={cn("text-sm truncate", packed && showPack && "line-through text-muted-foreground")}>
-          {itemName ?? 'Unbekannt'}
+          {itemName ?? t('packages.unknown')}
         </p>
         {itemCategory && <p className="text-xs text-muted-foreground truncate">{itemCategory}</p>}
       </div>
       {conflict && <ConflictBadge conflict={conflict} />}
       <Badge variant="outline" className="text-[10px] shrink-0">×{quantity}</Badge>
-      {showCond && (
-        <ConditionSelect value={condition} onChange={onConditionChange} disabled={isLocked} />
-      )}
+      {showCond && <ConditionSelect value={condition} onChange={onConditionChange} disabled={isLocked} />}
       {!isLocked && (
         <div className="flex items-center gap-0.5 shrink-0">
           {onEdit && (
-            <button
-              className="p-1 text-muted-foreground hover:text-foreground transition-all active:scale-90"
-              onClick={onEdit}
-              title="Menge bearbeiten"
-            >
+            <button className="p-1 text-muted-foreground hover:text-foreground transition-all active:scale-90"
+              onClick={onEdit} title={t('project_detail.edit_quantity.title')}>
               <Edit2 className="h-3.5 w-3.5" />
             </button>
           )}
-          <button
-            className="p-1 text-muted-foreground hover:text-destructive transition-all active:scale-90"
-            onClick={onRemove}
-            title="Entfernen"
-          >
+          <button className="p-1 text-muted-foreground hover:text-destructive transition-all active:scale-90"
+            onClick={onRemove} title={t('common.delete')}>
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -1111,6 +938,7 @@ function PackageGroupSection({ group, status, conflicts, conditions, isReadonly,
   onTogglePacked: (id: string, packed: boolean) => void;
   onConditionChange: (id: string, c: Condition) => void;
 }) {
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const IconComp    = getPkgIcon(group.package.icon);
   const packedCount = group.items.filter(i => i.packed).length;
@@ -1123,18 +951,21 @@ function PackageGroupSection({ group, status, conflicts, conditions, isReadonly,
     <div className="rounded-lg border border-border overflow-hidden">
       <button className="w-full flex items-center gap-3 px-4 py-3 bg-muted/30 hover:bg-muted/50 active:bg-muted/70 transition-colors text-left"
         onClick={() => setCollapsed(v => !v)}>
-        <div className="h-7 w-7 rounded-md flex items-center justify-center shrink-0"
-          style={{ backgroundColor: group.package.color + '25' }}>
+        <div className="h-7 w-7 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: group.package.color + '25' }}>
           <IconComp className="h-4 w-4" style={{ color: group.package.color }} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold truncate">{group.package.name}</p>
           <p className="text-xs text-muted-foreground">
-            {showPack ? `${packedCount}/${group.items.length} gepackt` : `${group.items.length} Artikel`}
+            {showPack
+              ? t('project_detail.package_group.packed_count', { packed: packedCount, total: group.items.length })
+              : t('project_detail.package_group.item_count',   { count: group.items.length })}
           </p>
         </div>
         {allPacked && showPack && (
-          <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] shrink-0">✓ Vollständig</Badge>
+          <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] shrink-0">
+            {t('project_detail.package_group.all_packed')}
+          </Badge>
         )}
         {!isLocked && (
           <button className="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0"
@@ -1142,16 +973,13 @@ function PackageGroupSection({ group, status, conflicts, conditions, isReadonly,
             <X className="h-3.5 w-3.5" />
           </button>
         )}
-        {collapsed
-          ? <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-          : <ChevronDown  className="h-4 w-4 text-muted-foreground shrink-0" />
-        }
+        {collapsed ? <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
       </button>
 
       {!collapsed && (
         <div className="divide-y divide-border/50">
           {group.items.length === 0 && (
-            <p className="px-4 py-3 text-xs text-muted-foreground">Paket enthält keine Artikel</p>
+            <p className="px-4 py-3 text-xs text-muted-foreground">{t('project_detail.package_group.empty')}</p>
           )}
           {group.items.map(item => (
             <ItemRow key={item.id}
@@ -1162,7 +990,7 @@ function PackageGroupSection({ group, status, conflicts, conditions, isReadonly,
               condition={conditions[item.id] ?? 'ok'}
               quantity={item.quantity}
               onTogglePacked={p => onTogglePacked(item.id, p)}
-              onRemove={() => {}} // Paket-Items werden über Paket entfernt
+              onRemove={() => {}}
               onConditionChange={c => onConditionChange(item.id, c)}
             />
           ))}
@@ -1174,10 +1002,7 @@ function PackageGroupSection({ group, status, conflicts, conditions, isReadonly,
 
 // ─── Direktartikel-Liste ──────────────────────────────────────────────────────
 
-function DirectItemsList({
-  items, status, conflicts, conditions, isReadonly,
-  onTogglePacked, onRemoveItem, onConditionChange, onEditItem,
-}: {
+function DirectItemsList({ items, status, conflicts, conditions, isReadonly, onTogglePacked, onRemoveItem, onConditionChange, onEditItem }: {
   items: EnrichedProjectItem[]; status: ProjectStatus; isReadonly: boolean;
   conflicts: Record<string, ConflictInfo>; conditions: Record<string, Condition>;
   onTogglePacked: (id: string, packed: boolean) => void;
@@ -1185,14 +1010,17 @@ function DirectItemsList({
   onConditionChange: (id: string, c: Condition) => void;
   onEditItem: (item: EnrichedProjectItem) => void;
 }) {
+  const { t } = useTranslation();
   if (items.length === 0) return null;
   const isLocked = LOCKED_PHASES.includes(status) || isReadonly;
   const showPack = PACK_PHASES.includes(status) && !isReadonly;
   const showCond = CONDITION_PHASES.includes(status) && !isReadonly;
- 
+
   return (
     <div>
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Direktartikel</p>
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+        {t('project_detail.direct_items_title')}
+      </p>
       <div className="rounded-lg border border-border divide-y divide-border/50 overflow-hidden">
         {items.map(item => (
           <div key={item.id} className="bg-card">
@@ -1218,8 +1046,7 @@ function DirectItemsList({
 // ─── Equipment-Tab ────────────────────────────────────────────────────────────
 
 function EquipmentTab({
-  projectId, projectName,
-  packageGroups, directItems, totalItems, packedItems,
+  projectId, projectName, packageGroups, directItems, totalItems, packedItems,
   packages, availableInventory, status, conflicts, conditions, isReadonly,
   onConditionChange, addPackageToProject, removePackageFromProject,
   addDirectItem, removeItem, togglePacked, onMarkInUse,
@@ -1238,16 +1065,16 @@ function EquipmentTab({
   togglePacked: (id: string, packed: boolean) => void;
   onMarkInUse: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [pickerOpen,   setPickerOpen]   = useState(false);
   const [markingInUse, setMarkingInUse] = useState(false);
-  const [editingItem, setEditingItem] = useState<EnrichedProjectItem | null>(null);
+  const [editingItem,  setEditingItem]  = useState<EnrichedProjectItem | null>(null);
 
-  const {refetch: refetchProject} = useProjectDetail(projectId);
+  const { refetch: refetchProject } = useProjectDetail(projectId);
 
-  // Sets für den Picker — verhindert Doppel-Hinzufügen
   const addedPackageIds = useMemo(() => new Set(packageGroups.map(g => g.package_id)), [packageGroups]);
-  const addedItemIds    = useMemo(() => {
+  const addedItemIds = useMemo(() => {
     const ids = new Set<string>();
     packageGroups.forEach(g => g.items.forEach(i => { if (i.inventory_item_id) ids.add(i.inventory_item_id); }));
     directItems.forEach(i => { if (i.inventory_item_id) ids.add(i.inventory_item_id); });
@@ -1255,15 +1082,10 @@ function EquipmentTab({
   }, [packageGroups, directItems]);
 
   const handleEditQuantity = useCallback(async (qty: number) => {
-  if (!editingItem) return;
-  await supabase
-    .from('project_items')
-    .update({ quantity: qty } as any)
-    .eq('id', editingItem.id);
-  await refetchProject();
-  // Projekt neu laden damit die Änderung sichtbar wird
-  // (refetchProject kommt als Prop oder via useProjectDetail)
-}, [editingItem, refetchProject]);
+    if (!editingItem) return;
+    await supabase.from('project_items').update({ quantity: qty } as any).eq('id', editingItem.id);
+    await refetchProject();
+  }, [editingItem, refetchProject]);
 
   const progress = totalItems > 0 ? Math.round((packedItems / totalItems) * 100) : 0;
   const isLocked = LOCKED_PHASES.includes(status);
@@ -1273,146 +1095,131 @@ function EquipmentTab({
   return (
     <div className="space-y-4">
 
-      {/* ── Aufbau-Banner: 2 Optionen ── */}
+      {/* Aufbau-Banner */}
       {AUFBAU_PHASES.includes(status) && totalItems > 0 && !isReadonly && (
         <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4 space-y-3">
           <div>
             <p className="text-sm font-semibold text-blue-300 flex items-center gap-1.5">
-              <ScanLine className="h-4 w-4" /> Equipment als „Im Einsatz" markieren
+              <ScanLine className="h-4 w-4" />{t('project_detail.equipment.aufbau_title')}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Standort → Projektname · Condition → Im Einsatz
-            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">{t('project_detail.equipment.aufbau_desc')}</p>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <Button size="sm" variant="outline"
-              className="gap-1.5 border-blue-500/30 text-blue-300 hover:bg-blue-500/10"
+            <Button size="sm" variant="outline" className="gap-1.5 border-blue-500/30 text-blue-300 hover:bg-blue-500/10"
               onClick={() => navigate(`/scanner?mode=aufbau&projectId=${projectId}`)}>
-              <ScanLine className="h-3.5 w-3.5" /> Per Scanner
+              <ScanLine className="h-3.5 w-3.5" />{t('project_detail.equipment.aufbau_scanner')}
             </Button>
-            <Button size="sm" variant="outline"
-              className="gap-1.5 border-blue-500/30 text-blue-300 hover:bg-blue-500/10"
+            <Button size="sm" variant="outline" className="gap-1.5 border-blue-500/30 text-blue-300 hover:bg-blue-500/10"
               disabled={markingInUse}
               onClick={async () => { setMarkingInUse(true); try { await onMarkInUse(); } finally { setMarkingInUse(false); } }}>
               <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-              <span className="hidden sm:inline">{markingInUse ? 'Markiere...' : 'Alle direkt markieren'}</span>
-              <span className="sm:hidden">{markingInUse ? '...' : 'Alle markieren'}</span>
+              <span className="hidden sm:inline">{markingInUse ? t('project_detail.equipment.aufbau_marking') : t('project_detail.equipment.aufbau_all')}</span>
+              <span className="sm:hidden">{markingInUse ? '...' : t('project_detail.equipment.aufbau_all_short')}</span>
             </Button>
           </div>
         </div>
       )}
 
-      {/* ── Abbau-Banner: Scanner-first ── */}
+      {/* Abbau-Banner */}
       {status === 'returning' && totalItems > 0 && !isReadonly && (
         <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-4 space-y-3">
           <div>
             <p className="text-sm font-semibold text-purple-300 flex items-center gap-1.5">
-              <ScanLine className="h-4 w-4" /> Abbau per Scanner (empfohlen)
+              <ScanLine className="h-4 w-4" />{t('project_detail.equipment.abbau_title')}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Zustand direkt beim Scannen erfassen. Manuelle Erfassung unten über die Condition-Auswahl möglich.
-            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">{t('project_detail.equipment.abbau_desc')}</p>
           </div>
           <Button size="sm" className="gap-1.5 w-full bg-purple-600 hover:bg-purple-500 text-white"
             onClick={() => navigate(`/scanner?mode=abbau&projectId=${projectId}`)}>
-            <ScanLine className="h-3.5 w-3.5" /> Abbau-Scanner öffnen
+            <ScanLine className="h-3.5 w-3.5" />{t('project_detail.equipment.abbau_btn')}
           </Button>
         </div>
       )}
 
-      {/* ── Packfortschritt ── */}
+      {/* Packfortschritt */}
       {showPack && totalItems > 0 && (
         <Card className="p-4 space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="font-medium">Packfortschritt</span>
-            <span className="text-muted-foreground">{packedItems} / {totalItems} gepackt</span>
+            <span className="font-medium">{t('project_detail.equipment.progress_title')}</span>
+            <span className="text-muted-foreground">{t('project_detail.equipment.progress_count', { packed: packedItems, total: totalItems })}</span>
           </div>
           <Progress value={progress} className="h-2" />
           {packedItems === totalItems && totalItems > 0 && (
             <p className="text-xs text-primary flex items-center gap-1">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Alles gepackt!
+              <CheckCircle2 className="h-3.5 w-3.5" />{t('project_detail.equipment.all_packed')}
             </p>
           )}
           {status === 'transit' && (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Lock className="h-3 w-3" /> Unterwegs — Packliste gesperrt
+              <Lock className="h-3 w-3" />{t('project_detail.equipment.transit_locked')}
             </p>
           )}
         </Card>
       )}
 
-      {/* ── Status-Hinweise ── */}
+      {/* Status-Hinweise */}
       {isLocked && !isReadonly && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/40 border border-border text-xs text-muted-foreground">
-          <Lock className="h-3.5 w-3.5 shrink-0" />
-          Equipment kann in dieser Phase nicht bearbeitet werden.
+          <Lock className="h-3.5 w-3.5 shrink-0" />{t('project_detail.equipment.locked_hint')}
         </div>
       )}
       {isReadonly && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/40 border border-border text-xs text-muted-foreground">
-          <Archive className="h-3.5 w-3.5 shrink-0" />
-          Dieses Projekt ist archiviert — Lesemodus.
+          <Archive className="h-3.5 w-3.5 shrink-0" />{t('project_detail.equipment.archived_hint')}
         </div>
       )}
       {showCond && totalItems > 0 && !isReadonly && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-500/5 border border-purple-500/20 text-xs text-purple-300">
-          <ClipboardList className="h-3.5 w-3.5 shrink-0" />
-          Zustand der zurückgegebenen Artikel erfassen (oder per Scanner oben).
+          <ClipboardList className="h-3.5 w-3.5 shrink-0" />{t('project_detail.equipment.condition_hint')}
         </div>
       )}
 
-      {/* ── Equipment hinzufügen ── */}
+      {/* Equipment hinzufügen */}
       {!isLocked && !isReadonly && (
         <Button variant="outline" size="sm" className="gap-1.5 w-full active:scale-95" onClick={() => setPickerOpen(true)}>
-          <Plus className="h-4 w-4" /> Equipment hinzufügen
+          <Plus className="h-4 w-4" />{t('project_detail.equipment.add_btn')}
         </Button>
       )}
 
-      {/* ── Pakete ── */}
+      {/* Pakete */}
       {packageGroups.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pakete</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            {t('project_detail.equipment.packages_section')}
+          </p>
           {packageGroups.map(group => (
             <PackageGroupSection key={group.instanceId} group={group} status={status}
               conflicts={conflicts} conditions={conditions} isReadonly={isReadonly}
               onRemovePackage={() => removePackageFromProject(group.instanceId)}
-              onTogglePacked={togglePacked}
-              onConditionChange={onConditionChange}
+              onTogglePacked={togglePacked} onConditionChange={onConditionChange}
             />
           ))}
         </div>
       )}
 
-      {/* ── Direktartikel ── */}
+      {/* Direktartikel */}
       <DirectItemsList items={directItems} status={status} conflicts={conflicts}
         conditions={conditions} isReadonly={isReadonly}
         onTogglePacked={togglePacked} onRemoveItem={removeItem}
-        onConditionChange={onConditionChange}
-        onEditItem={setEditingItem}
+        onConditionChange={onConditionChange} onEditItem={setEditingItem}
       />
 
-      {/* ── Leer-State ── */}
+      {/* Leer-State */}
       {totalItems === 0 && (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-10 text-center">
             <Package className="h-10 w-10 text-muted-foreground/40 mb-2" />
-            <p className="text-sm font-medium">Noch kein Equipment zugewiesen</p>
-            <p className="text-xs text-muted-foreground mt-1">Füge Pakete oder Einzelartikel hinzu.</p>
+            <p className="text-sm font-medium">{t('project_detail.equipment.empty_title')}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('project_detail.equipment.empty_desc')}</p>
           </CardContent>
         </Card>
       )}
 
       <EditQuantityDialog
-        open={!!editingItem}
-        onClose={() => setEditingItem(null)}
+        open={!!editingItem} onClose={() => setEditingItem(null)}
         itemName={editingItem?.item_name ?? ''}
         currentQty={editingItem?.quantity ?? 1}
-        maxQty={
-          // Maximale Menge = Inventar-Bestand des Items
-          availableInventory.find(i => i.id === editingItem?.inventory_item_id)?.quantity
-          ?? editingItem?.quantity
-          ?? 99
-        }
+        maxQty={availableInventory.find(i => i.id === editingItem?.inventory_item_id)?.quantity ?? editingItem?.quantity ?? 99}
         onSave={handleEditQuantity}
       />
 
@@ -1420,8 +1227,7 @@ function EquipmentTab({
         open={pickerOpen} onClose={() => setPickerOpen(false)}
         packages={packages} inventoryItems={availableInventory}
         addedPackageIds={addedPackageIds} addedItemIds={addedItemIds}
-        conflicts={conflicts}
-        onAddPackage={addPackageToProject} onAddItem={addDirectItem}
+        conflicts={conflicts} onAddPackage={addPackageToProject} onAddItem={addDirectItem}
       />
     </div>
   );
@@ -1440,17 +1246,12 @@ function SortableTodoItem({ todo, onToggle, onDelete, isReadonly }: {
         isDragging && "opacity-30 shadow-xl")}>
       {!isReadonly && (
         <button className="touch-none cursor-grab active:cursor-grabbing text-muted-foreground shrink-0"
-          {...attributes} {...listeners}>
-          <GripVertical className="h-4 w-4" />
-        </button>
+          {...attributes} {...listeners}><GripVertical className="h-4 w-4" /></button>
       )}
       <Checkbox checked={todo.done} onCheckedChange={v => onToggle(!!v)} className="shrink-0" disabled={isReadonly} />
-      <span className={cn("flex-1 text-sm", todo.done && "line-through text-muted-foreground")}>
-        {todo.title}
-      </span>
+      <span className={cn("flex-1 text-sm", todo.done && "line-through text-muted-foreground")}>{todo.title}</span>
       {!isReadonly && (
-        <button className="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0"
-          onClick={onDelete}>
+        <button className="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0" onClick={onDelete}>
           <X className="h-3.5 w-3.5" />
         </button>
       )}
@@ -1465,8 +1266,9 @@ function TodosTab({ todos, status, isReadonly, onAdd, onToggle, onDelete, onReor
   onDelete: (id: string) => void;
   onReorder: (reordered: ProjectTodo[]) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [newTitle, setNewTitle] = useState('');
-  const [adding, setAdding]     = useState(false);
+  const [adding,   setAdding]   = useState(false);
   const [templateDismissed, setTemplateDismissed] = useState<ProjectStatus | null>(null);
 
   const sensors = useSensors(
@@ -1488,8 +1290,7 @@ function TodosTab({ todos, status, isReadonly, onAdd, onToggle, onDelete, onReor
     try { await onAdd(newTitle.trim()); setNewTitle(''); } finally { setAdding(false); }
   };
 
-  const template   = PHASE_TEMPLATES[status];
-  const showBanner = !!template && templateDismissed !== status && !isReadonly && todos.length === 0;
+  const showBanner = PHASES_WITH_TEMPLATES.has(status) && templateDismissed !== status && !isReadonly && todos.length === 0;
   const doneCount  = todos.filter(t => t.done).length;
 
   return (
@@ -1504,7 +1305,7 @@ function TodosTab({ todos, status, isReadonly, onAdd, onToggle, onDelete, onReor
       {todos.length > 0 && (
         <div className="space-y-1.5">
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{doneCount} von {todos.length} erledigt</span>
+            <span>{t('project_detail.todos.progress', { done: doneCount, total: todos.length })}</span>
             <span>{Math.round((doneCount / todos.length) * 100)} %</span>
           </div>
           <Progress value={Math.round((doneCount / todos.length) * 100)} className="h-1.5" />
@@ -1516,9 +1317,7 @@ function TodosTab({ todos, status, isReadonly, onAdd, onToggle, onDelete, onReor
           <div className="space-y-1.5">
             {todos.map(todo => (
               <SortableTodoItem key={todo.id} todo={todo} isReadonly={isReadonly}
-                onToggle={done => onToggle(todo.id, done)}
-                onDelete={() => onDelete(todo.id)}
-              />
+                onToggle={done => onToggle(todo.id, done)} onDelete={() => onDelete(todo.id)} />
             ))}
           </div>
         </SortableContext>
@@ -1527,9 +1326,9 @@ function TodosTab({ todos, status, isReadonly, onAdd, onToggle, onDelete, onReor
       {todos.length === 0 && !showBanner && (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-            <p className="text-sm font-medium">Noch keine Todos</p>
+            <p className="text-sm font-medium">{t('project_detail.todos.empty_title')}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              {isReadonly ? 'Dieses Projekt ist archiviert.' : 'Erstelle Aufgaben für dieses Projekt.'}
+              {isReadonly ? t('project_detail.todos.empty_archived') : t('project_detail.todos.empty_desc')}
             </p>
           </CardContent>
         </Card>
@@ -1537,11 +1336,9 @@ function TodosTab({ todos, status, isReadonly, onAdd, onToggle, onDelete, onReor
 
       {!isReadonly && (
         <div className="flex gap-2">
-          <Input placeholder="Neue Aufgabe..." value={newTitle}
-            onChange={e => setNewTitle(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleAdd()}
-            className="h-9"
-          />
+          <Input placeholder={t('project_detail.todos.new_placeholder')} value={newTitle}
+            onChange={e => setNewTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()}
+            className="h-9" />
           <Button size="sm" className="h-9 shrink-0" disabled={!newTitle.trim() || adding} onClick={handleAdd}>
             <Plus className="h-4 w-4" />
           </Button>
@@ -1558,9 +1355,10 @@ export default function ProjectDetail() {
   const navigate   = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast }  = useToast();
+  const { t, i18n } = useTranslation();
 
-  // refetchPackages sorgt dafür, dass wenn jemand im Packages-Tab neue Items
-  // zu einem Paket hinzufügt, das hier im Projekt sofort reflektiert wird.
+  const dateLocale = i18n.language.startsWith('de') ? de : enUS;
+
   const { packages, refetch: refetchPackages } = usePackages();
 
   const {
@@ -1570,8 +1368,7 @@ export default function ProjectDetail() {
     addPackageToProject, removePackageFromProject,
     addDirectItem, removeItem, togglePacked,
     addTodo, toggleTodo, deleteTodo, reorderTodos,
-    refetch: refetchProject,
-    restoreAllProjectItems,
+    refetch: refetchProject, restoreAllProjectItems,
   } = useProjectDetail(id);
 
   const tab    = (searchParams.get('tab') ?? 'equipment') as 'equipment' | 'todos' | 'dmx';
@@ -1583,7 +1380,6 @@ export default function ProjectDetail() {
   const [reportOpen,    setReportOpen]    = useState(false);
   const [pendingStatus, setPendingStatus] = useState<{ from: ProjectStatus; to: ProjectStatus } | null>(null);
 
-  // Conditions — auf Seiten-Ebene damit FinalizeDialog darauf zugreifen kann
   const [conditions, setConditions] = useState<Record<string, Condition>>({});
 
   const handleConditionChange = useCallback(async (itemId: string, condition: Condition) => {
@@ -1591,89 +1387,60 @@ export default function ProjectDetail() {
     await supabase.from('project_items').update({ condition } as any).eq('id', itemId);
   }, []);
 
-  // Archived = vollständig readonly
   const isArchived = project?.status === ('archived' as any);
   const isReadonly = isArchived;
 
-  // ── Conflict-Detection via availableInventory (kein extra DB-Query) ──────
   const conflicts = useMemo<Record<string, ConflictInfo>>(() => {
-    // Fix 2: Eigene Projekt-Items NIE als Konflikt zeigen
     const ownInvIds = new Set<string>();
     packageGroups.forEach(g => g.items.forEach(i => { if (i.inventory_item_id) ownInvIds.add(i.inventory_item_id); }));
     directItems.forEach(i => { if (i.inventory_item_id) ownInvIds.add(i.inventory_item_id); });
 
     const result: Record<string, ConflictInfo> = {};
     availableInventory.forEach(item => {
-      if (ownInvIds.has(item.id)) return; // eigene Items überspringen
+      if (ownInvIds.has(item.id)) return;
       if (item.condition === 'defekt') {
-        result[item.id] = { type: 'defect', label: 'Defekt' };
+        result[item.id] = { type: 'defect', label: t('project_detail.conflict.defect') };
       } else if (item.condition === 'verliehen') {
-        result[item.id] = { type: 'lending', label: item.lent_to ? `Verliehen an ${item.lent_to}` : 'Im Verleih' };
+        result[item.id] = {
+          type: 'lending',
+          label: item.lent_to
+            ? t('project_detail.conflict.lending_named', { name: item.lent_to })
+            : t('project_detail.conflict.lending'),
+        };
       } else if (item.condition === 'in-einsatz') {
-        result[item.id] = { type: 'project', label: 'Im Einsatz' };
+        result[item.id] = { type: 'project', label: t('project_detail.conflict.project') };
       }
     });
     return result;
-  }, [availableInventory, packageGroups, directItems]);
+  }, [availableInventory, packageGroups, directItems, t]);
 
-  // ── Items als "Im Einsatz" markieren ─────────────────────────────────────
   const markItemsInUse = useCallback(async () => {
     if (!project || !allItems.length) return;
     const invIds = [...new Set(allItems.map(i => i.inventory_item_id).filter(Boolean))] as string[];
     if (!invIds.length) return;
 
-    // Fix 3: Originalstandort sichern — nur wenn noch nicht gesetzt (nicht überschreiben)
-    // Originalstandort sichern bevor Location überschrieben wird
     for (const item of allItems) {
       if (!item.inventory_item_id) continue;
       const invItem = availableInventory.find(i => i.id === item.inventory_item_id);
       if (invItem) {
-        await supabase
-          .from('project_items')
-          .update({ original_location: invItem.location } as any)
-          .eq('id', item.id);
+        await supabase.from('project_items').update({ original_location: invItem.location } as any).eq('id', item.id);
       }
     }
-
-    await supabase.from('inventory_items')
-      .update({ condition: 'in-einsatz', location: project.name } as any)
-      .in('id', invIds);
-
-    toast({ title: '📍 Equipment als „Im Einsatz" markiert', description: `Standort → „${project.name}"` });
+    await supabase.from('inventory_items').update({ condition: 'in-einsatz', location: project.name } as any).in('id', invIds);
+    toast({ title: t('project_detail.mark_in_use_toast'), description: t('project_detail.mark_in_use_desc', { name: project.name }) });
     await refetchProject();
-  }, [project, allItems, availableInventory, toast, refetchProject]);
+  }, [project, allItems, availableInventory, toast, refetchProject, t]);
 
-  // Fix 3+1: Alle Items zurücksetzen — liest original_location aus project_items
-  // Pass 2 als Orphan-Cleanup falls original_location nicht gesetzt war
   const restoreAllItems = useCallback(async () => {
     if (!id || !project) return;
-
-    // Pass 1: project_items mit gespeichertem original_location
-    const { data: currentProjItems } = await supabase
-      .from('project_items')
-      .select('inventory_item_id, original_location')
-      .eq('project_id', id);
-
+    const { data: currentProjItems } = await supabase.from('project_items').select('inventory_item_id, original_location').eq('project_id', id);
     for (const pi of (currentProjItems ?? []) as any[]) {
       if (!pi.inventory_item_id) continue;
-      await supabase.from('inventory_items')
-        .update({
-          condition:  'verfügbar',
-          location:   pi.original_location ?? null,   // Fix 3: Originalstandort
-          lent_to:    null,
-          lent_until: null,
-        } as any)
-        .eq('id', pi.inventory_item_id);
+      await supabase.from('inventory_items').update({ condition: 'verfügbar', location: pi.original_location ?? null, lent_to: null, lent_until: null } as any).eq('id', pi.inventory_item_id);
     }
-
-    // Pass 2: Orphan-Cleanup — Items die noch Projektname als Standort haben
-    await supabase.from('inventory_items')
-      .update({ condition: 'verfügbar' } as any)
-      .eq('location', project.name)
-      .eq('condition', 'in-einsatz');
+    await supabase.from('inventory_items').update({ condition: 'verfügbar' } as any).eq('location', project.name).eq('condition', 'in-einsatz');
   }, [id, project]);
 
-  // ── Status-Handler ────────────────────────────────────────────────────────
   const applyStatusChange = async (to: ProjectStatus) => {
     await updateStatus(to);
     if (IN_USE_PHASES.includes(to)) await markItemsInUse();
@@ -1688,22 +1455,17 @@ export default function ProjectDetail() {
     }
   };
 
-  // ── Pakete auto-refresh: nach addPackage auch Pakete neu laden ────────────
-  // (damit neue Items die jemand in der Pakete-Verwaltung hinzugefügt hat sichtbar werden)
   const handleAddPackage = useCallback(async (packageId: string) => {
     await addPackageToProject(packageId);
-    await refetchPackages(); // Package-Stammdaten neu laden
+    await refetchPackages();
   }, [addPackageToProject, refetchPackages]);
 
-  // ── Finalisierung ─────────────────────────────────────────────────────────
   const handleFinalize = async (options: FinalizeOptions) => {
     if (!project || !id) return;
-
     const missingItems  = allItems.filter(i => (conditions[i.id] ?? 'ok') === 'missing');
     const damagedItems  = allItems.filter(i => (conditions[i.id] ?? 'ok') === 'damaged');
     const unpackedItems = allItems.filter(i => !i.packed);
 
-    // 1. Ungeklärte + fehlende Items
     const unresolvedIds = [...new Set([
       ...missingItems.map(i => i.inventory_item_id),
       ...unpackedItems.map(i => i.inventory_item_id),
@@ -1711,37 +1473,24 @@ export default function ProjectDetail() {
 
     if (unresolvedIds.length > 0 && options.missingAction) {
       const newCondition = options.missingAction === 'lost' ? 'defekt' : 'verfügbar';
-      await supabase.from('inventory_items')
-        .update({ condition: newCondition } as any)
-        .in('id', unresolvedIds);
+      await supabase.from('inventory_items').update({ condition: newCondition } as any).in('id', unresolvedIds);
     }
 
-    // 2. Beschädigte Items → Wartung
     if (options.sendDamagedToMaintenance && damagedItems.length > 0) {
       for (const item of damagedItems) {
         if (!item.inventory_item_id) continue;
-        await supabase.from('inventory_items')
-          .update({ condition: 'defekt' } as any)
-          .eq('id', item.inventory_item_id);
+        await supabase.from('inventory_items').update({ condition: 'defekt' } as any).eq('id', item.inventory_item_id);
         await supabase.from('maintenance_records').insert({
-          inventory_item_id: item.inventory_item_id,
-          type: 'damage',
+          inventory_item_id: item.inventory_item_id, type: 'damage',
           description: `Schaden nach Projekt „${project.name}" festgestellt`,
           recorded_at: new Date().toISOString(),
         } as any).catch(() => {});
       }
     }
 
-    // 3. Alle Items zurückbuchen inkl. Originalstandort (Hook-Funktion)
     await restoreAllProjectItems();
-
-    // 4. Status auf 'archived' setzen — KEIN deleted_at Fallback mehr!
-    await supabase
-      .from('projects')
-      .update({ status: 'archived' as any })
-      .eq('id', id);
-
-    toast({ title: 'Projekt abgeschlossen', description: `„${project.name}" wurde archiviert.` });
+    await supabase.from('projects').update({ status: 'archived' as any }).eq('id', id);
+    toast({ title: t('project_detail.finalize_toast'), description: t('project_detail.finalize_desc', { name: project.name }) });
     setTimeout(() => navigate('/projects'), 1500);
   };
 
@@ -1752,19 +1501,18 @@ export default function ProjectDetail() {
       event_date_start: data.dateStart, event_date_end: data.dateEnd,
       notes: data.notes || null,
     });
-    toast({ title: 'Projekt gespeichert' });
+    toast({ title: t('projects.toast.saved_title') });
   };
 
   const handleDelete = async () => {
     await deleteProject();
-    toast({ title: 'Projekt gelöscht' });
+    toast({ title: t('projects.toast.deleted_title') });
     navigate('/projects');
   };
 
   const showPackBadge   = project && PACK_PHASES.includes(project.status);
   const showPackSidebar = project && PACK_PHASES.includes(project.status) && totalItems > 0;
 
-  // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="space-y-6 pt-4">
@@ -1787,11 +1535,11 @@ export default function ProjectDetail() {
     return (
       <div className="space-y-4 pt-4">
         <Button variant="ghost" onClick={() => navigate('/projects')} className="gap-2">
-          <ChevronLeft className="h-4 w-4" /> Zurück
+          <ChevronLeft className="h-4 w-4" />{t('common.back')}
         </Button>
         <Card className="p-12 text-center">
           <FolderKanban className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-          <h3 className="text-lg font-medium">Projekt nicht gefunden</h3>
+          <h3 className="text-lg font-medium">{t('project_detail.no_project')}</h3>
         </Card>
       </div>
     );
@@ -1799,10 +1547,7 @@ export default function ProjectDetail() {
 
   return (
     <>
-      <style>{`
-        @keyframes tab-in { from { opacity: 0; } to { opacity: 1; } }
-        .tab-in { animation: tab-in 0.18s ease forwards }
-      `}</style>
+      <style>{`@keyframes tab-in{from{opacity:0}to{opacity:1}}.tab-in{animation:tab-in 0.18s ease forwards}`}</style>
 
       <div className="space-y-6 pt-4 pb-24">
 
@@ -1810,27 +1555,26 @@ export default function ProjectDetail() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <Button variant="ghost" onClick={() => navigate('/projects')}
             className="group gap-2 self-start hover:-translate-x-0.5 transition-transform">
-            <ChevronLeft className="h-4 w-4" /> Zurück
+            <ChevronLeft className="h-4 w-4" />{t('common.back')}
           </Button>
           {!isReadonly && (
             <div className="flex gap-2 flex-wrap">
               <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none active:scale-95 transition-transform"
                 onClick={() => setEditOpen(true)}>
-                <Edit2 className="h-4 w-4" /> Bearbeiten
+                <Edit2 className="h-4 w-4" />{t('common.edit')}
               </Button>
               <Button variant="outline" size="sm"
                 className="gap-2 flex-1 sm:flex-none text-destructive hover:text-destructive active:scale-95 transition-transform"
                 onClick={() => setDeleteOpen(true)}>
-                <Trash2 className="h-4 w-4" /> Löschen
+                <Trash2 className="h-4 w-4" />{t('common.delete')}
               </Button>
             </div>
           )}
         </div>
 
-        {/* Grid */}
         <div className="grid gap-6 md:grid-cols-3">
 
-          {/* ── Main Column ── */}
+          {/* Main Column */}
           <div className="md:col-span-2 space-y-4 min-w-0">
 
             {/* Header-Card */}
@@ -1838,67 +1582,56 @@ export default function ProjectDetail() {
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <h1 className="text-2xl font-bold tracking-tight truncate">{project.name}</h1>
-                  {project.description && (
-                    <p className="text-sm text-muted-foreground mt-1">{project.description}</p>
-                  )}
+                  {project.description && <p className="text-sm text-muted-foreground mt-1">{project.description}</p>}
                   <div className="mt-3 flex items-center gap-2 flex-wrap">
                     <StatusPickerLocal status={project.status} onChangeStatus={handleStatusChange} disabled={isReadonly} />
                     {IN_USE_PHASES.includes(project.status) && !isArchived && (
                       <Badge variant="outline" className="text-[10px] border-orange-500/40 text-orange-400 bg-orange-500/10">
-                        📍 Im Einsatz
+                        {t('project_detail.in_use_badge')}
                       </Badge>
                     )}
                     {isArchived && (
                       <Badge variant="outline" className="text-[10px] border-border text-muted-foreground">
-                        <Archive className="h-3 w-3 mr-1" /> Archiviert
+                        <Archive className="h-3 w-3 mr-1" />{t('project_detail.archived_badge')}
                       </Badge>
                     )}
                   </div>
                 </div>
                 <button onClick={toggleFavorite} className="p-1.5 shrink-0 mt-0.5 active:scale-90 transition-transform" disabled={isReadonly}>
-                  <Star className={cn("h-5 w-5 transition-colors",
-                    project.is_favorite
-                      ? "fill-yellow-400 text-yellow-400"
-                      : "text-muted-foreground/30 hover:text-yellow-400"
-                  )} />
+                  <Star className={cn("h-5 w-5 transition-colors", project.is_favorite ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30 hover:text-yellow-400")} />
                 </button>
               </div>
             </Card>
 
-            {/* Rücklauf-Banner — nur wenn NICHT archiviert */}
+            {/* Rücklauf-Banner */}
             {project.status === 'returning' && !isReadonly && (
               <div className="rounded-lg border border-purple-500/30 bg-purple-500/5 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-purple-300 flex items-center gap-1.5">
-                    <Flag className="h-4 w-4" /> Rücklauf abschließen
+                    <Flag className="h-4 w-4" />{t('project_detail.returning_banner.title')}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Equipment zurückbuchen, Schäden dokumentieren und das Projekt archivieren.
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t('project_detail.returning_banner.desc')}</p>
                 </div>
-                <Button size="sm"
-                  className="gap-1.5 bg-purple-600 hover:bg-purple-500 text-white shrink-0"
+                <Button size="sm" className="gap-1.5 bg-purple-600 hover:bg-purple-500 text-white shrink-0"
                   onClick={() => setFinalizeOpen(true)}>
-                  <Archive className="h-4 w-4" /> Projekt abschließen
+                  <Archive className="h-4 w-4" />{t('project_detail.returning_banner.btn')}
                 </Button>
               </div>
             )}
 
-            {/* Tabs — Fix 4: Sliding Indicator */}
+            {/* Tabs */}
             <Tabs value={tab} onValueChange={setTab}>
               <SlidingTabsList
-                value={tab}
-                onChange={setTab}
+                value={tab} onChange={setTab}
                 tabs={[
                   {
                     value: 'equipment',
                     label: (
                       <>
-                        <Package className="h-3.5 w-3.5" /> Equipment
+                        <Package className="h-3.5 w-3.5" />{t('projects.tab_packages').replace('Pakete', 'Equipment') /* reuse nav label via dedicated key */}
+                        {/* use a dedicated key instead: */}
                         {showPackBadge && totalItems > 0 && (
-                          <Badge variant="secondary" className="text-[10px] h-4 px-1">
-                            {packedItems}/{totalItems}
-                          </Badge>
+                          <Badge variant="secondary" className="text-[10px] h-4 px-1">{packedItems}/{totalItems}</Badge>
                         )}
                       </>
                     ),
@@ -1907,8 +1640,8 @@ export default function ProjectDetail() {
                     value: 'todos',
                     label: (
                       <>
-                        <ClipboardList className="h-3.5 w-3.5" /> Todos
-                        {PHASE_TEMPLATES[project.status] && !isReadonly && todos.length === 0 && (
+                        <ClipboardList className="h-3.5 w-3.5" />{t('project_detail.tab_todos')}
+                        {PHASES_WITH_TEMPLATES.has(project.status) && !isReadonly && todos.length === 0 && (
                           <span className="h-1.5 w-1.5 rounded-full bg-blue-400 shrink-0" />
                         )}
                         {todos.length > 0 && (
@@ -1921,7 +1654,7 @@ export default function ProjectDetail() {
                   },
                   {
                     value: 'dmx',
-                    label: <><Sliders className="h-3.5 w-3.5" /> DMX</>,
+                    label: <><Sliders className="h-3.5 w-3.5" />{t('project_detail.tab_dmx')}</>,
                   },
                 ]}
               />
@@ -1950,76 +1683,72 @@ export default function ProjectDetail() {
               <TabsContent value="dmx" className="mt-4 min-w-0 overflow-x-hidden tab-in">
                 <ProjectDMXTab projectId={id!} projectName={project.name} allItems={allItems} isReadonly={isReadonly} />
               </TabsContent>
-
             </Tabs>
           </div>
 
-          {/* ── Sidebar ── */}
+          {/* Sidebar */}
           <div className="space-y-4">
 
             {/* Projektinfo */}
             <Card className="p-5 space-y-3 text-sm">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Projektinfo</p>
-
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {t('project_detail.sidebar.info_title')}
+              </p>
               {(project.event_date_start || project.event_date_end) && (
                 <div className="flex items-start gap-2.5">
                   <CalendarDays className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                   <div>
                     {project.event_date_start && (
-                      <p>{format(new Date(project.event_date_start), 'dd. MMM yyyy', { locale: de })}</p>
+                      <p>{format(new Date(project.event_date_start), 'dd. MMM yyyy', { locale: dateLocale })}</p>
                     )}
                     {project.event_date_end && project.event_date_end !== project.event_date_start && (
                       <p className="text-muted-foreground">
-                        bis {format(new Date(project.event_date_end), 'dd. MMM yyyy', { locale: de })}
+                        {t('project_detail.sidebar.date_until', { date: format(new Date(project.event_date_end), 'dd. MMM yyyy', { locale: dateLocale }) })}
                       </p>
                     )}
                   </div>
                 </div>
               )}
-
               {project.location && (
                 <div className="flex items-center gap-2.5">
                   <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span>{project.location}</span>
                 </div>
               )}
-
               {project.notes && (
                 <div className="flex items-start gap-2.5">
                   <StickyNote className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                   <p className="text-muted-foreground whitespace-pre-wrap text-xs">{project.notes}</p>
                 </div>
               )}
-
               {!project.event_date_start && !project.location && !project.notes && (
-                <p className="text-xs text-muted-foreground">Keine weiteren Details angegeben.</p>
+                <p className="text-xs text-muted-foreground">{t('project_detail.sidebar.no_details')}</p>
               )}
-
               <div className="pt-1 border-t border-border/50 text-xs text-muted-foreground space-y-1">
-                <p>Erstellt: {format(new Date(project.created_at), 'dd.MM.yyyy', { locale: de })}</p>
-                <p>Geändert: {format(new Date(project.updated_at), 'dd.MM.yyyy', { locale: de })}</p>
+                <p>{t('project_detail.sidebar.created', { date: format(new Date(project.created_at), 'dd.MM.yyyy', { locale: dateLocale }) })}</p>
+                <p>{t('project_detail.sidebar.updated', { date: format(new Date(project.updated_at), 'dd.MM.yyyy', { locale: dateLocale }) })}</p>
               </div>
             </Card>
 
-            {/* Packstatus — nur in Pack-Phasen */}
+            {/* Packstatus */}
             {showPackSidebar && (
               <Card className="p-5 space-y-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Packstatus</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  {t('project_detail.sidebar.pack_title')}
+                </p>
                 <div className="flex justify-between text-sm">
-                  <span>{packedItems} von {totalItems}</span>
-                  <span className="text-muted-foreground">
-                    {Math.round((packedItems / totalItems) * 100)} %
-                  </span>
+                  <span>{packedItems} / {totalItems}</span>
+                  <span className="text-muted-foreground">{Math.round((packedItems / totalItems) * 100)} %</span>
                 </div>
                 <Progress value={Math.round((packedItems / totalItems) * 100)} className="h-2" />
                 <div className="grid grid-cols-2 gap-2 text-xs text-center">
                   <div className="rounded-md bg-primary/10 p-2">
                     <p className="text-lg font-bold text-primary">{packedItems}</p>
-                    <p className="text-muted-foreground">Gepackt</p>
+                    <p className="text-muted-foreground">{t('project_detail.sidebar.packed_label')}</p>
                   </div>
                   <div className="rounded-md bg-muted/50 p-2">
                     <p className="text-lg font-bold">{totalItems - packedItems}</p>
-                    <p className="text-muted-foreground">Ausstehend</p>
+                    <p className="text-muted-foreground">{t('project_detail.sidebar.pending_label')}</p>
                   </div>
                 </div>
               </Card>
@@ -2029,29 +1758,21 @@ export default function ProjectDetail() {
             {Object.keys(conflicts).length > 0 && !isReadonly && (
               <Card className="p-5 space-y-2 border-amber-500/20 bg-amber-500/5">
                 <p className="text-xs font-semibold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <TriangleAlert className="h-3.5 w-3.5" /> Equipment-Konflikte
+                  <TriangleAlert className="h-3.5 w-3.5" />{t('project_detail.sidebar.conflicts_title')}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {Object.keys(conflicts).length} Artikel sind defekt, verliehen oder anderweitig im Einsatz.
-                  Trotzdem buchbar — prüfe die Verfügbarkeit.
+                  {t('project_detail.sidebar.conflicts_desc', { count: Object.keys(conflicts).length })}
                 </p>
               </Card>
             )}
           </div>
         </div>
 
-        {/* ── Dialoge ── */}
+        {/* Dialoge */}
         {!isReadonly && (
           <ProjectEditDialog
             open={editOpen} onClose={() => setEditOpen(false)}
-            initial={{
-              name:        project.name,
-              description: project.description ?? '',
-              location:    project.location    ?? '',
-              dateStart:   project.event_date_start,
-              dateEnd:     project.event_date_end,
-              notes:       project.notes       ?? '',
-            }}
+            initial={{ name: project.name, description: project.description ?? '', location: project.location ?? '', dateStart: project.event_date_start, dateEnd: project.event_date_end, notes: project.notes ?? '' }}
             onSubmit={handleEdit}
           />
         )}
@@ -2065,33 +1786,27 @@ export default function ProjectDetail() {
 
         <ProjectReportDialog
           open={reportOpen} onClose={() => setReportOpen(false)}
-          project={project}
-          packageGroups={packageGroups}
-          directItems={directItems}
-          allItems={allItems}
-          todos={todos}
-          conditions={conditions}
-          conflicts={conflicts}
+          project={project} packageGroups={packageGroups} directItems={directItems}
+          allItems={allItems} todos={todos} conditions={conditions} conflicts={conflicts}
         />
 
         <AlertDialog open={!!pendingStatus} onOpenChange={v => !v && setPendingStatus(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Status zurücksetzen?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Das Projekt ist als{' '}
-                <strong>{pendingStatus ? STATUS_CONFIG[pendingStatus.from]?.label : ''}</strong>{' '}
-                markiert. Es auf{' '}
-                <strong>{pendingStatus ? STATUS_CONFIG[pendingStatus.to]?.label : ''}</strong>{' '}
-                zu setzen ist unüblich – bist du sicher?
-              </AlertDialogDescription>
+              <AlertDialogTitle>{t('projects.status_change.warning_title')}</AlertDialogTitle>
+              <AlertDialogDescription
+                dangerouslySetInnerHTML={{
+                  __html: t('projects.status_change.warning_desc', {
+                    from: pendingStatus ? `<strong>${t(`project_status.${pendingStatus.from}`)}</strong>` : '',
+                    to:   pendingStatus ? `<strong>${t(`project_status.${pendingStatus.to}`)}</strong>`   : '',
+                  })
+                }}
+              />
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-              <AlertDialogAction onClick={async () => {
-                if (pendingStatus) { await applyStatusChange(pendingStatus.to); setPendingStatus(null); }
-              }}>
-                Ja, Status ändern
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+              <AlertDialogAction onClick={async () => { if (pendingStatus) { await applyStatusChange(pendingStatus.to); setPendingStatus(null); } }}>
+                {t('projects.status_change.confirm')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -2100,16 +1815,13 @@ export default function ProjectDetail() {
         <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Projekt löschen?</AlertDialogTitle>
-              <AlertDialogDescription>
-                „{project.name}" wird in den Papierkorb verschoben.
-              </AlertDialogDescription>
+              <AlertDialogTitle>{t('projects.delete.title')}</AlertDialogTitle>
+              <AlertDialogDescription>{t('projects.delete.description')}</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Löschen
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {t('common.delete')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

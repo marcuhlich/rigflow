@@ -1,17 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Camera as CameraIcon, ImageIcon, ChevronRight, Check, BarChart2 } from 'lucide-react';
+import { Bell, Camera as CameraIcon, ChevronRight, Check, BarChart2 } from 'lucide-react';
 import posthog from 'posthog-js';
-import {
-  requestNativeNotificationPermission,
-} from '@/services/native/notifications';
+import { requestNativeNotificationPermission } from '@/services/native/notifications';
 import { requestCameraPermission } from '@/services/native/index';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Camera } from '@capacitor/camera';
 import { ONBOARDING_DONE_KEY, ANALYTICS_CONSENT_KEY } from '@/lib/constants';
-
-// ─── Screens ──────────────────────────────────────────────────────────────────
+import { useTranslation } from 'react-i18next';
 
 interface Screen {
   icon: React.ReactNode;
@@ -23,34 +20,59 @@ interface Screen {
   onAllow: () => Promise<void>;
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
-
 export default function NativeOnboarding() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+
+  const screens: Screen[] = [
+    {
+      icon: <Bell size={28} style={{ color: 'hsl(var(--primary))' }} />,
+      accent: 'hsl(var(--primary))',
+      eyebrow: t('onboarding.step_indicator', { current: 1, total: 3 }),
+      title: t('onboarding.notifications_title'),
+      description: t('onboarding.notifications_description'),
+      allowLabel: t('onboarding.notifications_allow'),
+      onAllow: async () => { await requestNativeNotificationPermission(); },
+    },
+    {
+      icon: <CameraIcon size={28} style={{ color: '#34d399' }} />,
+      accent: '#34d399',
+      eyebrow: t('onboarding.step_indicator', { current: 2, total: 3 }),
+      title: t('onboarding.camera_title'),
+      description: t('onboarding.camera_description'),
+      allowLabel: t('onboarding.camera_allow'),
+      onAllow: async () => { await requestCameraPermission(); },
+    },
+    {
+      icon: <BarChart2 size={28} style={{ color: '#34d399' }} />,
+      accent: '#34d399',
+      eyebrow: t('onboarding.step_indicator', { current: 3, total: 3 }),
+      title: t('onboarding.analytics_title'),
+      description: t('onboarding.analytics_description'),
+      allowLabel: t('onboarding.analytics_allow'),
+      onAllow: async () => {
+        localStorage.setItem(ANALYTICS_CONSENT_KEY, 'true');
+        posthog.opt_in_capturing();
+      },
+    },
+  ];
 
   useEffect(() => {
     const checkAndSkip = async () => {
       try {
         const notif = await LocalNotifications.checkPermissions();
         const cam = await Camera.checkPermissions();
-        
-        const notifOk = notif.display === 'granted';
-        const camOk = cam.camera === 'granted';
 
-        if (notifOk && camOk) {
-          // Alles bereits erteilt → direkt weiter
-          localStorage.setItem(ONBOARDING_DONE_KEY, '1');
-          navigate('/', { replace: true });
-          return;
+        if (notif.display === 'granted' && cam.camera === 'granted') {
+          setStep(2);
+        } else if (notif.display === 'granted') {
+          setStep(1);
         }
-
-        // Nur Screens zeigen die noch gebraucht werden
-        if (notifOk && step === 0) setStep(1);
       } catch (e) {
-        // Fehler ignorieren, normal weitermachen
+        // ignorieren, step bleibt 0
       }
     };
     checkAndSkip();
@@ -64,12 +86,12 @@ export default function NativeOnboarding() {
 
   const handleAllow = async (fn: () => Promise<void>) => {
     setLoading(true);
-    try { 
-      await fn(); 
-    } catch(e) { 
+    try {
+      await fn();
+    } catch (e) {
       console.log('Permission error:', JSON.stringify(e));
     } finally {
-      setLoading(false); // ← IMMER resetten, auch bei Fehler
+      setLoading(false);
     }
     if (step < screens.length - 1) {
       setStep(s => s + 1);
@@ -79,7 +101,6 @@ export default function NativeOnboarding() {
   };
 
   const handleSkip = () => {
-    // Wenn der Analytics-Screen übersprungen wird
     if (step === screens.length - 1) {
       localStorage.setItem(ANALYTICS_CONSENT_KEY, 'false');
       posthog.opt_out_capturing();
@@ -91,45 +112,8 @@ export default function NativeOnboarding() {
     }
   };
 
-  const screens: Screen[] = [
-    {
-      icon: <Bell size={28} style={{ color: 'hsl(var(--primary))' }} />,
-      accent: 'hsl(var(--primary))',
-      eyebrow: 'Schritt 1 von 3',
-      title: 'Benachrichtigungen',
-      description:
-        'RigFlow erinnert dich an überfällige Rückgaben und wichtige Ereignisse – direkt auf dein Gerät.',
-      allowLabel: 'Benachrichtigungen erlauben',
-      onAllow: async () => { await requestNativeNotificationPermission(); },
-    },
-    {
-      icon: <CameraIcon size={28} style={{ color: '#34d399' }} />,
-      accent: '#34d399',
-      eyebrow: 'Schritt 2 von 3',
-      title: 'Kamera & Fotos',
-      description:
-        'Fotografiere Equipment direkt aus der App oder lade Bilder aus deiner Galerie hoch.',
-      allowLabel: 'Kamera erlauben',
-      onAllow: async () => { await requestCameraPermission(); },
-    },
-    {
-      icon: <BarChart2 size={28} style={{ color: '#34d399' }} />,
-      accent: '#34d399',
-      eyebrow: 'Schritt 3 von 3',
-      title: 'Nutzungsanalyse',
-      description:
-        'Darf RigFlow anonymisierte Nutzungsdaten sammeln? Das hilft uns, die App zu verbessern – ohne dass wir wissen, wer du bist.',
-      allowLabel: 'Ja, gerne helfen',
-      onAllow: async () => {
-        localStorage.setItem(ANALYTICS_CONSENT_KEY, 'true');
-        posthog.opt_in_capturing();
-      },
-    },
-  ];
-
   const screen = screens[step];
 
-  // ── Fertig-Screen ──────────────────────────────────────────────────────────
   if (done) {
     return (
       <div className="fixed inset-0 flex items-center justify-center"
@@ -156,7 +140,6 @@ export default function NativeOnboarding() {
       className="fixed inset-0 flex flex-col"
       style={{ background: '#020408', fontFamily: "'DM Sans', system-ui, sans-serif" }}
     >
-      {/* Ambient */}
       <div className="pointer-events-none absolute inset-0" style={{
         background: 'radial-gradient(ellipse 70% 40% at 50% 100%, hsl(var(--primary)/0.07) 0%, transparent 70%)',
       }} />
@@ -168,7 +151,6 @@ export default function NativeOnboarding() {
         backgroundSize: '60px 60px',
       }} />
 
-      {/* Progress dots */}
       <div
         className="flex items-center justify-center gap-2 relative z-10"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 20px)' }}
@@ -186,7 +168,6 @@ export default function NativeOnboarding() {
         ))}
       </div>
 
-      {/* Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-8 relative z-10">
         <AnimatePresence mode="wait">
           <motion.div
@@ -197,7 +178,6 @@ export default function NativeOnboarding() {
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-col items-center text-center max-w-xs w-full gap-7"
           >
-            {/* Icon */}
             <div style={{
               width: 80, height: 80, borderRadius: 24,
               background: 'rgba(255,255,255,0.04)',
@@ -208,7 +188,6 @@ export default function NativeOnboarding() {
               {screen.icon}
             </div>
 
-            {/* Text */}
             <div className="space-y-3">
               <div style={{
                 fontSize: 10, fontWeight: 700, letterSpacing: '0.16em',
@@ -227,14 +206,13 @@ export default function NativeOnboarding() {
               </p>
             </div>
 
-            {/* Buttons */}
             <div className="flex flex-col gap-3 w-full pt-2">
               <button
                 onClick={() => handleAllow(screen.onAllow)}
                 disabled={loading}
                 style={{
                   width: '100%', padding: '16px 24px',
-                  background: `linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary)/0.7))`,
+                  background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary)/0.7))',
                   border: 'none', borderRadius: 14,
                   fontSize: 15, fontWeight: 700,
                   color: 'hsl(var(--primary-foreground, 0 0% 0%))',
@@ -259,14 +237,13 @@ export default function NativeOnboarding() {
                 onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.5)')}
                 onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.28)')}
               >
-                Nicht jetzt
+                {t('onboarding.skip')}
               </button>
             </div>
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* Safe area bottom spacer */}
       <div style={{ height: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }} />
     </div>
   );

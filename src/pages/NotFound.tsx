@@ -3,13 +3,18 @@ import { useEffect } from "react";
 import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { PackageX, ArrowLeft, Home } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const NotFound = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
-    logger.warn("404 Error: User attempted to access non-existent route:", location.pathname);
+    logger.warn(
+      "404 Error: User attempted to access non-existent route:",
+      location.pathname
+    );
   }, [location.pathname]);
 
   return (
@@ -25,30 +30,41 @@ const NotFound = () => {
 
         <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-xs text-muted-foreground font-mono">
           <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
-          ARTIKEL NICHT GEFUNDEN — 404
+          {t("notfound.badge")}
         </div>
 
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Ausrüstung nicht im Inventar
+            {t("notfound.title")}
           </h1>
+
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Der Eintrag unter{" "}
+            {t("notfound.description_prefix")}{" "}
             <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-foreground border border-border">
               {location.pathname}
             </code>{" "}
-            konnte nicht gefunden werden. Er wurde möglicherweise verschoben, umbenannt oder ausgecheckt.
+            {t("notfound.description_suffix")}
           </p>
         </div>
 
         <div className="flex gap-3">
-          <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(-1)}
+            className="gap-2"
+          >
             <ArrowLeft className="w-4 h-4" />
-            Zurück
+            {t("common.back")}
           </Button>
-          <Button size="sm" onClick={() => navigate("/")} className="gap-2">
+
+          <Button
+            size="sm"
+            onClick={() => navigate("/")}
+            className="gap-2"
+          >
             <Home className="w-4 h-4" />
-            Dashboard
+            {t("nav.dashboard")}
           </Button>
         </div>
 

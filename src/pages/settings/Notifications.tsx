@@ -16,6 +16,7 @@ import {
   checkNativeNotificationPermission,
   requestNativeNotificationPermission,
 } from '@/services/native/notifications';
+import { useTranslation } from 'react-i18next';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -39,12 +40,6 @@ interface ToggleProps {
   checked: boolean;
   onChange: (v: boolean) => void;
   disabled?: boolean;
-}
-
-interface ToggleProps {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  disabled?: boolean;
   saving?: boolean;
 }
 
@@ -63,15 +58,12 @@ const Toggle = ({ checked, onChange, disabled, saving }: ToggleProps) => (
       ${saving ? "opacity-80" : "opacity-100"}
     `}
   >
-    {/* Ripple ring while saving */}
     {saving && (
       <span className={`
         absolute inset-0 rounded-full animate-ping opacity-30
         ${checked ? "bg-primary" : "bg-muted-foreground"}
       `} />
     )}
-
-    {/* Knob */}
     <span
       className={`
         pointer-events-none relative inline-block h-4 w-4 rounded-full shadow-md
@@ -85,7 +77,6 @@ const Toggle = ({ checked, onChange, disabled, saving }: ToggleProps) => (
         }
       `}
     >
-      {/* Inner dot pulse while saving */}
       {saving && (
         <span className="absolute inset-1 rounded-full bg-primary/60 animate-pulse" />
       )}
@@ -137,66 +128,60 @@ const NotificationRow = ({
 const Notifications = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULTS);
   const [savingKey, setSavingKey] = useState<keyof NotificationPrefs | null>(null);
   const [pushGranted, setPushGranted] = useState<boolean | null>(null);
 
-  // ── Load saved prefs from user_metadata ──
   useEffect(() => {
     const saved = user?.user_metadata?.notification_prefs;
     if (saved) setPrefs({ ...DEFAULTS, ...saved });
   }, [user]);
 
-  // ── Check push permission ──
-useEffect(() => {
-  const check = async () => {
-    if (isNative()) {
-      const p = await checkNativeNotificationPermission();
-      setPushGranted(p === 'granted');
-    } else if ('Notification' in window) {
-      setPushGranted(Notification.permission === 'granted');
-    } else {
-      setPushGranted(false);
-    }
-  };
-  check();
-}, []);
+  useEffect(() => {
+    const check = async () => {
+      if (isNative()) {
+        const p = await checkNativeNotificationPermission();
+        setPushGranted(p === 'granted');
+      } else if ('Notification' in window) {
+        setPushGranted(Notification.permission === 'granted');
+      } else {
+        setPushGranted(false);
+      }
+    };
+    check();
+  }, []);
 
-const requestPushPermission = async () => {
-  if (isNative()) {
-    const result = await requestNativeNotificationPermission();
+  const requestPushPermission = async () => {
+    if (isNative()) {
+      const result = await requestNativeNotificationPermission();
+      setPushGranted(result === 'granted');
+      if (result !== 'granted') {
+        toast({
+          title: t('notifications.push_blocked_title'),
+          description: result === 'denied'
+            ? t('notifications.push_blocked_native_denied')
+            : t('notifications.push_blocked_native_other'),
+          variant: 'destructive',
+        });
+      }
+      return;
+    }
+
+    if (!('Notification' in window)) return;
+    const result = await Notification.requestPermission();
     setPushGranted(result === 'granted');
     if (result !== 'granted') {
       toast({
-        title: 'Benachrichtigungen blockiert',
-        description:
-          result === 'denied'
-            ? 'Bitte erlaube Benachrichtigungen in den App-Einstellungen deines Geräts.'
-            : 'Berechtigung wurde nicht erteilt.',
+        title: t('notifications.push_blocked_title'),
+        description: t('notifications.push_blocked_web'),
         variant: 'destructive',
       });
     }
-    return;
-  }
+  };
 
-  // Web (unverändert):
-  if (!('Notification' in window)) return;
-  const result = await Notification.requestPermission();
-  setPushGranted(result === 'granted');
-  if (result !== 'granted') {
-    toast({
-      title: 'Benachrichtigungen blockiert',
-      description:
-        'Bitte erlaube Benachrichtigungen in deinen Browser-Einstellungen.',
-      variant: 'destructive',
-    });
-  }
-};
-
-  // ── Toggle handler – saves immediately ──
   const handleToggle = async (key: keyof NotificationPrefs, value: boolean) => {
-    // Optimistic update
     const updated = { ...prefs, [key]: value };
     setPrefs(updated);
     setSavingKey(key);
@@ -205,20 +190,18 @@ const requestPushPermission = async () => {
       const { error } = await supabase.auth.updateUser({
         data: { notification_prefs: updated },
       });
-
       if (error) throw error;
 
       toast({
-        title: value ? "Aktiviert" : "Deaktiviert",
-        description: "Einstellungen gespeichert.",
+        title: value ? t('notifications.toast_enabled') : t('notifications.toast_disabled'),
+        description: t('notifications.toast_saved'),
       });
     } catch {
-      // Revert on error
       setPrefs(prefs);
       toast({
-        title: "Fehler",
-        description: "Einstellung konnte nicht gespeichert werden.",
-        variant: "destructive",
+        title: t('common.error'),
+        description: t('notifications.toast_error'),
+        variant: 'destructive',
       });
     } finally {
       setSavingKey(null);
@@ -239,9 +222,11 @@ const requestPushPermission = async () => {
           >
             <Bell className="h-5 w-5 text-accent shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-accent">Push-Benachrichtigungen erlauben</p>
+              <p className="text-sm font-semibold text-accent">
+                {t('notifications.push_banner_title')}
+              </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Tippe hier um Benachrichtigungen zu aktivieren – sonst können keine Hinweise zugestellt werden.
+                {t('notifications.push_banner_description')}
               </p>
             </div>
           </button>
@@ -251,48 +236,48 @@ const requestPushPermission = async () => {
         <div className="glass-card px-4 divide-y divide-border/50">
           <NotificationRow
             icon={<Package className="h-4 w-4" />}
-            label="Ausleih-Erinnerungen"
-            description="Erhalte eine Erinnerung wenn Equipment längere Zeit nicht zurückgegeben wurde."
+            label={t('notifications.loan_reminders_label')}
+            description={t('notifications.loan_reminders_description')}
             checked={prefs.loanReminders}
             onChange={(v) => handleToggle("loanReminders", v)}
             disabled={pushDisabled}
-            disabledReason="Push-Benachrichtigungen sind deaktiviert."
+            disabledReason={t('notifications.push_disabled_reason')}
             saving={savingKey === "loanReminders"}
           />
           <NotificationRow
             icon={<CheckSquare className="h-4 w-4" />}
-            label="Checklist-Updates"
-            description="Werde benachrichtigt wenn eine Event-Checkliste abgeschlossen wurde."
+            label={t('notifications.checklist_updates_label')}
+            description={t('notifications.checklist_updates_description')}
             checked={prefs.checklistUpdates}
             onChange={(v) => handleToggle("checklistUpdates", v)}
             disabled={pushDisabled}
-            disabledReason="Push-Benachrichtigungen sind deaktiviert."
+            disabledReason={t('notifications.push_disabled_reason')}
             saving={savingKey === "checklistUpdates"}
           />
           <NotificationRow
             icon={<Users className="h-4 w-4" />}
-            label="Neue Teammitglieder"
-            description="Erhalte eine Meldung wenn jemand deiner Organisation beitritt."
+            label={t('notifications.new_members_label')}
+            description={t('notifications.new_members_description')}
             checked={prefs.newMembers}
             onChange={(v) => handleToggle("newMembers", v)}
             disabled={pushDisabled}
-            disabledReason="Push-Benachrichtigungen sind deaktiviert."
+            disabledReason={t('notifications.push_disabled_reason')}
             saving={savingKey === "newMembers"}
           />
           <NotificationRow
             icon={<ShieldAlert className="h-4 w-4" />}
-            label="Sicherheitswarnungen"
-            description="Erhalte eine Meldung wenn sich ein neues Gerät mit deinem Konto anmeldet."
+            label={t('notifications.security_alerts_label')}
+            description={t('notifications.security_alerts_description')}
             checked={prefs.securityAlerts}
             onChange={(v) => handleToggle("securityAlerts", v)}
             disabled={pushDisabled}
-            disabledReason="Push-Benachrichtigungen sind deaktiviert."
+            disabledReason={t('notifications.push_disabled_reason')}
             saving={savingKey === "securityAlerts"}
           />
         </div>
 
         <p className="text-xs text-muted-foreground text-center px-4">
-          Die Zustellung erfolgt über Push-Benachrichtigungen direkt auf dein Gerät.
+          {t('notifications.footer_hint')}
         </p>
       </div>
     </div>

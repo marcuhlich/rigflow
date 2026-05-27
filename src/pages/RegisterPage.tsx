@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import posthog from "posthog-js";
 import { hapticFeedback, hapticStop } from '@/lib/utils';
 import { ANALYTICS_CONSENT_KEY } from '@/lib/constants';
+import { useTranslation } from 'react-i18next';
+import { isNative } from '@/services/platform';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Phase = 'intro' | 'stories' | 'form' | 'finale';
@@ -17,34 +19,6 @@ interface FormData {
   password: string;
   warehouse: string;
 }
-
-// ─── Story Slides ─────────────────────────────────────────────────────────────
-const STORIES = [
-  {
-    icon: Package,
-    eyebrow: 'Inventarverwaltung',
-    headline: 'Kein Case\ngeht verloren.',
-    sub: 'Von der ersten Probe bis zum Abbau: RigFlow weiß immer, wo dein Equipment steckt – Kabel, Strahler, Konsolen, alles.',
-    detail: '23 Artikel • 4 Kategorien • 1 Klick',
-    bg: 'radial-gradient(ellipse at 25% 60%, rgba(var(--primary-rgb, 0,229,255),0.13) 0%, transparent 65%)',
-  },
-  {
-    icon: QrCode,
-    eyebrow: 'QR-Scanning',
-    headline: 'Scan.\nFertig.\nWeiter.',
-    sub: 'Jeder Case, jede Box, jedes Kabel hat seinen Code. Auf der Bühne, im Dunkeln, ohne Netz – einfach draufhalten und loslegen.',
-    detail: 'Offline verfügbar • Automatisch generiert',
-    bg: 'radial-gradient(ellipse at 75% 35%, rgba(var(--primary-rgb, 0,229,255),0.10) 0%, transparent 60%)',
-  },
-  {
-    icon: Wifi,
-    eyebrow: 'Offline-First',
-    headline: 'Auch wenn\ndas Netz\nstreikt.',
-    sub: 'Kein WLAN in der Halle? Egal. RigFlow arbeitet komplett offline und synchronisiert alles sobald du wieder online bist.',
-    detail: 'Automatischer Sync • Keine Datenverluste',
-    bg: 'radial-gradient(ellipse at 50% 75%, rgba(var(--primary-rgb, 0,229,255),0.08) 0%, transparent 55%)',
-  },
-];
 
 const FORM_STEPS: FormStep[] = ['name', 'email', 'password', 'warehouse'];
 
@@ -162,10 +136,11 @@ function QrVisual({ name }: { name: string }) {
 
 // ─── Password strength checks ─────────────────────────────────────────────────
 function PasswordChecks({ password }: { password: string }) {
+  const { t } = useTranslation();
   const checks = [
-    { icon: Hash, label: 'Zahl',       ok: /\d/.test(password) },
-    { icon: Type, label: 'Buchstaben', ok: /[a-zA-Z]/.test(password) },
-    { icon: Lock, label: '8+ Zeichen', ok: password.length >= 8 },
+    { icon: Hash, label: t('register.password_check_digit'),    ok: /\d/.test(password) },
+    { icon: Type, label: t('register.password_check_letter'),   ok: /[a-zA-Z]/.test(password) },
+    { icon: Lock, label: t('register.password_check_length'),   ok: password.length >= 8 },
   ];
   return (
     <div className="flex gap-4 mt-3">
@@ -197,6 +172,42 @@ function useKeyboardHeight() {
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  // ── Story slides (inside component so t() is available) ───────────────────
+  const STORIES = [
+    {
+      icon: Package,
+      eyebrow: t('register.story1_eyebrow'),
+      headline: t('register.story1_headline'),
+      sub: t('register.story1_sub'),
+      detail: t('register.story1_detail'),
+      bg: 'radial-gradient(ellipse at 25% 60%, rgba(var(--primary-rgb, 0,229,255),0.13) 0%, transparent 65%)',
+    },
+    {
+      icon: QrCode,
+      eyebrow: t('register.story2_eyebrow'),
+      headline: t('register.story2_headline'),
+      sub: t('register.story2_sub'),
+      detail: t('register.story2_detail'),
+      bg: 'radial-gradient(ellipse at 75% 35%, rgba(var(--primary-rgb, 0,229,255),0.10) 0%, transparent 60%)',
+    },
+    {
+      icon: Wifi,
+      eyebrow: t('register.story3_eyebrow'),
+      headline: t('register.story3_headline'),
+      sub: t('register.story3_sub'),
+      detail: t('register.story3_detail'),
+      bg: 'radial-gradient(ellipse at 50% 75%, rgba(var(--primary-rgb, 0,229,255),0.08) 0%, transparent 55%)',
+    },
+  ];
+
+  const formConfig: Record<FormStep, { question: string; placeholder: string; type: string; key: keyof FormData }> = {
+    name:      { question: t('register.form_name_question'),      placeholder: t('register.form_name_placeholder'),      type: 'text',     key: 'name' },
+    email:     { question: t('register.form_email_question'),     placeholder: t('register.form_email_placeholder'),     type: 'email',    key: 'email' },
+    password:  { question: t('register.form_password_question'),  placeholder: t('register.form_password_placeholder'),  type: 'password', key: 'password' },
+    warehouse: { question: t('register.form_warehouse_question'), placeholder: t('register.form_warehouse_placeholder'), type: 'text',     key: 'warehouse' },
+  };
 
   const [phase, setPhase] = useState<Phase>('intro');
   const [introStage, setIntroStage] = useState<'pulse' | 'slide'>('pulse');
@@ -254,18 +265,11 @@ export default function RegisterPage() {
   // ── Form ──────────────────────────────────────────────────────────────────
   const stepIndex = FORM_STEPS.indexOf(formStep);
 
-  const formConfig: Record<FormStep, { question: string; placeholder: string; type: string; key: keyof FormData }> = {
-    name:      { question: 'Wie heißt du?',          placeholder: 'Dein Name',            type: 'text',     key: 'name' },
-    email:     { question: 'Deine E-Mail?',           placeholder: 'mail@example.com',     type: 'email',    key: 'email' },
-    password:  { question: 'Wähle ein Passwort.',     placeholder: 'Mindestens 8 Zeichen', type: 'password', key: 'password' },
-    warehouse: { question: 'Wie heißt dein\nLager?', placeholder: 'z.B. Hauptlager',      type: 'text',     key: 'warehouse' },
-  };
-
   const handleFormNext = async () => {
     setError('');
-    if (!inputValue.trim()) { setError('Bitte fülle dieses Feld aus.'); return; }
-    if (formStep === 'email' && !/\S+@\S+\.\S+/.test(inputValue)) { setError('Keine gültige E-Mail.'); return; }
-    if (formStep === 'password' && inputValue.length < 8) { setError('Mindestens 8 Zeichen.'); return; }
+    if (!inputValue.trim()) { setError(t('register.error_required')); return; }
+    if (formStep === 'email' && !/\S+@\S+\.\S+/.test(inputValue)) { setError(t('register.error_invalid_email')); return; }
+    if (formStep === 'password' && inputValue.length < 8) { setError(t('register.error_password_too_short')); return; }
 
     const updated = { ...formData, [formConfig[formStep].key]: inputValue };
     setFormData(updated);
@@ -288,7 +292,9 @@ export default function RegisterPage() {
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: 'https://rigflow.net/auth/callback',
+          emailRedirectTo: isNative()
+            ? 'com.rigflow.app://auth/callback'   // ← Custom Scheme, immer zuverlässig
+            : `${window.location.origin}/auth/callback`,
           data: { full_name: formData.name, warehouse_name: formData.warehouse },
         },
       });
@@ -304,7 +310,7 @@ export default function RegisterPage() {
     } catch (err: unknown) {
       setRippleActive(false);
       setPhase('form');
-      setError(err instanceof Error ? err.message : 'Registrierung fehlgeschlagen.');
+      setError(err instanceof Error ? err.message : t('register.error_signup_failed'));
     } finally {
       setLoading(false);
     }
@@ -325,6 +331,9 @@ export default function RegisterPage() {
     : phase === 'form'
     ? STORIES.length + stepIndex
     : totalSegments;
+
+  // Email confirmation steps
+  const confirmationSteps = t('register.confirmation_steps', { returnObjects: true }) as string[];
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
@@ -446,7 +455,7 @@ export default function RegisterPage() {
                     style={{ color: 'hsl(var(--primary))', background: 'hsl(var(--primary)/0.1)', border: '1px solid hsl(var(--primary)/0.25)', borderRadius: 12, padding: '11px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 600, pointerEvents: 'all' }}
                     onClick={() => setPhase('form')}
                   >
-                    Jetzt registrieren <ChevronRight size={15} />
+                    {t('register.cta_register')} <ChevronRight size={15} />
                   </button>
                 )}
               </div>
@@ -456,35 +465,35 @@ export default function RegisterPage() {
       })()}
 
       {phase !== 'finale' && phase !== 'intro' && (
-      <motion.button
-        onClick={() => navigate(-1)}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        whileHover={{ scale: 1.05, boxShadow: '0 0 12px hsl(var(--primary)/0.5)' }}
-        whileTap={{ scale: 0.92, boxShadow: '0 0 6px hsl(var(--primary)/0.7)' }}
-        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        style={{
-          position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 38px + ${kbHeight}px)`,
-          left: 12,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-          background: 'hsl(var(--primary)/0.1)',
-          border: '1px solid hsl(var(--primary)/0.25)',
-          borderRadius: 12,
-          padding: '6px 10px',
-          color: 'hsl(var(--primary))',
-          fontWeight: 600,
-          fontSize: 13,
-          cursor: 'pointer',
-          zIndex: 40,
-        }}
-      >
-        <ChevronLeft size={16} />
-        Zurück
-      </motion.button>
-    )}
+        <motion.button
+          onClick={() => navigate(-1)}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          whileHover={{ scale: 1.05, boxShadow: '0 0 12px hsl(var(--primary)/0.5)' }}
+          whileTap={{ scale: 0.92, boxShadow: '0 0 6px hsl(var(--primary)/0.7)' }}
+          transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+          style={{
+            position: 'absolute',
+            top: `calc(env(safe-area-inset-top, 0px) + 38px + ${kbHeight}px)`,
+            left: 12,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            background: 'hsl(var(--primary)/0.1)',
+            border: '1px solid hsl(var(--primary)/0.25)',
+            borderRadius: 12,
+            padding: '6px 10px',
+            color: 'hsl(var(--primary))',
+            fontWeight: 600,
+            fontSize: 13,
+            cursor: 'pointer',
+            zIndex: 40,
+          }}
+        >
+          <ChevronLeft size={16} />
+          {t('common.back')}
+        </motion.button>
+      )}
 
       {/* ── FORM ────────────────────────────────────────────────────────── */}
       {phase === 'form' && (() => {
@@ -507,7 +516,7 @@ export default function RegisterPage() {
                 transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
               >
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'hsl(var(--primary))', marginBottom: 14, opacity: 0.65 }}>
-                  Schritt {stepIndex + 1} von {FORM_STEPS.length}
+                  {t('register.form_step_indicator', { current: stepIndex + 1, total: FORM_STEPS.length })}
                 </div>
 
                 <h2 style={{ fontSize: 'clamp(1.8rem, 7vw, 2.6rem)', fontWeight: 900, color: '#fff', letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 36, whiteSpace: 'pre-line' }}>
@@ -524,7 +533,7 @@ export default function RegisterPage() {
                         transition={{ type: 'spring', stiffness: 300, damping: 24 }}
                         style={{ marginBottom: 20, fontSize: 15, color: 'hsl(var(--primary))', fontWeight: 600, letterSpacing: '-0.01em', opacity: 0.75 }}
                       >
-                        Hallo, {inputValue.trim().split(' ')[0]}! 👋
+                        {t('register.form_name_greeting', { name: inputValue.trim().split(' ')[0] })}
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -585,19 +594,19 @@ export default function RegisterPage() {
                   onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
                 >
                   {loading
-                    ? <><Loader2 size={16} className="animate-spin" /> Wird erstellt…</>
+                    ? <><Loader2 size={16} className="animate-spin" /> {t('register.form_creating')}</>
                     : formStep === 'warehouse'
-                    ? 'System initialisieren'
-                    : <>Weiter <ChevronRight size={15} /></>
+                    ? t('register.form_submit')
+                    : <>{t('common.next')} <ChevronRight size={15} /></>
                   }
                 </button>
 
                 {formStep === 'name' && (
                   <p style={{ textAlign: 'center', marginTop: 16, fontSize: 13, color: 'rgba(255,255,255,0.28)' }}>
-                    Schon dabei?{' '}
+                    {t('register.already_registered')}{' '}
                     <button onClick={() => navigate('/auth')}
                       style={{ color: 'hsl(var(--primary))', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13 }}>
-                      Einloggen
+                      {t('register.login_link')}
                     </button>
                   </p>
                 )}
@@ -626,30 +635,30 @@ export default function RegisterPage() {
                 className="flex flex-col items-center gap-6"
               >
                 <div style={{ fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'hsl(var(--primary))', opacity: 0.55 }}>
-                  System initialisiert
+                  {t('register.finale_system_initialized')}
                 </div>
                 <QrVisual name={formData.name || 'RigFlow'} />
                 <div>
                   <h2 style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-                    Bereit,<br />
+                    {t('register.finale_ready_title')}<br />
                     <span style={{ color: 'hsl(var(--primary))' }}>{formData.name}</span>.
                   </h2>
                   <p style={{ marginTop: 8, color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>
-                    Lager <strong style={{ color: 'rgba(255,255,255,0.55)' }}>{formData.warehouse}</strong> wird eingerichtet…
+                    {t('register.finale_warehouse_setting_up', { warehouse: formData.warehouse })}
                   </p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginTop: 8 }}>
-                <div style={{
-                  width: 28, height: 28,
-                  border: '2px solid hsl(var(--primary)/0.15)',
-                  borderTop: '2px solid hsl(var(--primary))',
-                  borderRadius: '50%',
-                  animation: 'spin 0.9s linear infinite',
-                }} />
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.05em' }}>
-                  Konto wird angelegt…
-                </span>
-              </div>
+                  <div style={{
+                    width: 28, height: 28,
+                    border: '2px solid hsl(var(--primary)/0.15)',
+                    borderTop: '2px solid hsl(var(--primary))',
+                    borderRadius: '50%',
+                    animation: 'spin 0.9s linear infinite',
+                  }} />
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.05em' }}>
+                    {t('register.finale_account_creating')}
+                  </span>
+                </div>
               </motion.div>
             )}
 
@@ -679,16 +688,16 @@ export default function RegisterPage() {
 
                 <div>
                   <h2 style={{ fontSize: 26, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-                    Fast geschafft.
+                    {t('register.finale_email_title')}
                   </h2>
                   <p style={{ marginTop: 10, color: 'rgba(255,255,255,0.38)', fontSize: 14, lineHeight: 1.65 }}>
-                    Wir haben eine Bestätigungs-E-Mail an
+                    {t('register.finale_email_sent_to')}
                   </p>
                   <p style={{ marginTop: 6, fontSize: 14, fontWeight: 600, color: 'hsl(var(--primary))', letterSpacing: '-0.01em' }}>
                     {formData.email}
                   </p>
                   <p style={{ marginTop: 8, color: 'rgba(255,255,255,0.38)', fontSize: 14, lineHeight: 1.65 }}>
-                    gesendet. Klick auf den Link darin – danach kannst du dich einloggen und loslegen.
+                    {t('register.finale_email_instructions')}
                   </p>
                 </div>
 
@@ -698,24 +707,23 @@ export default function RegisterPage() {
                   border: '1px solid rgba(255,255,255,0.07)',
                   borderRadius: 14, padding: '16px 18px', textAlign: 'left',
                 }}>
-                  {[
-                    { n: '1', text: 'E-Mail öffnen & Link klicken' },
-                    { n: '2', text: 'Du landest automatisch in RigFlow' },
-                    { n: '3', text: 'Loslegen!' },
-                  ].map(({ n, text }) => (
-                    <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: n !== '3' ? 12 : 0 }}>
-                      <div style={{
-                        width: 22, height: 22, borderRadius: 99,
-                        background: 'hsl(var(--primary)/0.15)',
-                        border: '1px solid hsl(var(--primary)/0.3)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 11, fontWeight: 700, color: 'hsl(var(--primary))', flexShrink: 0,
-                      }}>
-                        {n}
+                  {confirmationSteps.map((text, idx) => {
+                    const n = String(idx + 1);
+                    return (
+                      <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: idx < confirmationSteps.length - 1 ? 12 : 0 }}>
+                        <div style={{
+                          width: 22, height: 22, borderRadius: 99,
+                          background: 'hsl(var(--primary)/0.15)',
+                          border: '1px solid hsl(var(--primary)/0.3)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 11, fontWeight: 700, color: 'hsl(var(--primary))', flexShrink: 0,
+                        }}>
+                          {n}
+                        </div>
+                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{text}</span>
                       </div>
-                      <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{text}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <button
@@ -729,7 +737,11 @@ export default function RegisterPage() {
                     transition: 'color 0.3s',
                   }}
                 >
-                  {resendLoading ? 'Wird gesendet…' : resendDone ? '✓ E-Mail erneut gesendet' : 'Keine E-Mail erhalten? Erneut senden'}
+                  {resendLoading
+                    ? t('register.finale_resend_loading')
+                    : resendDone
+                    ? t('register.finale_resend_done')
+                    : t('register.finale_resend_prompt')}
                 </button>
 
                 <button
@@ -741,7 +753,7 @@ export default function RegisterPage() {
                     color: 'hsl(var(--primary))', cursor: 'pointer',
                   }}
                 >
-                  Zum Login
+                  {t('register.go_to_login')}
                 </button>
               </motion.div>
             )}

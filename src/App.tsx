@@ -23,6 +23,9 @@ import BackButtonHandler from "./components/BackButtonHandler";
 import { App as CapApp } from '@capacitor/app';
 import { hasAnalyticsConsent } from "@/lib/consentUtils";
 import ConsentScreen from "./pages/ConsentScreen";
+import { useLanguageDetection } from './hooks/useLanguageDetection';
+import { supabase } from '@/integrations/supabase/client';
+import { ONBOARDING_DONE_KEY } from '@/lib/constants';
 
 const Landing = lazy(() => import("./pages/Landing"));
 const InstallPrompt = lazy(() => import("./pages/InstallPrompt"));
@@ -84,8 +87,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (loading) return;
+
+    if (!user) {
       navigate("/landing", { replace: true });
+      return;
+    }
+
+    if (isNative() && !localStorage.getItem(ONBOARDING_DONE_KEY)) {
+      navigate('/native-onboarding', { replace: true });
+      return;
     }
   }, [user, loading, navigate]);
 
@@ -201,20 +212,50 @@ function AppRoutes() {
 }
 
 function AppInitializer() {
-  // ── Native: App Links ──────────────────────────────────────────────────
+  useLanguageDetection();
+
   useEffect(() => {
     if (!isNative()) return;
 
-    let listener: any;
-    CapApp.addListener('appUrlOpen', ({ url }) => {
-      const urlObj = new URL(url);
-      if (urlObj.pathname.includes('/auth/callback')) {
-        window.location.href = '/auth/callback' + (urlObj.search || urlObj.hash);
-      }
-    }).then(l => { listener = l; });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        // Prüfen ob das ein anderer User als beim letzten Mal ist
+        const storedUserId = localStorage.getItem('rigflow_last_user_id');
+        const currentUserId = session.user.id;
 
-    return () => { listener?.remove(); };
+        if (storedUserId !== currentUserId) {
+          // Anderer User oder Neuinstallation → Onboarding-Key zurücksetzen
+          localStorage.removeItem(ONBOARDING_DONE_KEY);
+          localStorage.setItem('rigflow_last_user_id', currentUserId);
+        }
+      }
+    });
+
+    // ── Cold Start: App wurde über Email-Link geöffnet ─────────────────
+    const handleAuthUrl = async (url: string) => {
+      if (!url.includes('/auth/callback')) return;
+      const code = new URL(url).searchParams.get('code');
+      if (!code) return;
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error) logger.error('AuthUrl', error.message);
+      // Navigation übernimmt der onAuthStateChange-Listener oben
+    };
+
+    CapApp.getLaunchUrl()
+      .then(({ url }) => { if (url) handleAuthUrl(url); })
+      .catch(() => {});
+
+    // ── Warm Start: App lief bereits ──────────────────────────────────
+    let urlListener: any;
+    CapApp.addListener('appUrlOpen', ({ url }) => handleAuthUrl(url))
+      .then(l => { urlListener = l; });
+
+    return () => {
+      subscription.unsubscribe();
+      urlListener?.remove();
+    };
   }, []);
+
 
   // ── Web/PWA: Service Worker + Push ────────────────────────────────────
   useEffect(() => {
@@ -303,6 +344,26 @@ function AppInitializer() {
   return null;
 }
 
+function NativeOnboardingGate() {
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    logger.info('OnboardingGate', `loading=${loading}, user=${user?.email ?? 'null'}, isNative=${isNative()}`);
+    
+    if (loading || !user) return;
+
+    const hasOnboarded = localStorage.getItem(ONBOARDING_DONE_KEY);
+    logger.info('OnboardingGate', `ONBOARDING_DONE_KEY="${hasOnboarded}", pathname="${window.location.pathname}"`);
+
+    if (!hasOnboarded && window.location.pathname !== '/native-onboarding') {
+      logger.info('OnboardingGate', 'Navigiere zu /native-onboarding');
+      window.location.replace('/native-onboarding');
+    }
+  }, [user, loading]);
+
+  return null;
+}
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -313,6 +374,7 @@ const App = () => (
               <Toaster />
               <Sonner />
               <BrowserRouter>
+                <NativeOnboardingGate />
                 <BackButtonHandler />
                 <AppInitializer />
                 <OverdueReminderInit />

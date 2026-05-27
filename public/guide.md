@@ -1,198 +1,199 @@
-# Rigflow – Anleitung & Quick Start Guide
+# Rigflow – Guide & Quick Start
 
-## Willkommen
+## Welcome
 
-Rigflow ist eine Inventar-App für Veranstaltungstechniker. Sie hilft dir, dein Equipment zu verwalten, Ausleihen zu tracken, DMX-Adressen zu planen und Events vorzubereiten. Diese Anleitung erklärt alle Funktionen Schritt für Schritt.
-
----
-
-## Aufbau der App
-
-Die App besteht aus folgenden Hauptbereichen, erreichbar über die Navigation:
-
-- **Dashboard** – Übersicht mit Statistiken, aktiven Ausleihen und letzten Aktivitäten
-- **Inventar** – Alle Geräte verwalten, filtern, exportieren
-- **Verleih** – Ausleihen erstellen, verwalten und Rückgaben tracken
-- **Projekte** – Packlisten für bestimmte Veranstaltungen
-- **DMX-Patchplan** – DMX-Adressen planen und Konflikte erkennen
-- **Einstellungen** – Konto verwalten, Passwort ändern, Design ändern
+Rigflow is an inventory app for event technicians. It helps you manage your equipment, track rentals, plan DMX addresses, and prepare events. This guide explains all features step by step.
 
 ---
 
-## Inventar
+## App structure
 
-### Gerät hinzufügen
-1. Öffne die Seite **Inventar**
-2. Klicke auf **+ Neues Item**
-3. Fülle die Felder aus: Name, Kategorie, Menge, Standort, Zustand, Stückpreis, Notizen
-4. Optional: DMX-Daten (Universe, Startadresse, Kanalanzahl) angeben
-5. Klicke auf **Hinzufügen**
+The app is divided into the following main sections, accessible via navigation:
 
-### Gerät bearbeiten & löschen
-- Klicke auf **Edit** beim jeweiligen Gerät, um die Daten zu ändern
-- Klicke auf **Löschen**, um ein Gerät unwiderruflich zu entfernen
-
-### Filtern & Suchen
-- Nutze die **Suchleiste** oben, um nach Namen zu suchen
-- Filtere nach **Kategorie**, **Zustand** oder **Standort**
-- Alle Filter lassen sich kombinieren
-
-### Batch-Operationen
-- Aktiviere den **Auswahl-Modus** über das Auswahl-Icon
-- Wähle mehrere Geräte aus
-- Führe Batch-Aktionen wie Löschen durch
-
-### Export & Druck
-- Klicke auf den **Export**-Button in der Befehlsleiste
-- Wähle zwischen **CSV** und **PDF**
-- Nutze **Drucken** für eine druckoptimierte Ansicht
-
-### Geräte-Detailseite
-- Klicke auf ein Gerät, um die Detailseite zu öffnen
-- Dort siehst du alle Infos, den QR-Code, Zubehör und die Verleih-Historie
+- **Dashboard** – Overview with statistics, active rentals, and recent activity  
+- **Inventory** – Manage, filter, and export all equipment  
+- **Rentals** – Create, manage, and track returns  
+- **Projects** – Packing lists for specific events  
+- **DMX Patch Plan** – Plan DMX addresses and detect conflicts  
+- **Settings** – Manage account, change password, adjust design  
 
 ---
 
-## QR-Codes
+## Inventory
 
-Jedes Gerät bekommt automatisch einen QR-Code, der direkt zur Detailseite führt.
+### Add a device
+1. Open **Inventory**
+2. Click **+ New Item**
+3. Fill in: name, category, quantity, location, condition, unit price, notes  
+4. Optional: DMX data (universe, start address, channel count)  
+5. Click **Add**
 
-### QR-Code anzeigen & nutzen
-1. Klicke auf **QR** beim jeweiligen Gerät
-2. **Herunterladen** – Speichert den QR-Code als Bild
-3. **Drucken** – Druckt den QR-Code direkt aus (z.B. für Etiketten)
+### Edit & delete devices
+- Click **Edit** to modify a device  
+- Click **Delete** to permanently remove it  
 
-### QR-Code scannen
-1. Klicke auf **QR scannen** in der Inventar-Befehlsleiste
-2. Erlaube den Kamerazugriff
-3. Halte den QR-Code vor die Kamera
-4. Du wirst automatisch zur Detailseite des Geräts weitergeleitet
+### Filter & search
+- Use the **search bar** to find items by name  
+- Filter by **category**, **condition**, or **location**  
+- Filters can be combined  
 
-> **Tipp:** Das Scannen funktioniert auch offline!
+### Batch actions
+- Enable **selection mode** via the select icon  
+- Select multiple items  
+- Perform batch actions such as delete  
 
----
+### Export & print
+- Click the **Export** button  
+- Choose **CSV** or **PDF**  
+- Use **Print** for a print-optimized view  
 
-## Verleih
-
-### Neue Ausleihe erstellen
-1. Öffne die Seite **Verleih**
-2. Klicke auf **+ Neue Ausleihe**
-3. Wähle das Gerät aus, gib den Namen des Ausleihenden und das Fälligkeitsdatum an
-4. Klicke auf **Erstellen**
-
-### Rückgabe verbuchen
-- Klicke bei einer aktiven Ausleihe auf den **Rückgabe**-Button
-- Die Ausleihe wird als zurückgegeben markiert und in der Historie gespeichert
-
-### Überfällige Ausleihen
-- Überfällige Rückgaben werden rot hervorgehoben
-- Du erhältst automatische Erinnerungen bei überfälligen Ausleihen
-
-### Verleih-Historie
-- Im Tab **Historie** siehst du alle abgeschlossenen Ausleihen
-- Auf der Geräte-Detailseite wird ebenfalls die Verleih-Historie des jeweiligen Geräts angezeigt
+### Device detail page
+- Click any item to open its detail view  
+- See full info, QR code, accessories, and rental history  
 
 ---
 
-## Projekte
+## QR codes
 
-### Neues Projekt erstellen
-1. Öffne die Seite **Projekte**
-2. Klicke auf **+ Neues Projekt**
-3. Gib einen Namen für das Projekt ein (z.B. Veranstaltungsname oder Event-Datum)
-4. Optional: Beschreibung, Datum und Ort hinzufügen
-5. Klicke auf **Erstellen**
+Each device automatically gets a QR code linking directly to its detail page.
 
-### Packliste zusammenstellen
-1. Öffne ein Projekt
-2. Klicke auf **+ Item hinzufügen**
-3. Wähle Geräte aus deinem Inventar aus oder füge manuelle Einträge hinzu
-4. Gib die benötigte Menge an
-5. Speichere die Packliste
+### View & use QR codes
+1. Click **QR** on a device  
+2. **Download** – saves QR code as an image  
+3. **Print** – prints QR code directly (e.g. for labels)  
 
-### Geräte ausleihen aus einem Projekt
-1. Öffne ein Projekt und seine Packliste
-2. Klicke auf **Ausleihen** beim jeweiligen Gerät oder nutze die Batch-Ausleihe
-3. Gib den Empfänger und das Rückgabedatum an
-4. Die Geräte werden als ausgeliehen markiert
-5. Alle Ausleihen werden automatisch in der Verleihverwaltung erfasst
+### Scan QR codes
+1. Click **Scan QR** in inventory toolbar  
+2. Allow camera access  
+3. Point camera at QR code  
+4. You are redirected to the device page  
 
-### Projekt-Status verwalten
-- Nutze **Bearbeiten**, um Projekt-Details zu ändern
-- Markiere das Projekt als **Abgeschlossen**, wenn der Event vorbei ist
-- **Archivieren**, um alte Projekte aus der Hauptliste zu entfernen (findbar im Archiv)
-- Klicke auf **Löschen**, um ein Projekt endgültig zu entfernen
-
-### Export & Druck
-- Nutze **Exportieren**, um die Packliste als **PDF** oder **CSV** herunterzuladen
-- Perfekt für den Druck vor der Veranstaltung oder zum Verteilen an Helfer
-
-### Tipps
-> **Tipp:** Erstelle Standard-Packlisten als Pakete (z.B. „Standard Mobile PA"). Füge diese dann in deine Projekte ein, ohne alle Teile manuell hinzuzufügen.
-
-> **Hinweis:** Alle Ausleihen aus einem Projekt werden mit dem Projekt verlinkt. So kannst du später nachverfolgen, welche Geräte bei welchem Event waren.
+> **Tip:** Scanning works offline as well.
 
 ---
 
-## DMX-Patchplan
+## Rentals
 
-### Übersicht
-Der DMX-Patchplan zeigt alle Geräte mit DMX-Konfiguration und ihre Adressbelegung.
+### Create a new rental
+1. Open **Rentals**  
+2. Click **+ New Rental**  
+3. Select device, borrower name, and due date  
+4. Click **Create**
 
-### Ansichten
-- **Timeline** – Grafische Darstellung der Adressbelegung pro Universe
-- **Tabelle** – Tabellarische Übersicht aller Zuweisungen
+### Register return
+- Click **Return** on an active rental  
+- Rental is marked as returned and stored in history  
 
-### Konflikte
-- Überlappende DMX-Adressen werden automatisch erkannt
-- Konflikte werden als Warnung mit den betroffenen Geräten angezeigt
+### Overdue rentals
+- Overdue items are highlighted in red  
+- You receive automatic reminders  
 
-### DMX-Daten bearbeiten
-- DMX-Adressen (Universe, Startadresse, Kanäle) werden beim Gerät im Inventar konfiguriert
-- Für mehrere Instanzen eines Geräts können separate DMX-Adressen vergeben werden
+### Rental history
+- The **History** tab shows all completed rentals  
+- Each device page also shows its own rental history  
+
+---
+
+## Projects
+
+### Create a project
+1. Open **Projects**  
+2. Click **+ New Project**  
+3. Enter name (event name or date)  
+4. Optional: description, date, location  
+5. Click **Create**
+
+### Build packing list
+1. Open a project  
+2. Click **+ Add Item**  
+3. Select devices or add manual entries  
+4. Set required quantity  
+5. Save list  
+
+### Renting from a project
+1. Open project and packing list  
+2. Click **Rent** or use batch rental  
+3. Enter recipient and return date  
+4. Items are marked as rented  
+5. Automatically added to rental system  
+
+### Project status
+- **Edit** project details  
+- **Complete** when event is finished  
+- **Archive** old projects  
+- **Delete** permanently removes project  
+
+### Export & print
+- Export packing list as **PDF** or **CSV**  
+- Ideal for printing or sharing with crew  
+
+### Tips
+> **Tip:** Create reusable standard kits (e.g. “Basic PA Set”) and reuse them in projects.
+
+> **Note:** All rentals from a project are linked for later tracking.
+
+---
+
+## DMX Patch plan
+
+### Overview
+Displays all devices with DMX configuration and address usage.
+
+### Views
+- **Timeline** – visual representation per universe  
+- **Table** – structured list of all assignments  
+
+### Conflicts
+- Overlapping DMX addresses are automatically detected  
+- Conflicts are shown as warnings  
+
+### Editing DMX data
+- Configured inside each device in inventory  
+- Multiple instances can have separate addresses  
 
 ### Export
-- **CSV** und **PDF** Export über das Export-Menü
-- **Drucken** für eine druckoptimierte Ansicht mit Universe-Gruppierung
+- Export via **CSV** or **PDF**  
+- Print-friendly universe grouping available  
 
 ---
 
 ## Dashboard
 
-Das Dashboard zeigt dir auf einen Blick:
-- **Gesamt-Artikel** und **Gesamtwert** deines Inventars
-- **Aktive Ausleihen** mit Fälligkeitsdaten
-- **Überfällige Rückgaben** als Warnung
-- **Letzte Aktivitäten** aus der Verleih-Historie
-- **Kategorieverteilung** als Diagramm
+The dashboard gives you an overview of:
+- Total items and total inventory value  
+- Active rentals with due dates  
+- Overdue alerts  
+- Recent activity log  
+- Category distribution chart  
 
 ---
 
-## Einstellungen
+## Settings
 
-### Konto
-- **Anzeigename** ändern
-- **Passwort** zurücksetzen (per E-Mail)
-- **Account löschen** (unwiderruflich, erfordert E-Mail-Bestätigung)
-- **Abmelden**
-
----
-
-## PWA – Als App installieren
-
-Rigflow kann als App auf deinem Gerät installiert werden:
-1. Öffne die App im Browser
-2. Folge den Anweisungen auf der **Installieren**-Seite
-3. Die App erscheint auf deinem Homescreen und funktioniert wie eine native App
-
-> **Tipp:** Die App funktioniert auch bei schlechter Internetverbindung. Ein Offline-Indikator zeigt dir an, wenn du offline bist.
+### Account
+- Change display name  
+- Reset password via email  
+- Delete account (irreversible, email confirmation required)  
+- Log out  
 
 ---
 
-## Tipps
+## PWA – Install as app
 
-- **Tastenkombinationen:** Nutze die Suchleiste für schnellen Zugriff auf Geräte
-- **QR-Codes drucken:** Drucke QR-Codes auf Etiketten und klebe sie direkt auf deine Geräte
-- **Regelmäßige Wartung:** Nutze Wartungs-Checklisten, um den Zustand deiner Geräte im Blick zu behalten
-- **Event-Vorbereitung:** Erstelle Event-Sets mit Packlisten, bevor du zum Gig fährst
-- **Verleih tracken:** Nutze die Verleihverwaltung, um nie wieder vergessene Rückgaben zu haben
+Rigflow can be installed as a native-like app:
+
+1. Open the app in your browser  
+2. Follow the **Install** prompt  
+3. The app appears on your home screen  
+
+> **Tip:** Works even with poor internet connection. Offline status is shown in-app.
+
+---
+
+## Tips
+
+- Use search for fast navigation  
+- Print QR codes and label your gear  
+- Do regular maintenance checks  
+- Prepare event kits in advance  
+- Track rentals consistently to avoid missing returns  

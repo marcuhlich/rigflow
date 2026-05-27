@@ -1,5 +1,7 @@
 // components/SoftConfirm.tsx
 import { useState, ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+
 import {
   Dialog,
   DialogTrigger,
@@ -8,15 +10,18 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+
 import { Button } from "@/components/ui/button";
 
 interface SoftConfirmProps {
-  trigger: ReactNode;           // Button oder Icon, das den Dialog öffnet
-  title: string;                // Titel des Dialogs
-  description: string;          // Beschreibungstext
-  onConfirm: () => void;        // Callback, wenn der Nutzer bestätigt
-  confirmText?: string;         // Text des Bestätigen-Buttons
-  cancelText?: string;          // Text des Abbrechen-Buttons
+  trigger: ReactNode;
+  title: string;
+  description: string;
+  onConfirm: () => void;
+
+  confirmText?: string;
+  cancelText?: string;
+
   variant?: "default" | "destructive";
 }
 
@@ -25,24 +30,37 @@ export function SoftConfirm({
   title,
   description,
   onConfirm,
-  confirmText = "Bestätigen",
-  cancelText = "Abbrechen",
+  confirmText,
+  cancelText,
   variant = "destructive",
 }: SoftConfirmProps) {
+  const { t } = useTranslation();
+
   const [open, setOpen] = useState(false);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogTrigger asChild>
+        {trigger}
+      </DialogTrigger>
+
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+
+          <DialogDescription>
+            {description}
+          </DialogDescription>
         </DialogHeader>
+
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            {cancelText}
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+          >
+            {cancelText ?? t("common.cancel")}
           </Button>
+
           <Button
             variant={variant}
             onClick={() => {
@@ -50,7 +68,7 @@ export function SoftConfirm({
               setOpen(false);
             }}
           >
-            {confirmText}
+            {confirmText ?? t("common.confirm")}
           </Button>
         </div>
       </DialogContent>

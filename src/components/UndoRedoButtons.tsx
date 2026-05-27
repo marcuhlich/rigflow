@@ -1,4 +1,5 @@
 import { Undo2, Redo2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -11,7 +12,15 @@ interface UndoRedoButtonsProps {
   isMobile?: boolean;
 }
 
-export function UndoRedoButtons({ canUndo, canRedo, onUndo, onRedo, isMobile }: UndoRedoButtonsProps) {
+export function UndoRedoButtons({
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
+  isMobile,
+}: UndoRedoButtonsProps) {
+  const { t } = useTranslation();
+
   if (isMobile) {
     return (
       <div className="flex items-center gap-0.5">
@@ -24,10 +33,11 @@ export function UndoRedoButtons({ canUndo, canRedo, onUndo, onRedo, isMobile }: 
               ? "text-foreground active:scale-90 hover:bg-muted/50"
               : "text-muted-foreground/30 pointer-events-none"
           )}
-          aria-label="Rückgängig"
+          aria-label={t("undo_redo.undo")}
         >
           <Undo2 className="h-[18px] w-[18px]" strokeWidth={2} />
         </button>
+
         <button
           onClick={onRedo}
           disabled={!canRedo}
@@ -37,7 +47,7 @@ export function UndoRedoButtons({ canUndo, canRedo, onUndo, onRedo, isMobile }: 
               ? "text-foreground active:scale-90 hover:bg-muted/50"
               : "text-muted-foreground/30 pointer-events-none"
           )}
-          aria-label="Wiederherstellen"
+          aria-label={t("undo_redo.redo")}
         >
           <Redo2 className="h-[18px] w-[18px]" strokeWidth={2} />
         </button>
@@ -55,13 +65,17 @@ export function UndoRedoButtons({ canUndo, canRedo, onUndo, onRedo, isMobile }: 
             onClick={onUndo}
             disabled={!canUndo}
             className="h-9 w-9"
-            aria-label="Rückgängig"
+            aria-label={t("undo_redo.undo")}
           >
             <Undo2 className="h-4 w-4" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Rückgängig (Ctrl+Z)</TooltipContent>
+
+        <TooltipContent>
+          {t("undo_redo.undo_tooltip")}
+        </TooltipContent>
       </Tooltip>
+
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
@@ -70,12 +84,15 @@ export function UndoRedoButtons({ canUndo, canRedo, onUndo, onRedo, isMobile }: 
             onClick={onRedo}
             disabled={!canRedo}
             className="h-9 w-9"
-            aria-label="Wiederherstellen"
+            aria-label={t("undo_redo.redo")}
           >
             <Redo2 className="h-4 w-4" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Wiederherstellen (Ctrl+Y)</TooltipContent>
+
+        <TooltipContent>
+          {t("undo_redo.redo_tooltip")}
+        </TooltipContent>
       </Tooltip>
     </div>
   );

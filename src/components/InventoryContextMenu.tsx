@@ -1,175 +1,121 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useDeviceDetection } from "@/hooks/useDeviceDetection";
-import { useToast } from "@/hooks/use-toast";
-import { InventoryItem, ItemCondition, CONDITION_LABELS } from "@/types/inventory";
-import { QRCodeDisplay } from "@/components/QRCodeDisplay";
-import { useProjects } from "@/hooks/useProjects";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { useDeviceDetection } from '@/hooks/useDeviceDetection';
+import { useToast } from '@/hooks/use-toast';
+import { InventoryItem, ItemCondition } from '@/types/inventory';
+import { getConditionLabel } from '@/i18n/helpers';
+import { QRCodeDisplay } from '@/components/QRCodeDisplay';
+import { useProjects } from '@/hooks/useProjects';
+import { supabase } from '@/integrations/supabase/client';
 import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuLabel,
-  ContextMenuRadioGroup,
-  ContextMenuRadioItem,
-  ContextMenuSeparator,
-  ContextMenuSub,
-  ContextMenuSubContent,
-  ContextMenuSubTrigger,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
+  ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuLabel,
+  ContextMenuRadioGroup, ContextMenuRadioItem, ContextMenuSeparator,
+  ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger,
+} from '@/components/ui/context-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Activity,
-  FolderKanban,
-  Copy,
-  Filter,
-  History,
-  Minus,
-  Plus,
-  QrCode,
-  ShieldCheck,
-} from "lucide-react";
+  Activity, FolderKanban, Copy, Filter, History,
+  Minus, Plus, QrCode, ShieldCheck,
+} from 'lucide-react';
 
-// ─── Props ──────────────────────────────────────────────────────────────────
-
+// ─── Props ───────────────────────────────────────────────────────────────────
 interface InventoryContextMenuProps {
   item: InventoryItem;
   children: React.ReactNode;
   onUpdateItem: (
     id: string,
-    updates: Partial<Omit<InventoryItem, "id" | "user_id" | "created_at" | "updated_at">>
+    updates: Partial<Omit<InventoryItem, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
   ) => Promise<void>;
   onAddItem: (
-    item: Omit<InventoryItem, "id" | "user_id" | "created_at" | "updated_at">
+    item: Omit<InventoryItem, 'id' | 'user_id' | 'created_at' | 'updated_at'>
   ) => Promise<void>;
   onFilterCategory: (category: string) => void;
 }
 
-// "verliehen" is intentionally excluded – managed via the Lending flow.
-const CONDITION_OPTIONS: ItemCondition[] = ["verfügbar", "in-einsatz", "defekt"];
+const CONDITION_OPTIONS: ItemCondition[] = ['verfügbar', 'in-einsatz', 'defekt'];
 
-// ─── Shared class strings ────────────────────────────────────────────────────
+// ─── Shared class strings ─────────────────────────────────────────────────────
+const CONTENT_CLS = 'w-60 border border-border bg-popover text-popover-foreground shadow-2xl';
+const SUB_CONTENT_CLS = 'border border-border bg-popover text-popover-foreground shadow-xl';
+const ITEM_CLS = 'gap-2 cursor-pointer focus:bg-muted focus:text-foreground data-[disabled]:opacity-40';
+const SUBTRIGGER_CLS = 'gap-2 cursor-pointer focus:bg-muted focus:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground';
+const SEPARATOR_CLS = 'bg-border';
+const subContentProps = { avoidCollisions: true, collisionPadding: 12, sideOffset: -2 } as const;
 
-const CONTENT_CLS =
-  "w-60 border border-border bg-popover text-popover-foreground shadow-2xl";
-
-const SUB_CONTENT_CLS =
-  "border border-border bg-popover text-popover-foreground shadow-xl";
-
-const ITEM_CLS =
-  "gap-2 cursor-pointer focus:bg-muted focus:text-foreground data-[disabled]:opacity-40";
-
-const SUBTRIGGER_CLS =
-  "gap-2 cursor-pointer focus:bg-muted focus:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground";
-
-const SEPARATOR_CLS = "bg-border";
-
-const subContentProps = {
-  avoidCollisions: true,
-  collisionPadding: 12,
-  sideOffset: -2,
-} as const;
-
-// ─── Quantity Popover ────────────────────────────────────────────────────────
-//
-// Rendered as a self-contained sub-component so it can manage its own draft
-// state without polluting the parent. The popover opens via the pattern:
-//
-//   <ContextMenuItem onSelect={(e) => e.preventDefault()}>
-//
-// Calling e.preventDefault() tells Radix NOT to close the ContextMenu when
-// this item is "selected", which lets the Popover open in its place.
-// When the popover closes (onOpenChange → false) the draft value is committed.
-
+// ─── Quantity Popover ─────────────────────────────────────────────────────────
 interface QtyPopoverProps {
   item: InventoryItem;
   onCommit: (newQty: number) => Promise<void>;
 }
 
 function QtyPopover({ item, onCommit }: QtyPopoverProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(String(item.quantity));
-
   const parsedDraft = Math.max(0, parseInt(draft, 10) || 0);
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
-    if (next) {
-      setDraft(String(item.quantity));
-    }
+    if (next) setDraft(String(item.quantity));
   };
 
   const handleConfirm = async () => {
-    if (parsedDraft !== item.quantity) {
-      await onCommit(parsedDraft);
-    }
+    if (parsedDraft !== item.quantity) await onCommit(parsedDraft);
     setOpen(false);
   };
 
   const adjustDraft = (delta: number) => setDraft(String(parsedDraft + delta));
 
   const handleInputKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") handleConfirm();
+    if (e.key === 'Enter') handleConfirm();
   };
 
   return (
     <ContextMenuSub>
       <ContextMenuSubTrigger className={SUBTRIGGER_CLS}>
         <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
-        Menge anpassen
+        {t('inventory_context.adjust_quantity')}
         <span className="ml-auto text-xs text-muted-foreground">
-          {item.quantity} Stk.
+          {t('inventory_context.quantity_unit', { count: item.quantity })}
         </span>
       </ContextMenuSubTrigger>
-
       <ContextMenuSubContent className={`${SUB_CONTENT_CLS} w-52`} {...subContentProps}>
-        {/* Header */}
         <div className="px-2 py-1 text-sm font-semibold border-b border-border">
-          Menge anpassen
+          {t('inventory_context.adjust_quantity')}
         </div>
-
-        {/* Stepper */}
         <div className="flex items-center gap-1.5 px-2 py-2">
           <Button variant="outline" size="icon" onClick={() => adjustDraft(-1)}><Minus /></Button>
           <Input
             type="number"
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={e => setDraft(e.target.value)}
             onKeyDown={handleInputKey}
             className="h-8 text-center w-16"
           />
           <Button variant="outline" size="icon" onClick={() => adjustDraft(1)}><Plus /></Button>
         </div>
-
-        {/* Quick buttons */}
         <div className="mt-0.5 flex gap-1.5 px-2">
-          {[-10, -5, 5, 10].map((delta) => (
+          {[-10, -5, 5, 10].map(delta => (
             <Button key={delta} variant="ghost" size="sm" className="flex-1 text-xs"
               onClick={() => adjustDraft(delta)}>
               {delta > 0 ? `+${delta}` : delta}
             </Button>
           ))}
         </div>
-
-        {/* Confirm */}
         <div className="mt-2 px-2 py-2">
-          <Button className="w-full" onClick={handleConfirm}>Bestätigen</Button>
+          <Button className="w-full" onClick={handleConfirm}>
+            {t('common.confirm')}
+          </Button>
         </div>
       </ContextMenuSubContent>
     </ContextMenuSub>
   );
 }
 
-// ─── Component ──────────────────────────────────────────────────────────────
-
+// ─── Component ────────────────────────────────────────────────────────────────
 export function InventoryContextMenu({
   item,
   children,
@@ -177,6 +123,7 @@ export function InventoryContextMenu({
   onAddItem,
   onFilterCategory,
 }: InventoryContextMenuProps) {
+  const { t } = useTranslation();
   const { isMobile } = useDeviceDetection();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -185,14 +132,12 @@ export function InventoryContextMenu({
 
   if (isMobile) return <>{children}</>;
 
-  // Nur aktive (nicht archivierte) Projekte, max. 8
   const activeProjects = projects
     .filter(p => p.status !== ('archived' as any) && p.status !== 'draft')
     .slice(0, 8);
 
   const handleAddToProject = async (projectId: string, projectName: string) => {
     try {
-      // Prüfen ob Item bereits im Projekt
       const { data: existing } = await supabase
         .from('project_items')
         .select('id')
@@ -202,8 +147,11 @@ export function InventoryContextMenu({
 
       if (existing) {
         toast({
-          title: 'Bereits im Projekt',
-          description: `„${item.name}" ist schon in „${projectName}" enthalten.`,
+          title: t('inventory_context.already_in_project'),
+          description: t('inventory_context.already_in_project_desc', {
+            item: item.name,
+            project: projectName,
+          }),
           variant: 'destructive',
         });
         return;
@@ -218,140 +166,116 @@ export function InventoryContextMenu({
       } as any);
 
       toast({
-        title: 'Zum Projekt hinzugefügt',
-        description: `„${item.name}" wurde zu „${projectName}" hinzugefügt.`,
+        title: t('inventory_context.added_to_project'),
+        description: t('inventory_context.added_to_project_desc', {
+          item: item.name,
+          project: projectName,
+        }),
       });
     } catch {
       toast({
-        title: 'Fehler',
-        description: 'Item konnte nicht hinzugefügt werden.',
+        title: t('common.error'),
+        description: t('inventory_context.add_to_project_error'),
         variant: 'destructive',
       });
     }
   };
 
-  // ─── Handlers ────────────────────────────────────────────────────────────
-
   const handleConditionChange = async (condition: ItemCondition) => {
     try {
       await onUpdateItem(item.id, { condition });
       toast({
-        title: "Zustand geändert",
-        description: `„${item.name}" → ${CONDITION_LABELS[condition]}`,
+        title: t('inventory_context.condition_changed'),
+        description: `„${item.name}" → ${getConditionLabel(condition, t)}`,
       });
-    } catch {
-      /* toast already shown by useInventory */
-    }
+    } catch { /* toast already shown by useInventory */ }
   };
 
   const handleQuantityCommit = async (newQty: number) => {
     try {
       await onUpdateItem(item.id, { quantity: newQty });
       toast({
-        title: "Menge angepasst",
+        title: t('inventory_context.quantity_changed'),
         description: `„${item.name}": ${item.quantity} → ${newQty}`,
       });
-    } catch {
-      /* handled upstream */
-    }
+    } catch { /* handled upstream */ }
   };
 
   const handleDuplicate = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, user_id, created_at, updated_at, ...rest } = item;
     try {
-      await onAddItem({ ...rest, name: `${item.name} (Kopie)` });
+      await onAddItem({ ...rest, name: t('inventory_context.copy_name', { name: item.name }) });
       toast({
-        title: "Dupliziert",
-        description: `„${item.name} (Kopie)" wurde erstellt.`,
+        title: t('inventory_context.duplicated'),
+        description: t('inventory_context.duplicated_desc', { name: item.name }),
       });
-    } catch {
-      /* handled upstream */
-    }
+    } catch { /* handled upstream */ }
   };
 
   const handleShowHistory = () => navigate(`/inventory/${item.id}?tab=wartung`);
 
-  // ─── Render ──────────────────────────────────────────────────────────────
-
   return (
     <>
       <ContextMenu>
-        <ContextMenuTrigger asChild>
-          {children}
-        </ContextMenuTrigger>
-
+        <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
         <ContextMenuContent
           className={CONTENT_CLS}
           style={{ borderRadius: 10 }}
           collisionPadding={12}
         >
-          {/* Item name – non-interactive header */}
           <ContextMenuLabel className="truncate px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-primary/70">
             {item.name}
           </ContextMenuLabel>
-
           <ContextMenuSeparator className={SEPARATOR_CLS} />
 
-          {/* ── 1. Zustand ────────────────────────────────────────────── */}
+          {/* ── 1. Zustand ─────────────────────────────────────────────── */}
           <ContextMenuSub>
             <ContextMenuSubTrigger className={SUBTRIGGER_CLS}>
               <Activity className="h-4 w-4 text-primary shrink-0" />
-              Zustand ändern
+              {t('inventory_context.change_condition')}
               <span className="ml-auto text-xs text-muted-foreground">
-                {CONDITION_LABELS[item.condition]}
+                {getConditionLabel(item.condition, t)}
               </span>
             </ContextMenuSubTrigger>
-            <ContextMenuSubContent
-              className={`${SUB_CONTENT_CLS} w-44`}
-              {...subContentProps}
-            >
+            <ContextMenuSubContent className={`${SUB_CONTENT_CLS} w-44`} {...subContentProps}>
               <ContextMenuRadioGroup
                 value={item.condition}
-                onValueChange={(v) => handleConditionChange(v as ItemCondition)}
+                onValueChange={v => handleConditionChange(v as ItemCondition)}
               >
-                {CONDITION_OPTIONS.map((val) => (
-                  <ContextMenuRadioItem
-                    key={val}
-                    value={val}
-                    className={ITEM_CLS}
-                  >
-                    {CONDITION_LABELS[val]}
+                {CONDITION_OPTIONS.map(val => (
+                  <ContextMenuRadioItem key={val} value={val} className={ITEM_CLS}>
+                    {getConditionLabel(val, t)}
                   </ContextMenuRadioItem>
                 ))}
               </ContextMenuRadioGroup>
             </ContextMenuSubContent>
           </ContextMenuSub>
-
           <ContextMenuSeparator className={SEPARATOR_CLS} />
 
-          {/* ── 2. Menge – Popover stepper ────────────────────────────── */}
+          {/* ── 2. Menge ───────────────────────────────────────────────── */}
           <QtyPopover item={item} onCommit={handleQuantityCommit} />
 
-          {/* ── 3. Duplizieren ────────────────────────────────────────── */}
+          {/* ── 3. Duplizieren ─────────────────────────────────────────── */}
           <ContextMenuItem className={ITEM_CLS} onSelect={handleDuplicate}>
             <Copy className="h-4 w-4 text-primary shrink-0" />
-            Duplizieren
+            {t('inventory_context.duplicate')}
           </ContextMenuItem>
-
           <ContextMenuSeparator className={SEPARATOR_CLS} />
 
-          {/* ── 4. Zu Projekt hinzufügen ─────────────────────────────── */}
+          {/* ── 4. Zu Projekt hinzufügen ───────────────────────────────── */}
           <ContextMenuSub>
             <ContextMenuSubTrigger className={SUBTRIGGER_CLS}>
               <FolderKanban className="h-4 w-4 text-primary shrink-0" />
-              Zu Projekt hinzufügen
+              {t('inventory_context.add_to_project')}
             </ContextMenuSubTrigger>
-            <ContextMenuSubContent
-              className={`${SUB_CONTENT_CLS} w-56`}
-              {...subContentProps}
-            >
+            <ContextMenuSubContent className={`${SUB_CONTENT_CLS} w-56`} {...subContentProps}>
               {activeProjects.length === 0 ? (
                 <ContextMenuLabel className="px-3 py-2 text-xs text-muted-foreground">
-                  Keine aktiven Projekte vorhanden
+                  {t('inventory_context.no_active_projects')}
                 </ContextMenuLabel>
               ) : (
-                activeProjects.map((project) => (
+                activeProjects.map(project => (
                   <ContextMenuItem
                     key={project.id}
                     className={`truncate ${ITEM_CLS}`}
@@ -359,62 +283,50 @@ export function InventoryContextMenu({
                   >
                     <span className="truncate flex-1">{project.name}</span>
                     <span className="text-[10px] text-muted-foreground shrink-0 ml-1">
-                      {({
-                        planned: 'Geplant', packed: 'Gepackt',
-                        transit: 'Unterwegs', live: 'Live', returning: 'Rücklauf',
-                      } as Record<string, string>)[project.status] ?? ''}
+                      {t(`project_status.${project.status}`, { defaultValue: '' })}
                     </span>
                   </ContextMenuItem>
                 ))
               )}
               <ContextMenuSeparator className={SEPARATOR_CLS} />
-              <ContextMenuItem
-                className={ITEM_CLS}
-                onSelect={() => navigate('/projects')}
-              >
+              <ContextMenuItem className={ITEM_CLS} onSelect={() => navigate('/projects')}>
                 <FolderKanban className="h-4 w-4 text-primary shrink-0" />
-                Alle Projekte →
+                {t('inventory_context.all_projects')}
               </ContextMenuItem>
             </ContextMenuSubContent>
           </ContextMenuSub>
-
           <ContextMenuSeparator className={SEPARATOR_CLS} />
 
-          {/* ── 5. QR-Code ────────────────────────────────────────────── */}
-          <ContextMenuItem
-            className={ITEM_CLS}
-            onSelect={() => setQrOpen(true)}
-          >
+          {/* ── 5. QR-Code ─────────────────────────────────────────────── */}
+          <ContextMenuItem className={ITEM_CLS} onSelect={() => setQrOpen(true)}>
             <QrCode className="h-4 w-4 text-primary shrink-0" />
-            QR-Code anzeigen
+            {t('inventory_context.show_qr')}
           </ContextMenuItem>
-
           <ContextMenuSeparator className={SEPARATOR_CLS} />
 
-          {/* ── 6. Kategorie filtern ──────────────────────────────────── */}
+          {/* ── 6. Kategorie filtern ───────────────────────────────────── */}
           <ContextMenuItem
             className={ITEM_CLS}
             onSelect={() => onFilterCategory(item.category)}
             disabled={!item.category}
           >
             <Filter className="h-4 w-4 text-primary shrink-0" />
-            Kategorie filtern
+            {t('inventory_context.filter_category')}
             {item.category && (
               <span className="ml-auto max-w-[80px] truncate text-xs text-muted-foreground">
-                {item.category}
+                {t(`categories.${item.category}`, { defaultValue: item.category })}
               </span>
             )}
           </ContextMenuItem>
 
-          {/* ── 7. Verlauf anzeigen ───────────────────────────────────── */}
+          {/* ── 7. Verlauf anzeigen ────────────────────────────────────── */}
           <ContextMenuItem className={ITEM_CLS} onSelect={handleShowHistory}>
             <History className="h-4 w-4 text-primary shrink-0" />
-            Verlauf anzeigen
+            {t('inventory_context.show_history')}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
 
-      {/* QR dialog – outside ContextMenu so it survives menu close */}
       <QRCodeDisplay
         isOpen={qrOpen}
         onClose={() => setQrOpen(false)}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Sliders, LayoutGrid, List, AlertTriangle, Info,
   Download, FileText, Printer,
@@ -22,7 +23,7 @@ import { printPatchplan }         from '@/lib/printUtils';
 import { useIsMobile }            from '@/hooks/use-mobile';
 import { useToast }               from '@/hooks/use-toast';
 
-// ── Animierter Progress-Balken (identisch zu DMXPatchplan.tsx) ───────────────
+// ── Animierter Progress-Balken ───────────────────────────────────────────────
 function AnimatedBar({ value, max, className }: { value: number; max: number; className?: string }) {
   const [width, setWidth] = useState(0);
 
@@ -63,8 +64,9 @@ interface ProjectDMXTabProps {
 export function ProjectDMXTab({
   projectId, projectName, allItems, isReadonly = false,
 }: ProjectDMXTabProps) {
-  const [viewMode,      setViewMode]      = useState<'timeline' | 'table'>('timeline');
-  const [hoveredRowId,  setHoveredRowId]  = useState<string | null>(null);
+  const { t } = useTranslation();
+  const [viewMode,       setViewMode]      = useState<'timeline' | 'table'>('timeline');
+  const [hoveredRowId,   setHoveredRowId]  = useState<string | null>(null);
   const [contentVisible, setContentVisible] = useState(true);
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -89,11 +91,11 @@ export function ProjectDMXTab({
   const handleExportCSV = () => {
     const csv = exportPatchplanCSV(patchplan);
     downloadCSV(csv, `dmx-${projectName.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.csv`);
-    toast({ title: 'CSV exportiert' });
+    toast({ title: t('dmx.export_csv_success') });
   };
   const handleExportPDF = () => {
     exportPatchplanAsPDF(patchplan);
-    toast({ title: 'PDF exportiert' });
+    toast({ title: t('dmx.export_pdf_success') });
   };
   const handlePrint = () => printPatchplan(patchplan, conflicts);
 
@@ -123,15 +125,14 @@ export function ProjectDMXTab({
           <div className="p-4 rounded-full bg-muted/30 border border-border/40">
             <Sliders className="h-8 w-8 text-muted-foreground" strokeWidth={1.5} />
           </div>
-          <p className="text-sm font-medium mt-1">Keine DMX-Geräte im Projekt</p>
+          <p className="text-sm font-medium mt-1">{t('dmx.empty_title')}</p>
           <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
-            Füge Lichttechnik- oder Effektgeräte mit konfigurierter Kanal-Anzahl zum
-            Projekt hinzu. Die Start-Adresse kann hier pro Projekt frei vergeben werden.
+            {t('dmx.empty_description')}
           </p>
           {allItems.length > 0 && dmxItemCount === 0 && (
             <div className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground border border-border/50 rounded-md px-3 py-1.5">
               <Info className="h-3.5 w-3.5 shrink-0" />
-              {allItems.length} Artikel im Projekt — keiner mit DMX-Konfiguration
+              {t('dmx.empty_hint', { count: allItems.length })}
             </div>
           )}
         </CardContent>
@@ -160,18 +161,18 @@ export function ProjectDMXTab({
           {[
             <Badge key="dev" variant="outline" className="text-[11px] gap-1">
               <Sliders className="h-3 w-3" />
-              {deviceCount} Gerät{deviceCount !== 1 ? 'e' : ''}
+              {t('dmx.badge_devices', { count: deviceCount })}
             </Badge>,
             <Badge key="inst" variant="outline" className="text-[11px]">
-              {instanceCount} Instanz{instanceCount !== 1 ? 'en' : ''}
+              {t('dmx.badge_instances', { count: instanceCount })}
             </Badge>,
             <Badge key="uni" variant="outline" className="text-[11px]">
-              {universeCount} Universe{universeCount !== 1 ? 'n' : ''}
+              {t('dmx.badge_universes', { count: universeCount })}
             </Badge>,
             conflicts.length > 0 && (
               <Badge key="conf" variant="destructive" className="text-[11px] gap-1">
                 <AlertTriangle className="h-3 w-3" />
-                {conflicts.length} Konflikt{conflicts.length !== 1 ? 'e' : ''}
+                {t('dmx.badge_conflicts', { count: conflicts.length })}
               </Badge>
             ),
           ]}
@@ -191,7 +192,7 @@ export function ProjectDMXTab({
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:bg-muted/50'
                 )}
-                title={mode === 'timeline' ? 'Timeline-Ansicht' : 'Tabellenansicht'}
+                title={mode === 'timeline' ? t('dmx.view_timeline') : t('dmx.view_table')}
               >
                 {mode === 'timeline'
                   ? <LayoutGrid className="h-4 w-4" />
@@ -211,19 +212,19 @@ export function ProjectDMXTab({
                   disabled={patchplan.length === 0}
                 >
                   <Download className="h-4 w-4" />
-                  Export
+                  {t('common.export')}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={handleExportCSV}>
-                  <FileText className="h-4 w-4 mr-2" /> Als CSV exportieren
+                  <FileText className="h-4 w-4 mr-2" /> {t('dmx.export_csv')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExportPDF}>
-                  <FileText className="h-4 w-4 mr-2" /> Als PDF exportieren
+                  <FileText className="h-4 w-4 mr-2" /> {t('dmx.export_pdf')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handlePrint}>
-                  <Printer className="h-4 w-4 mr-2" /> Drucken
+                  <Printer className="h-4 w-4 mr-2" /> {t('common.print')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -243,7 +244,7 @@ export function ProjectDMXTab({
             }}
           >
             <div className="text-xs font-medium text-muted-foreground mb-2">
-              Universe {universe}
+              {t('dmx.universe_number', { number: universe })}
             </div>
             <AnimatedBar value={usedChannels} max={512} />
             <div className="flex justify-between mt-1.5">
@@ -264,7 +265,7 @@ export function ProjectDMXTab({
           style={{ animation: 'dmxTabCardIn 0.3s ease both' }}
         >
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>DMX-Adresskonflikte im Projekt</AlertTitle>
+          <AlertTitle>{t('dmx.conflicts_title')}</AlertTitle>
           <AlertDescription className="mt-1.5">
             <ul className="list-disc list-inside space-y-0.5 text-xs">
               {conflicts.slice(0, 4).map((c, i) => (
@@ -278,7 +279,9 @@ export function ProjectDMXTab({
                 </li>
               ))}
               {conflicts.length > 4 && (
-                <li className="text-muted-foreground/80">… und {conflicts.length - 4} weitere</li>
+                <li className="text-muted-foreground/80">
+                  {t('dmx.conflicts_more', { count: conflicts.length - 4 })}
+                </li>
               )}
             </ul>
           </AlertDescription>
@@ -289,23 +292,13 @@ export function ProjectDMXTab({
       {isReadonly && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/40 border border-border text-xs text-muted-foreground">
           <Info className="h-3.5 w-3.5 shrink-0" />
-          Archiviertes Projekt — DMX-Konfiguration ist schreibgeschützt.
+          {t('dmx.readonly_hint')}
         </div>
       )}
 
       {/* ── Hauptinhalt mit Fade beim View-Wechsel ───────────────────────── */}
-
-      {/* Timeline: overflow-x-visible damit der interne dmx-scroll-container
-          der DMXTimeline horizontal scrollen kann. Das outer overflow-x-hidden
-          des Elterndivs wird dadurch für diesen Block ignoriert, weil kein
-          zusätzlicher Stacking-Context geöffnet wird (kein transform/position). */}
       {viewMode === 'timeline' && (
-        <div
-          style={{
-            opacity: contentVisible ? 1 : 0,
-            transition: 'opacity 150ms ease',
-          }}
-        >
+        <div style={{ opacity: contentVisible ? 1 : 0, transition: 'opacity 150ms ease' }}>
           <DMXTimeline
             rows={patchplan}
             conflicts={conflicts}
@@ -317,8 +310,6 @@ export function ProjectDMXTab({
         </div>
       )}
 
-      {/* Table: eigener overflow-x-auto Wrapper — Tabelle scrollt intern,
-          bricht nie aus dem Viewport heraus. */}
       {viewMode === 'table' && (
         <div
           className="overflow-x-auto rounded-lg"
@@ -340,10 +331,7 @@ export function ProjectDMXTab({
       {/* ── Isolations-Hinweis ───────────────────────────────────────────── */}
       <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-border/50 text-xs text-muted-foreground">
         <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-        <span>
-          DMX-Adressen hier sind{' '}
-          <strong className="text-foreground">nur für dieses Projekt</strong> gültig
-        </span>
+        <span dangerouslySetInnerHTML={{ __html: t('dmx.isolation_hint') }} />
       </div>
     </div>
   );

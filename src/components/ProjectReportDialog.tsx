@@ -1,15 +1,12 @@
 /**
- * ProjectReportDialog.tsx
- *
- * Vollständiger Projektbericht
- * - Professionelle Vorschau im Dialog (echtes React + Tailwind, kein roher HTML-String)
- * - Print-Window mit identischem Layout für PDF-Export (eigenständiges HTML-Dokument)
- * - Inhalt: Kopfdaten, Inventar-Bilanz, Fehlteile, Checkliste, DMX-Patchplan, Notizen
+ * ProjectReportDialog.tsx — i18n
  */
 
-import { useRef } from "react";
 import { format } from "date-fns";
-import { de } from "date-fns/locale";
+import type { Locale } from "date-fns";
+import { de as deDateLocale, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -36,7 +33,6 @@ export interface ProjectReportDialogProps {
   todos: ProjectTodo[];
   conditions: Record<string, Condition>;
   conflicts: Record<string, ConflictInfo>;
-  /** Optional: DMX-Zeilen aus useProjectDMXPatchplan */
   dmxRows?: Array<{
     id: string;
     itemName: string;
@@ -49,66 +45,82 @@ export interface ProjectReportDialogProps {
   }>;
 }
 
-// ── Konstanten ────────────────────────────────────────────────────────────────
-const COND = {
-  ok:      { label: "OK",         color: "#16a34a", bg: "#f0fdf4", icon: "✓" },
-  damaged: { label: "Beschädigt", color: "#d97706", bg: "#fffbeb", icon: "⚠" },
-  missing: { label: "Fehlt",      color: "#dc2626", bg: "#fef2f2", icon: "✗" },
+// ── Statische Stil-Konfiguration (Labels werden per t() aufgelöst) ────────────
+const COND_STYLE = {
+  ok:      { color: "#16a34a", bg: "#f0fdf4", icon: "✓" },
+  damaged: { color: "#d97706", bg: "#fffbeb", icon: "⚠" },
+  missing: { color: "#dc2626", bg: "#fef2f2", icon: "✗" },
 } as const;
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Entwurf", planned: "Geplant", packed: "Gepackt",
-  transit: "Unterwegs", live: "Live", returning: "Rücklauf", archived: "Archiviert",
-};
-
-function fmtDate(d: string | null | undefined) {
-  return d ? format(new Date(d), "dd. MMM yyyy", { locale: de }) : null;
+// ── Datum-Hilfsfunktion ───────────────────────────────────────────────────────
+function fmtDate(d: string | null | undefined, dateFormat: string, locale: Locale) {
+  return d ? format(new Date(d), dateFormat, { locale }) : null;
 }
 
-// ── Vorschau-Komponente (React/Tailwind, dark-theme-aware) ────────────────────
-type ReportProps = Omit<ProjectReportDialogProps, "open" | "onClose">;
-
-function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+// ── Hilfskomponenten ──────────────────────────────────────────────────────────
+function Section({ icon, title, children }: {
+  icon: React.ReactNode; title: string; children: React.ReactNode;
+}) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 pb-1.5 border-b border-border/60">
         <span className="text-primary opacity-80">{icon}</span>
-        <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{title}</h3>
+        <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          {title}
+        </h3>
       </div>
       {children}
     </div>
   );
 }
 
-function ItemTable({ items, conditions }: { items: EnrichedProjectItem[]; conditions: Record<string, Condition> }) {
+function ItemTable({
+  items, conditions,
+}: {
+  items: EnrichedProjectItem[];
+  conditions: Record<string, Condition>;
+}) {
+  const { t } = useTranslation();
   if (!items.length) return null;
+
+  const headers = [
+    { label: t('report.table.article'),   cls: "text-left"   },
+    { label: t('report.table.category'),  cls: "text-center hidden sm:table-cell" },
+    { label: t('report.table.qty'),       cls: "text-center" },
+    { label: t('report.table.condition'), cls: "text-center" },
+    { label: t('report.table.packed'),    cls: "text-center" },
+  ];
+
   return (
     <div className="rounded-lg border border-border overflow-hidden">
       <table className="w-full text-xs">
         <thead>
           <tr className="bg-muted/50 border-b border-border/60">
-            {["Artikel", "Kategorie", "×", "Zustand", "Gepackt"].map((h, i) => (
-              <th key={h} className={cn(
+            {headers.map(h => (
+              <th key={h.label} className={cn(
                 "px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wide",
-                i === 0 ? "text-left" : "text-center",
-                i === 1 ? "hidden sm:table-cell" : "",
-              )}>{h}</th>
+                h.cls,
+              )}>{h.label}</th>
             ))}
           </tr>
         </thead>
         <tbody className="divide-y divide-border/40">
           {items.map(item => {
-            const cond = conditions[item.id] ?? "ok";
-            const cfg  = COND[cond];
+            const cond  = conditions[item.id] ?? "ok";
+            const style = COND_STYLE[cond];
             return (
               <tr key={item.id} className="bg-card hover:bg-muted/20 transition-colors">
                 <td className="px-3 py-2 font-medium">{item.item_name ?? "–"}</td>
-                <td className="px-3 py-2 text-muted-foreground hidden sm:table-cell">{item.item_category ?? "–"}</td>
+                <td className="px-3 py-2 text-muted-foreground hidden sm:table-cell">
+                  {item.item_category ?? "–"}
+                </td>
                 <td className="px-3 py-2 text-center text-muted-foreground">{item.quantity}</td>
                 <td className="px-3 py-2 text-center">
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold"
-                    style={{ color: cfg.color, background: cfg.bg + "55" }}>
-                    {cfg.icon} {cfg.label}
+                  <span
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                    style={{ color: style.color, background: style.bg + "55" }}
+                  >
+                    {style.icon} {t(`report.cond.${cond}`)}
                   </span>
                 </td>
                 <td className="px-3 py-2 text-center">
@@ -125,16 +137,32 @@ function ItemTable({ items, conditions }: { items: EnrichedProjectItem[]; condit
   );
 }
 
+// ── ReportPreview (React, dark-theme-aware) ───────────────────────────────────
+type ReportProps = Omit<ProjectReportDialogProps, "open" | "onClose">;
+
 function ReportPreview(props: ReportProps) {
   const { project, packageGroups, directItems, allItems, todos, conditions, dmxRows } = props;
-  const generatedAt = format(new Date(), "dd.MM.yyyy, HH:mm 'Uhr'", { locale: de });
-  const dateStart = fmtDate(project.event_date_start);
-  const dateEnd   = fmtDate(project.event_date_end);
+  const { t, i18n: i18nInst } = useTranslation();
+
+  const dateLocale     = i18nInst.language.startsWith('de') ? deDateLocale : enUS;
+  const dateFormat     = t('report.date_format');
+  const dateTimeFormat = t('report.datetime_format');
+
+  const generatedAt = format(new Date(), dateTimeFormat, { locale: dateLocale });
+  const dateStart   = fmtDate(project.event_date_start, dateFormat, dateLocale);
+  const dateEnd     = fmtDate(project.event_date_end,   dateFormat, dateLocale);
 
   const okItems      = allItems.filter(i => (conditions[i.id] ?? "ok") === "ok");
   const damagedItems = allItems.filter(i => (conditions[i.id] ?? "ok") === "damaged");
   const missingItems = allItems.filter(i => (conditions[i.id] ?? "ok") === "missing");
-  const doneCount    = todos.filter(t => t.done).length;
+  const doneCount    = todos.filter(td => td.done).length;
+
+  const stats = [
+    { key: 'stat_total',   value: allItems.length,     cls: "bg-muted/40 border-border/60 text-foreground" },
+    { key: 'stat_ok',      value: okItems.length,      cls: "bg-green-500/10 border-green-500/25 text-green-400" },
+    { key: 'stat_damaged', value: damagedItems.length, cls: "bg-amber-500/10 border-amber-500/25 text-amber-400" },
+    { key: 'stat_missing', value: missingItems.length, cls: "bg-destructive/10 border-destructive/25 text-destructive" },
+  ];
 
   return (
     <div className="space-y-6 text-sm pb-2">
@@ -144,7 +172,7 @@ function ReportPreview(props: ReportProps) {
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
-              Projektbericht · RigFlow
+              {t('report.subtitle')}
             </p>
             <h2 className="text-lg font-bold leading-tight truncate">{project.name}</h2>
             {project.description && (
@@ -152,94 +180,98 @@ function ReportPreview(props: ReportProps) {
             )}
           </div>
           <span className="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border border-border bg-muted/50 text-muted-foreground">
-            {STATUS_LABELS[project.status] ?? project.status}
+            {t(`project_status.${project.status}`, { defaultValue: project.status })}
           </span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1 border-t border-border/40">
           {dateStart && (
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Zeitraum</p>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">
+                {t('report.meta.period')}
+              </p>
               <p className="text-xs font-medium">
                 {dateStart}
-                {dateEnd && dateEnd !== dateStart && <><br /><span className="text-muted-foreground text-[10px]">bis {dateEnd}</span></>}
+                {dateEnd && dateEnd !== dateStart && (
+                  <><br /><span className="text-muted-foreground text-[10px]">{t('report.meta.until')} {dateEnd}</span></>
+                )}
               </p>
             </div>
           )}
           {project.location && (
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Location</p>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">
+                {t('report.meta.location')}
+              </p>
               <p className="text-xs font-medium">{project.location}</p>
             </div>
           )}
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Equipment</p>
-            <p className="text-xs font-medium">{allItems.length} Artikel</p>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">
+              {t('report.meta.equipment')}
+            </p>
+            <p className="text-xs font-medium">
+              {t('report.meta.equipment_count', { count: allItems.length })}
+            </p>
           </div>
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Erstellt</p>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">
+              {t('report.meta.created_label')}
+            </p>
             <p className="text-xs font-medium">{generatedAt}</p>
           </div>
         </div>
       </div>
 
       {/* ── Inventar-Bilanz ── */}
-      <Section icon={<Package className="h-3.5 w-3.5" />} title="Inventar-Bilanz">
+      <Section icon={<Package className="h-3.5 w-3.5" />} title={t('report.inventory.title')}>
 
-        {/* Stat-Kacheln */}
         <div className="grid grid-cols-4 gap-2">
-          {[
-            { label: "Gesamt",     value: allItems.length,     cls: "bg-muted/40 border-border/60 text-foreground"                    },
-            { label: "OK",         value: okItems.length,      cls: "bg-green-500/10 border-green-500/25 text-green-400"              },
-            { label: "Beschädigt", value: damagedItems.length, cls: "bg-amber-500/10 border-amber-500/25 text-amber-400"              },
-            { label: "Fehlt",      value: missingItems.length, cls: "bg-destructive/10 border-destructive/25 text-destructive"        },
-          ].map(s => (
-            <div key={s.label} className={cn("rounded-lg border p-3 text-center", s.cls)}>
+          {stats.map(s => (
+            <div key={s.key} className={cn("rounded-lg border p-3 text-center", s.cls)}>
               <p className="text-xl font-bold leading-none">{s.value}</p>
-              <p className="text-[10px] text-muted-foreground mt-1">{s.label}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">{t(`report.inventory.${s.key}`)}</p>
             </div>
           ))}
         </div>
 
-        {/* Fehlteile */}
         {missingItems.length > 0 && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-1.5">
             <p className="text-xs font-semibold text-destructive flex items-center gap-1.5">
-              <XCircle className="h-3.5 w-3.5" /> Fehlteile ({missingItems.length})
+              <XCircle className="h-3.5 w-3.5" />
+              {t('report.inventory.missing_items', { count: missingItems.length })}
             </p>
             {missingItems.map(i => (
               <p key={i.id} className="text-xs text-muted-foreground pl-1">
-                · <span className="font-medium text-foreground/80">{i.item_name ?? "Unbekannt"}</span> ×{i.quantity}
+                · <span className="font-medium text-foreground/80">{i.item_name ?? "–"}</span> ×{i.quantity}
                 {i.item_category && <span className="text-muted-foreground/60"> ({i.item_category})</span>}
               </p>
             ))}
           </div>
         )}
 
-        {/* Beschädigte */}
         {damagedItems.length > 0 && (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-1.5">
             <p className="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
-              <AlertTriangle className="h-3.5 w-3.5" /> Beschädigte Artikel ({damagedItems.length})
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {t('report.inventory.damaged_items', { count: damagedItems.length })}
             </p>
             {damagedItems.map(i => (
               <p key={i.id} className="text-xs text-muted-foreground pl-1">
-                · <span className="font-medium text-foreground/80">{i.item_name ?? "Unbekannt"}</span> ×{i.quantity}
+                · <span className="font-medium text-foreground/80">{i.item_name ?? "–"}</span> ×{i.quantity}
                 {i.item_category && <span className="text-muted-foreground/60"> ({i.item_category})</span>}
               </p>
             ))}
           </div>
         )}
 
-        {/* Alles OK */}
         {missingItems.length === 0 && damagedItems.length === 0 && (
           <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-3 flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
-            <p className="text-xs font-medium text-green-400">Alle Artikel vollständig und unbeschädigt zurückgekehrt.</p>
+            <p className="text-xs font-medium text-green-400">{t('report.inventory.all_ok')}</p>
           </div>
         )}
 
-        {/* Paket-Tabellen */}
         {packageGroups.map(group => (
           <div key={group.instanceId} className="space-y-1.5">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground pl-0.5">
@@ -249,10 +281,11 @@ function ReportPreview(props: ReportProps) {
           </div>
         ))}
 
-        {/* Direktartikel */}
         {directItems.length > 0 && (
           <div className="space-y-1.5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground pl-0.5">Direktartikel</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground pl-0.5">
+              {t('report.inventory.direct_items')}
+            </p>
             <ItemTable items={directItems} conditions={conditions} />
           </div>
         )}
@@ -262,7 +295,7 @@ function ReportPreview(props: ReportProps) {
       {todos.length > 0 && (
         <Section
           icon={<ClipboardList className="h-3.5 w-3.5" />}
-          title={`Checkliste (${doneCount}/${todos.length} erledigt)`}
+          title={t('report.checklist.title', { done: doneCount, total: todos.length })}
         >
           <div className="rounded-lg border border-border divide-y divide-border/40 overflow-hidden">
             {todos.map(todo => (
@@ -286,16 +319,24 @@ function ReportPreview(props: ReportProps) {
 
       {/* ── DMX-Patchplan ── */}
       {dmxRows && dmxRows.length > 0 && (
-        <Section icon={<Sliders className="h-3.5 w-3.5" />} title="DMX-Patchplan">
+        <Section icon={<Sliders className="h-3.5 w-3.5" />} title={t('report.dmx.title')}>
           <div className="rounded-lg border border-border overflow-hidden">
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-muted/50 border-b border-border/60">
-                  {["Gerät", "Universe", "Start", "Ende", "Ch"].map((h, i) => (
-                    <th key={h} className={cn(
+                  {[
+                    { key: 'col_device',   cls: "text-left"   },
+                    { key: 'col_universe', cls: "text-center" },
+                    { key: 'col_start',    cls: "text-center" },
+                    { key: 'col_end',      cls: "text-center" },
+                    { key: 'col_channels', cls: "text-center" },
+                  ].map(h => (
+                    <th key={h.key} className={cn(
                       "px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wide",
-                      i === 0 ? "text-left" : "text-center",
-                    )}>{h}</th>
+                      h.cls,
+                    )}>
+                      {t(`report.dmx.${h.key}`)}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -320,21 +361,26 @@ function ReportPreview(props: ReportProps) {
         </Section>
       )}
 
-      {/* ── Notizen / Besonderheiten ── */}
+      {/* ── Notizen ── */}
       {project.notes && (
-        <Section icon={<span className="text-sm">📝</span>} title="Anmerkungen / Besonderheiten">
+        <Section icon={<span className="text-sm">📝</span>} title={t('report.notes.title')}>
           <div className="rounded-lg border border-border bg-muted/20 p-3">
-            <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{project.notes}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
+              {project.notes}
+            </p>
           </div>
         </Section>
       )}
 
       {/* ── Footer ── */}
       <div className="border-t border-border/50 pt-3 flex items-center justify-between">
-        <span className="text-[10px] text-muted-foreground">RigFlow · Projektbericht · {project.name}</span>
-        <span className="text-[10px] text-muted-foreground">Erstellt: {generatedAt}</span>
+        <span className="text-[10px] text-muted-foreground">
+          {t('report.footer', { name: project.name })}
+        </span>
+        <span className="text-[10px] text-muted-foreground">
+          {t('report.meta.generated_at', { date: generatedAt })}
+        </span>
       </div>
-
     </div>
   );
 }
@@ -342,34 +388,52 @@ function ReportPreview(props: ReportProps) {
 // ── Print-HTML ─────────────────────────────────────────────────────────────────
 function buildPrintHTML(props: ReportProps): string {
   const { project, packageGroups, directItems, allItems, todos, conditions, dmxRows } = props;
-  const generatedAt = format(new Date(), "dd.MM.yyyy, HH:mm 'Uhr'", { locale: de });
-  const ds = fmtDate(project.event_date_start);
-  const de_ = fmtDate(project.event_date_end);
+
+  const tf          = i18n.t.bind(i18n);
+  const dateLocale  = i18n.language.startsWith('de') ? deDateLocale : enUS;
+  const dateFormat  = tf('report.date_format');
+  const dtFormat    = tf('report.datetime_format');
+
+  const generatedAt = format(new Date(), dtFormat, { locale: dateLocale });
+  const ds          = fmtDate(project.event_date_start, dateFormat, dateLocale);
+  const de_         = fmtDate(project.event_date_end,   dateFormat, dateLocale);
 
   const okCount      = allItems.filter(i => (conditions[i.id] ?? "ok") === "ok").length;
   const damagedItems = allItems.filter(i => (conditions[i.id] ?? "ok") === "damaged");
   const missingItems = allItems.filter(i => (conditions[i.id] ?? "ok") === "missing");
   const doneCount    = todos.filter(t => t.done).length;
 
-  const tr = (item: EnrichedProjectItem) => {
-    const cond = conditions[item.id] ?? "ok";
-    const cfg  = COND[cond];
+  const trRow = (item: EnrichedProjectItem) => {
+    const cond  = conditions[item.id] ?? "ok";
+    const style = COND_STYLE[cond];
     return `<tr>
       <td>${item.item_name ?? "–"}</td>
       <td style="color:#666">${item.item_category ?? "–"}</td>
       <td style="text-align:center">${item.quantity}</td>
-      <td style="text-align:center"><span style="color:${cfg.color};background:${cfg.bg};padding:1px 6px;border-radius:4px;font-size:8.5pt;font-weight:600">${cfg.icon} ${cfg.label}</span></td>
-      <td style="text-align:center;color:${item.packed ? "#16a34a" : "#aaa"};font-weight:600">${item.packed ? "✓" : "–"}</td>
+      <td style="text-align:center">
+        <span style="color:${style.color};background:${style.bg};padding:1px 6px;border-radius:4px;font-size:8.5pt;font-weight:600">
+          ${style.icon} ${tf(`report.cond.${cond}`)}
+        </span>
+      </td>
+      <td style="text-align:center;color:${item.packed ? "#16a34a" : "#aaa"};font-weight:600">
+        ${item.packed ? "✓" : "–"}
+      </td>
     </tr>`;
   };
 
   const tbl = (rows: string) => `<table>
-    <thead><tr><th>Artikel</th><th>Kategorie</th><th style="width:48px">Menge</th><th style="width:88px">Zustand</th><th style="width:62px">Gepackt</th></tr></thead>
+    <thead><tr>
+      <th>${tf('report.table.article')}</th>
+      <th>${tf('report.table.category')}</th>
+      <th style="width:48px">${tf('report.table.qty')}</th>
+      <th style="width:88px">${tf('report.table.condition')}</th>
+      <th style="width:62px">${tf('report.table.packed')}</th>
+    </tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 
-  return `<!DOCTYPE html><html lang="de"><head>
-<meta charset="UTF-8"/><title>Projektbericht – ${project.name}</title>
+  return `<!DOCTYPE html><html lang="${i18n.language}"><head>
+<meta charset="UTF-8"/><title>${tf('report.title')} – ${project.name}</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;font-size:10pt;line-height:1.55;color:#111;background:#fff;padding:16mm 15mm}
@@ -414,68 +478,70 @@ tr:nth-child(even) td{background:#fafafa}
 </style></head><body>
 
 <div class="header">
-  <div class="status-pill">${STATUS_LABELS[project.status] ?? project.status}</div>
-  <div class="label">Projektbericht · RigFlow</div>
+  <div class="status-pill">${tf(`project_status.${project.status}`, { defaultValue: project.status })}</div>
+  <div class="label">${tf('report.subtitle')}</div>
   <h1>${project.name}</h1>
   ${project.description ? `<div class="subtitle">${project.description}</div>` : ""}
   <div class="meta-grid">
-    ${ds ? `<div><div class="label">Zeitraum</div><div class="meta-val">${ds}${de_ && de_ !== ds ? ` – ${de_}` : ""}</div></div>` : ""}
-    ${project.location ? `<div><div class="label">Location</div><div class="meta-val">${project.location}</div></div>` : ""}
-    <div><div class="label">Equipment</div><div class="meta-val">${allItems.length} Artikel</div></div>
-    <div><div class="label">Erstellt</div><div class="meta-val">${generatedAt}</div></div>
+    ${ds ? `<div><div class="label">${tf('report.meta.period')}</div><div class="meta-val">${ds}${de_ && de_ !== ds ? ` – ${de_}` : ""}</div></div>` : ""}
+    ${project.location ? `<div><div class="label">${tf('report.meta.location')}</div><div class="meta-val">${project.location}</div></div>` : ""}
+    <div><div class="label">${tf('report.meta.equipment')}</div><div class="meta-val">${tf('report.meta.equipment_count', { count: allItems.length })}</div></div>
+    <div><div class="label">${tf('report.meta.created_label')}</div><div class="meta-val">${generatedAt}</div></div>
   </div>
 </div>
 
 <div class="section">
-  <h2>📦 Inventar-Bilanz</h2>
+  <h2>📦 ${tf('report.inventory.title')}</h2>
   <div class="stats">
-    <div class="stat"><div class="stat-n">${allItems.length}</div><div class="stat-l">Gesamt</div></div>
-    <div class="stat ok"><div class="stat-n">${okCount}</div><div class="stat-l">OK</div></div>
-    <div class="stat damaged"><div class="stat-n">${damagedItems.length}</div><div class="stat-l">Beschädigt</div></div>
-    <div class="stat missing"><div class="stat-n">${missingItems.length}</div><div class="stat-l">Fehlen</div></div>
+    <div class="stat">         <div class="stat-n">${allItems.length}</div>    <div class="stat-l">${tf('report.inventory.stat_total')}</div></div>
+    <div class="stat ok">      <div class="stat-n">${okCount}</div>             <div class="stat-l">${tf('report.inventory.stat_ok')}</div></div>
+    <div class="stat damaged"> <div class="stat-n">${damagedItems.length}</div> <div class="stat-l">${tf('report.inventory.stat_damaged')}</div></div>
+    <div class="stat missing"> <div class="stat-n">${missingItems.length}</div> <div class="stat-l">${tf('report.inventory.stat_missing')}</div></div>
   </div>
 
   ${missingItems.length > 0 ? `<div class="alert miss">
-    <div class="alert-title">✗ Fehlteile (${missingItems.length})</div>
-    <ul>${missingItems.map(i => `<li>${i.item_name ?? "Unbekannt"} ×${i.quantity}${i.item_category ? ` (${i.item_category})` : ""}</li>`).join("")}</ul>
+    <div class="alert-title">✗ ${tf('report.inventory.missing_items', { count: missingItems.length })}</div>
+    <ul>${missingItems.map(i => `<li>${i.item_name ?? "–"} ×${i.quantity}${i.item_category ? ` (${i.item_category})` : ""}</li>`).join("")}</ul>
   </div>` : ""}
 
   ${damagedItems.length > 0 ? `<div class="alert dmg">
-    <div class="alert-title">⚠ Beschädigte Artikel (${damagedItems.length})</div>
-    <ul>${damagedItems.map(i => `<li>${i.item_name ?? "Unbekannt"} ×${i.quantity}${i.item_category ? ` (${i.item_category})` : ""}</li>`).join("")}</ul>
+    <div class="alert-title">⚠ ${tf('report.inventory.damaged_items', { count: damagedItems.length })}</div>
+    <ul>${damagedItems.map(i => `<li>${i.item_name ?? "–"} ×${i.quantity}${i.item_category ? ` (${i.item_category})` : ""}</li>`).join("")}</ul>
   </div>` : ""}
 
   ${missingItems.length === 0 && damagedItems.length === 0 ? `<div class="alert good">
-    <div class="alert-title">✓ Alle Artikel vollständig und unbeschädigt zurückgekehrt.</div>
+    <div class="alert-title">✓ ${tf('report.inventory.all_ok')}</div>
   </div>` : ""}
 
   ${packageGroups.map(g => `
     <div class="pkg-label">${g.package.name}</div>
-    ${tbl(g.items.map(tr).join(""))}
+    ${tbl(g.items.map(trRow).join(""))}
   `).join("")}
 
-  ${directItems.length > 0 ? `<div class="pkg-label">Direktartikel</div>${tbl(directItems.map(tr).join(""))}` : ""}
+  ${directItems.length > 0
+    ? `<div class="pkg-label">${tf('report.inventory.direct_items')}</div>${tbl(directItems.map(trRow).join(""))}`
+    : ""}
 </div>
 
 ${todos.length > 0 ? `<div class="section">
-  <h2>☑ Checkliste (${doneCount}/${todos.length} erledigt)</h2>
+  <h2>☑ ${tf('report.checklist.title', { done: doneCount, total: todos.length })}</h2>
   <div class="todo-list">
-    ${todos.map(t => `<div class="todo-row">
-      <div class="chk ${t.done ? "done" : ""}">${t.done ? "✓" : ""}</div>
-      <span class="${t.done ? "done-txt" : ""}">${t.title}</span>
+    ${todos.map(todo => `<div class="todo-row">
+      <div class="chk ${todo.done ? "done" : ""}">${todo.done ? "✓" : ""}</div>
+      <span class="${todo.done ? "done-txt" : ""}">${todo.title}</span>
     </div>`).join("")}
   </div>
 </div>` : ""}
 
 ${dmxRows && dmxRows.length > 0 ? `<div class="section">
-  <h2>⚡ DMX-Patchplan</h2>
+  <h2>⚡ ${tf('report.dmx.title')}</h2>
   <table>
     <thead><tr>
-      <th>Gerät</th>
-      <th style="width:66px;text-align:center">Universe</th>
-      <th style="width:60px;text-align:center">Start</th>
-      <th style="width:60px;text-align:center">Ende</th>
-      <th style="width:44px;text-align:center">Ch</th>
+      <th>${tf('report.dmx.col_device')}</th>
+      <th style="width:66px;text-align:center">${tf('report.dmx.col_universe')}</th>
+      <th style="width:60px;text-align:center">${tf('report.dmx.col_start')}</th>
+      <th style="width:60px;text-align:center">${tf('report.dmx.col_end')}</th>
+      <th style="width:44px;text-align:center">${tf('report.dmx.col_channels')}</th>
     </tr></thead>
     <tbody>
       ${dmxRows.map(r => `<tr>
@@ -490,13 +556,13 @@ ${dmxRows && dmxRows.length > 0 ? `<div class="section">
 </div>` : ""}
 
 ${project.notes ? `<div class="section">
-  <h2>📝 Anmerkungen / Besonderheiten</h2>
+  <h2>📝 ${tf('report.notes.title')}</h2>
   <div class="notes">${project.notes}</div>
 </div>` : ""}
 
 <div class="footer">
-  <span>RigFlow · Projektbericht · ${project.name}</span>
-  <span>Erstellt: ${generatedAt}</span>
+  <span>${tf('report.footer', { name: project.name })}</span>
+  <span>${tf('report.meta.generated_at', { date: generatedAt })}</span>
 </div>
 
 <script>window.onload=function(){window.print();window.onafterprint=function(){window.close()}}</script>
@@ -505,6 +571,8 @@ ${project.notes ? `<div class="section">
 
 // ── Hauptkomponente ────────────────────────────────────────────────────────────
 export function ProjectReportDialog({ open, onClose, ...rest }: ProjectReportDialogProps) {
+  const { t } = useTranslation();
+
   const handlePrint = () => {
     const w = window.open("", "_blank", "width=920,height=780");
     if (!w) return;
@@ -519,10 +587,10 @@ export function ProjectReportDialog({ open, onClose, ...rest }: ProjectReportDia
         <DialogHeader className="px-6 pt-5 pb-3 border-b border-border/60 shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <ClipboardList className="h-5 w-5 text-primary" />
-            Projektbericht
+            {t('report.title')}
           </DialogTitle>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Vorschau · „Drucken / Als PDF speichern" für den Export
+            {t('report.preview_hint')}
           </p>
         </DialogHeader>
 
@@ -532,11 +600,11 @@ export function ProjectReportDialog({ open, onClose, ...rest }: ProjectReportDia
 
         <DialogFooter className="px-6 py-4 border-t border-border/60 shrink-0 gap-2 sm:gap-0">
           <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
-            <X className="h-4 w-4 mr-1.5" /> Schließen
+            <X className="h-4 w-4 mr-1.5" /> {t('common.close')}
           </Button>
           <Button onClick={handlePrint} className="w-full sm:w-auto gap-2">
             <Printer className="h-4 w-4" />
-            Drucken / Als PDF speichern
+            {t('report.print_button')}
           </Button>
         </DialogFooter>
 

@@ -1,23 +1,30 @@
 import { useEffect, useState } from 'react';
 import { Wifi, WifiOff, CloudOff, RefreshCw, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { offlineQueue } from '@/lib/offlineQueue';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 export function OfflineIndicator() {
+  const { t } = useTranslation();
   const { isOnline, wasOffline } = useOnlineStatus();
+
   const [pendingCount, setPendingCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+
   const { toast } = useToast();
 
   useEffect(() => {
     const checkPending = () => {
       setPendingCount(offlineQueue.getPendingCount());
     };
+
     checkPending();
+
     const interval = setInterval(checkPending, 1000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -29,21 +36,32 @@ export function OfflineIndicator() {
 
   const syncPendingOperations = async () => {
     if (isSyncing || !isOnline) return;
+
     setIsSyncing(true);
+
     try {
       const { success, failed } = await offlineQueue.syncQueue();
+
       if (success > 0) {
         setShowSuccess(true);
+
         setTimeout(() => setShowSuccess(false), 2000);
+
         toast({
-          title: 'Synchronisierung abgeschlossen',
-          description: `${success} Änderung(en) hochgeladen${failed > 0 ? `, ${failed} fehlgeschlagen` : ''}.`,
+          title: t('offline.sync_completed'),
+          description: t('offline.sync_completed_description', {
+            success,
+            failed,
+          }),
         });
       }
+
       if (failed > 0) {
         toast({
-          title: 'Synchronisierungsfehler',
-          description: `${failed} Änderung(en) konnten nicht hochgeladen werden.`,
+          title: t('offline.sync_error'),
+          description: t('offline.sync_error_description', {
+            failed,
+          }),
           variant: 'destructive',
         });
       }
@@ -62,17 +80,20 @@ export function OfflineIndicator() {
       {!isOnline && (
         <div className="flex items-center gap-2 bg-destructive/90 text-destructive-foreground px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg shadow-lg backdrop-blur-sm animate-in slide-in-from-left">
           <WifiOff className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          <span className="text-xs sm:text-sm font-medium">Offline</span>
+
+          <span className="text-xs sm:text-sm font-medium">
+            {t('offline.offline')}
+          </span>
         </div>
       )}
 
       {pendingCount > 0 && (
         <div
           className={cn(
-            "flex items-center gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg shadow-lg backdrop-blur-sm animate-in slide-in-from-left",
+            'flex items-center gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg shadow-lg backdrop-blur-sm animate-in slide-in-from-left',
             isOnline
-              ? "bg-primary/90 text-primary-foreground"
-              : "bg-muted text-muted-foreground"
+              ? 'bg-primary/90 text-primary-foreground'
+              : 'bg-muted text-muted-foreground'
           )}
         >
           {isSyncing ? (
@@ -80,8 +101,11 @@ export function OfflineIndicator() {
           ) : (
             <CloudOff className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           )}
+
           <span className="text-xs sm:text-sm font-medium">
-            {isSyncing ? 'Synchronisiere...' : `${pendingCount} ausstehend`}
+            {isSyncing
+              ? t('offline.syncing')
+              : t('offline.pending_count', { count: pendingCount })}
           </span>
         </div>
       )}
@@ -89,14 +113,20 @@ export function OfflineIndicator() {
       {showSuccess && (
         <div className="flex items-center gap-2 bg-primary/90 text-primary-foreground px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg shadow-lg backdrop-blur-sm animate-in slide-in-from-left">
           <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          <span className="text-xs sm:text-sm font-medium">Synchronisiert</span>
+
+          <span className="text-xs sm:text-sm font-medium">
+            {t('offline.synced')}
+          </span>
         </div>
       )}
 
       {wasOffline && isOnline && pendingCount === 0 && !showSuccess && (
         <div className="flex items-center gap-2 bg-primary/90 text-primary-foreground px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg shadow-lg backdrop-blur-sm animate-in slide-in-from-left">
           <Wifi className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          <span className="text-xs sm:text-sm font-medium">Wieder online</span>
+
+          <span className="text-xs sm:text-sm font-medium">
+            {t('offline.back_online')}
+          </span>
         </div>
       )}
     </div>

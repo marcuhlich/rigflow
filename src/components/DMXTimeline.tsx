@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PatchplanRow, DMXConflict } from '@/lib/dmxPatchplan';
 import { cn } from '@/lib/utils';
 import { AlertTriangle, GripHorizontal, Pencil, ZoomIn } from 'lucide-react';
@@ -78,6 +79,7 @@ export function DMXTimeline({
   onInstanceChange,
   onResetInstance,
 }: DMXTimelineProps) {
+  const { t } = useTranslation();
   const [editingRow, setEditingRow] = useState<PatchplanRow | null>(null);
   const [editAddress, setEditAddress] = useState('');
   const [editUniverse, setEditUniverse] = useState('');
@@ -366,14 +368,14 @@ export function DMXTimeline({
           <div className="flex items-center justify-between px-1 text-xs text-muted-foreground select-none">
             <span className="flex items-center gap-1 opacity-60">
               <ZoomIn className="h-3 w-3" />
-              Mit zwei Fingern zoomen
+              {t('dmx_timeline.zoom_hint')}
             </span>
             {zoomScale > 1.05 && (
               <button
                 className="flex items-center gap-1 text-primary font-medium"
                 onClick={() => updateZoom(1)}
               >
-                {displayZoom}× — Zurücksetzen
+                {t('dmx_timeline.zoom_reset', { scale: displayZoom })}
               </button>
             )}
           </div>
@@ -404,8 +406,7 @@ export function DMXTimeline({
                     </h3>
                   </div>
                   <span className="text-[10px] sm:text-xs text-muted-foreground font-mono">
-                    {universeRows.length}{' '}
-                    {universeRows.length === 1 ? 'Gerät' : 'Geräte'}
+                    {t('dmx_timeline.device_count', { count: universeRows.length })}
                   </span>
                 </div>
 
@@ -500,7 +501,7 @@ export function DMXTimeline({
 
         {rows.length === 0 && (
           <div className="rounded-xl border border-dashed border-border/50 p-8 sm:p-12 text-center text-muted-foreground">
-            Keine DMX-Geräte konfiguriert
+            {t('dmx_timeline.empty')}
           </div>
         )}
 
@@ -508,29 +509,34 @@ export function DMXTimeline({
         <Dialog open={!!editingRow} onOpenChange={open => !open && setEditingRow(null)}>
           <DialogContent className="w-[95vw] sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>DMX-Adresse bearbeiten</DialogTitle>
+              <DialogTitle>{t('dmx_timeline.edit_dialog.title')}</DialogTitle>
               <DialogDescription>
                 {editingRow && (
                   <>
                     <strong>{editingRow.itemName}</strong>
                     {editingRow.totalInstances > 1 && (
                       <span>
-                        {' '}— Instanz {editingRow.instanceNumber} von{' '}
-                        {editingRow.totalInstances}
+                        {' '}— {t('dmx_timeline.edit_dialog.instance_of', {
+                          current: editingRow.instanceNumber,
+                          total: editingRow.totalInstances,
+                        })}
                       </span>
                     )}
                     {editingRow.hasCustomConfig && (
-                      <span className="ml-1 text-primary">(individuell konfiguriert)</span>
+                      <span className="ml-1 text-primary">
+                        {t('dmx_timeline.edit_dialog.custom_config')}
+                      </span>
                     )}
                   </>
                 )}
               </DialogDescription>
             </DialogHeader>
+
             {editingRow && (
               <div className="space-y-4 py-2">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="edit-address">Startadresse</Label>
+                    <Label htmlFor="edit-address">{t('dmx_timeline.edit_dialog.start_address')}</Label>
                     <Input
                       id="edit-address"
                       type="number"
@@ -541,7 +547,7 @@ export function DMXTimeline({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-universe">Universe</Label>
+                    <Label htmlFor="edit-universe">{t('dmx_timeline.edit_dialog.universe')}</Label>
                     <Input
                       id="edit-universe"
                       type="number"
@@ -552,11 +558,14 @@ export function DMXTimeline({
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Benötigt {editingRow.channels} Kanäle → Endadresse:{' '}
-                  {parseInt(editAddress, 10) + editingRow.channels - 1 || '–'}
+                  {t('dmx_timeline.edit_dialog.channels_info', {
+                    channels: editingRow.channels,
+                    end: parseInt(editAddress, 10) + editingRow.channels - 1 || '–',
+                  })}
                 </p>
               </div>
             )}
+
             <DialogFooter className="flex-col sm:flex-row gap-2">
               {editingRow?.hasCustomConfig && onResetInstance && (
                 <Button
@@ -566,14 +575,14 @@ export function DMXTimeline({
                   disabled={saving}
                   className="text-muted-foreground sm:mr-auto"
                 >
-                  Zurücksetzen
+                  {t('common.reset')}
                 </Button>
               )}
               <Button variant="outline" onClick={() => setEditingRow(null)}>
-                Abbrechen
+                {t('common.cancel')}
               </Button>
               <Button onClick={handleSave} disabled={saving}>
-                {saving ? 'Speichern...' : 'Speichern'}
+                {saving ? t('common.saving') : t('common.save')}
               </Button>
             </DialogFooter>
           </DialogContent>

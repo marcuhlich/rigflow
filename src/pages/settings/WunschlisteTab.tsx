@@ -156,7 +156,7 @@ export default function WunschlisteTab() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-4 pb-24 px-0">
+    <div className="space-y-4 pb-24 px-0 user-select-text">
 
       {/* Header */}
       <div className="flex items-center gap-2 mt-4 px-1">

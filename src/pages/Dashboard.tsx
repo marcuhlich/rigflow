@@ -20,11 +20,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLendingHistory } from "@/hooks/useLendingHistory";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
-import { de } from "date-fns/locale";
+import { de, enUS } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { PullToRefreshWrapper } from "@/components/PullToRefreshWrapper";
 import { hapticFeedback, hapticStop } from '@/lib/utils';
 import { isNative } from '@/services/platform';
+import { useTranslation } from 'react-i18next';
 import "@/styles/dashboard.css";
 
 // ─── Smooth Tooltip ──────────────────────────────────────────────────────────
@@ -68,7 +69,8 @@ const PieTooltip = (props: any) => {
         fontSize: "12px", color: textColor, boxShadow: "0 2px 8px rgba(0,0,0,0.15)", willChange: "transform",
       }}>
         <p style={{ color: textColor, margin: "0 0 4px 0" }}><strong>{payload[0].name}</strong></p>
-        <p style={{ color: textColor, margin: "0" }}>{payload[0].value} Stück</p>
+        {/* "Stück" bleibt im Tooltip – hier nutzen wir den bereits übersetzten Namen aus pieData */}
+        <p style={{ color: textColor, margin: "0" }}>{payload[0].value}</p>
       </div>
     );
   }
@@ -94,7 +96,7 @@ const BarTooltip = (props: any) => {
         backgroundColor: "hsl(var(--popover))", border: "1px solid hsl(var(--border))",
         borderRadius: "8px", padding: "8px 12px", fontSize: "12px", color: textColor,
       }}>
-        <p style={{ color: textColor, margin: "0" }}>{payload[0].value} Stück</p>
+        <p style={{ color: textColor, margin: "0" }}>{payload[0].value}</p>
       </div>
     );
   }
@@ -120,11 +122,12 @@ interface MobileBentoStatsProps {
 }
 
 const MobileBentoStats = ({ stats, totalValue, activeLoansCount }: MobileBentoStatsProps) => {
+  const { t } = useTranslation();
   const [pressedCard, setPressedCard] = useState<string | null>(null);
 
   const press = (id: string) => {
     setPressedCard(id);
-    hapticFeedback(8)
+    hapticFeedback(8);
     setTimeout(() => setPressedCard(null), 150);
   };
 
@@ -137,17 +140,17 @@ const MobileBentoStats = ({ stats, totalValue, activeLoansCount }: MobileBentoSt
   const availPct  = stats.total > 0 ? Math.round((available / stats.total) * 100) : 0;
 
   const donutData = [
-    { name: "Verfügbar",  value: stats.available || 0, color: "hsl(var(--success))" },
-    { name: "Im Einsatz", value: stats.inUse || 0,     color: "hsl(var(--primary))" },
-    { name: "Verliehen",  value: stats.lent || 0,      color: "hsl(var(--warning))" },
-    { name: "Defekt",     value: stats.defect || 0,    color: "hsl(var(--destructive))" },
+    { name: t('dashboard.status.available'), value: stats.available || 0, color: "hsl(var(--success))" },
+    { name: t('dashboard.status.in_use'),    value: stats.inUse || 0,     color: "hsl(var(--primary))" },
+    { name: t('dashboard.status.lent'),      value: stats.lent || 0,      color: "hsl(var(--warning))" },
+    { name: t('dashboard.status.defect'),    value: stats.defect || 0,    color: "hsl(var(--destructive))" },
   ].filter(d => d.value > 0);
 
   const tiles = [
-    { id: "avail", label: "Verfügbar",  value: stats.available,                color: "#22c55e", icon: <CheckCircle className="h-3.5 w-3.5" />,    to: "/inventory?filter=verfügbar" },
-    { id: "lent",  label: "Verliehen",  value: activeLoansCount || stats.lent, color: "#f97316", icon: <ArrowRightLeft className="h-3.5 w-3.5" />, to: "/lending" },
-    { id: "use",   label: "Im Einsatz", value: stats.inUse,                    color: "hsl(var(--primary))", icon: <Zap className="h-3.5 w-3.5" />, to: "/projects" },
-    { id: "def",   label: "Defekt",     value: stats.defect,                   color: "#ef4444", icon: <AlertTriangle className="h-3.5 w-3.5" />,  to: "/inventory?filter=defekt" },
+    { id: "avail", label: t('dashboard.stat.available'), value: stats.available,                color: "#22c55e", icon: <CheckCircle className="h-3.5 w-3.5" />,    to: "/inventory?filter=verfügbar" },
+    { id: "lent",  label: t('dashboard.stat.lent'),      value: activeLoansCount || stats.lent, color: "#f97316", icon: <ArrowRightLeft className="h-3.5 w-3.5" />, to: "/lending" },
+    { id: "use",   label: t('dashboard.stat.in_use'),    value: stats.inUse,                    color: "hsl(var(--primary))", icon: <Zap className="h-3.5 w-3.5" />, to: "/projects" },
+    { id: "def",   label: t('dashboard.stat.defect'),    value: stats.defect,                   color: "#ef4444", icon: <AlertTriangle className="h-3.5 w-3.5" />,  to: "/inventory?filter=defekt" },
   ];
 
   return (
@@ -161,14 +164,14 @@ const MobileBentoStats = ({ stats, totalValue, activeLoansCount }: MobileBentoSt
         <div className="mobile-hero-mesh" />
         <div style={{ position: "relative", zIndex: 10, padding: "14px", height: "100%", display: "flex", flexDirection: "column" }}>
           <p style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--mob-hero-label)", margin: "0 0 6px 0" }}>
-            Wo ist mein Zeug?
+            {t('dashboard.where_is_my_stuff')}
           </p>
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
             <div style={{ width: "120px", height: "120px" }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={donutData.length > 0 ? donutData : [{ name: "Leer", value: 1, color: "rgba(255,255,255,0.08)" }]}
+                    data={donutData.length > 0 ? donutData : [{ name: "", value: 1, color: "rgba(255,255,255,0.08)" }]}
                     cx="50%" cy="50%"
                     innerRadius={36} outerRadius={52}
                     paddingAngle={donutData.length > 1 ? 3 : 0}
@@ -184,7 +187,7 @@ const MobileBentoStats = ({ stats, totalValue, activeLoansCount }: MobileBentoSt
             </div>
             <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", pointerEvents: "none" }}>
               <p style={{ fontSize: "22px", fontWeight: 800, color: "var(--mob-hero-pct)", lineHeight: 1, margin: 0 }}>{availPct}%</p>
-              <p style={{ fontSize: "9px", color: "var(--mob-hero-pct-sub)", margin: "2px 0 0 0" }}>frei</p>
+              <p style={{ fontSize: "9px", color: "var(--mob-hero-pct-sub)", margin: "2px 0 0 0" }}>{t('dashboard.free')}</p>
             </div>
           </div>
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "6px" }}>
@@ -226,6 +229,7 @@ interface SwipeLentItemProps {
 }
 
 const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
+  const { t } = useTranslation();
   const ACTION_WIDTH = 140;
   const THRESHOLD    = 72;
 
@@ -310,8 +314,8 @@ const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
                   {item.name}
                 </p>
                 <p style={{ fontSize: "11px", color: "var(--mob-card-subtext)", margin: "2px 0 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  an {item.lent_to || "–"}
-                  {item.lent_until && ` · bis ${format(new Date(item.lent_until), "dd.MM.yy")}`}
+                  {t('dashboard.lent_to', { name: item.lent_to || '–' })}
+                  {item.lent_until && ` · ${t('dashboard.due_until', { date: format(new Date(item.lent_until), "dd.MM.yy") })}`}
                 </p>
               </div>
               {item.isOverdue && (
@@ -321,7 +325,7 @@ const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
                   border: "1px solid rgba(239,68,68,0.35)",
                   animation: "glowPill 2s ease-in-out infinite",
                 }}>
-                  Überfällig
+                  {t('dashboard.overdue')}
                 </span>
               )}
             </div>
@@ -343,7 +347,7 @@ const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
           onClick={() => { close(); onReturn?.(item.id); }}
         >
           <RotateCcw style={{ width: "16px", height: "16px" }} />
-          Rückgabe
+          {t('dashboard.swipe_return')}
         </button>
         <button
           style={{
@@ -355,7 +359,7 @@ const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
           onClick={() => { close(); onRemind?.(item.id); }}
         >
           <Trash style={{ width: "16px", height: "16px" }} />
-          Löschen
+          {t('dashboard.swipe_delete')}
         </button>
       </div>
     </div>
@@ -364,32 +368,31 @@ const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
-  // FIX: Ein einziger useInventory-Call statt drei
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language.startsWith('de') ? de : enUS;
+
   const { allItems, stats, loading, refetch } = useInventory();
-  const handleRefresh = useCallback(async () => {
-    await refetch();
-  }, [refetch]);
+  const handleRefresh = useCallback(async () => { await refetch(); }, [refetch]);
   const { projects } = useProjects();
   const { user } = useAuth();
   const { activeLoans, completedLoans, markReturned, deleteRecord } = useLendingHistory();
   const [chartsVisible, setChartsVisible] = useState(false);
   const PIE_ACTIVE_INDEX = -1;
-  // FIX: reaktiver Hook statt einmaligem window.innerWidth-Snapshot
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const isStandalone = isNative() || window.matchMedia("(display-mode: standalone)").matches;
 
   useEffect(() => {
-    const t = setTimeout(() => setChartsVisible(true), 100);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setChartsVisible(true), 100);
+    return () => clearTimeout(timer);
   }, []);
 
   const pieData = useMemo(() => [
-    { name: "Verfügbar",  value: stats.available, color: "hsl(var(--success))" },
-    { name: "Verliehen",  value: stats.lent,       color: "hsl(var(--warning))" },
-    { name: "Im Einsatz", value: stats.inUse,      color: "hsl(var(--primary))" },
-    { name: "Defekt",     value: stats.defect,     color: "hsl(var(--destructive))" },
-  ].filter((d) => d.value > 0), [stats]);
+    { name: t('dashboard.status.available'), value: stats.available, color: "hsl(var(--success))" },
+    { name: t('dashboard.status.lent'),      value: stats.lent,       color: "hsl(var(--warning))" },
+    { name: t('dashboard.status.in_use'),    value: stats.inUse,      color: "hsl(var(--primary))" },
+    { name: t('dashboard.status.defect'),    value: stats.defect,     color: "hsl(var(--destructive))" },
+  ].filter((d) => d.value > 0), [stats, t]);
 
   const categoryData = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -404,11 +407,11 @@ export default function Dashboard() {
   const locationData = useMemo(() => {
     const counts: Record<string, number> = {};
     allItems.forEach((item) => {
-      const loc = item.location || "Unbekannt";
+      const loc = item.location || t('common.unknown', 'Unbekannt');
       counts[loc] = (counts[loc] || 0) + item.quantity;
     });
     return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
-  }, [allItems]);
+  }, [allItems, t]);
 
   const upcomingProjects = useMemo(() => {
     const now = new Date();
@@ -450,17 +453,48 @@ export default function Dashboard() {
   const recentActivities = useMemo(() => {
     const activities: { id: string; message: string; time: string; type: "lent" | "returned" | "defect" }[] = [];
     activeLoans.forEach((r) => {
-      activities.push({ id: r.id, message: `${r.item_name} verliehen an ${r.lent_to}`, time: r.created_at, type: "lent" });
+      activities.push({
+        id: r.id,
+        message: t('dashboard.activity.lent_to', { item: r.item_name, person: r.lent_to }),
+        time: r.created_at,
+        type: "lent",
+      });
     });
     completedLoans.slice(0, 5).forEach((r) => {
-      activities.push({ id: r.id, message: `${r.item_name} zurückgegeben (war an ${r.lent_to})`, time: r.returned_at!, type: "returned" });
+      activities.push({
+        id: r.id,
+        message: t('dashboard.activity.returned_from', { item: r.item_name, person: r.lent_to }),
+        time: r.returned_at!,
+        type: "returned",
+      });
     });
     allItems.forEach((item) => {
       if (item.condition === "defekt")
-        activities.push({ id: item.id, message: `${item.name} als defekt markiert`, time: item.updated_at, type: "defect" });
+        activities.push({
+          id: item.id,
+          message: t('dashboard.activity.marked_defect', { item: item.name }),
+          time: item.updated_at,
+          type: "defect",
+        });
     });
-    return activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 8);
-  }, [allItems, activeLoans, completedLoans]);
+    return activities
+      .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+      .slice(0, 8);
+  }, [allItems, activeLoans, completedLoans, t]);
+
+  // Project status label + variant maps
+  const STATUS_LABEL: Record<string, string> = {
+    draft:     t('dashboard.project_status.draft'),
+    planned:   t('dashboard.project_status.planned'),
+    packed:    t('dashboard.project_status.packed'),
+    transit:   t('dashboard.project_status.transit'),
+    live:      t('dashboard.project_status.live'),
+    returning: t('dashboard.project_status.returning'),
+  };
+  const STATUS_VARIANT: Record<string, 'secondary' | 'default' | 'destructive'> = {
+    draft: 'secondary', planned: 'secondary', packed: 'default',
+    transit: 'default', live: 'default', returning: 'secondary',
+  };
 
   if (loading) {
     return (
@@ -477,109 +511,95 @@ export default function Dashboard() {
   }
 
   return (
-    <PullToRefreshWrapper
-      onRefresh={handleRefresh}
-      disabled={!isMobile || !isStandalone}
-    >
-    <div className="space-y-5 sm:space-y-8 mt-4 pb-24">
-      <ScanRevealOverlay />
-      <div>
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Dashboard</h2>
-        <p className="text-muted-foreground text-xs sm:text-sm mt-1">Übersicht über dein Equipment</p>
-      </div>
-
-      {/* ══ 1. BENTO STATS ══════════════════════════════════════════════════════ */}
-      <MobileBentoStats stats={stats} totalValue={totalValue} activeLoansCount={activeLoans.length} />
-
-      <section className="desktop-only grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-        <StatCard title="Gesamt"     value={stats.total}                    icon={Package}       variant="default"     />
-        <StatCard title="Verfügbar"  value={stats.available}                icon={CheckCircle}   variant="success"     />
-        <StatCard title="Verliehen"  value={activeLoans.length || stats.lent} icon={ArrowRightLeft} variant="warning"  />
-        <StatCard title="Im Einsatz" value={stats.inUse}                    icon={Zap}           variant="primary"     />
-        <StatCard title="Defekt"     value={stats.defect}                   icon={AlertTriangle} variant="destructive" />
-        <div className="glass-card p-3 sm:p-5 hover:shadow-md transition-shadow duration-200">
-          <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">Gesamtwert</p>
-              <p className="text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1">
-                {totalValue > 0 ? `${totalValue.toLocaleString("de-DE", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €` : "–"}
-              </p>
-            </div>
-            <div className="p-2 sm:p-3 rounded-lg bg-primary/10 flex-shrink-0">
-              <DollarSign className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
-            </div>
-          </div>
+    <PullToRefreshWrapper onRefresh={handleRefresh} disabled={!isMobile || !isStandalone}>
+      <div className="space-y-5 sm:space-y-8 mt-4 pb-24">
+        <ScanRevealOverlay />
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight">{t('dashboard.title')}</h2>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">{t('dashboard.subtitle')}</p>
         </div>
-      </section>
 
-      {/* ══ Schnellaktionen ══════════════════════════════════════════════════════ */}
-      <div className="grid gap-3">
-        <button
-          onClick={() => navigate("/scanner")}
-          className="flex items-center gap-3 p-4 rounded-xl bg-primary/10 border border-primary/30 hover:bg-primary/15 active:scale-[0.98] transition-all text-left"
-        >
-          <div className="p-2.5 rounded-lg bg-primary/20 shrink-0 relative flex items-center justify-center">
-            <ScanLine className="h-5 w-5 text-primary" />
-            <QrCode className="h-3.5 w-3.5 text-primary absolute opacity-80" />
-          </div>
+        {/* ══ 1. BENTO STATS ══════════════════════════════════════════════════════ */}
+        <MobileBentoStats stats={stats} totalValue={totalValue} activeLoansCount={activeLoans.length} />
 
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold text-sm">Scanner</p>
-            <p className="text-xs text-muted-foreground truncate">
-              Verleih, Aufbau, Abbau
-            </p>
-          </div>
-
-          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-        </button>
-      </div>
-
-      {/* ══ 2. MOBILE: Defekte Artikel ══════════════════════════════════════════ */}
-      {defectItems.length > 0 && (
-        <div className="mobile-only">
-          <div className="mobile-section-header">
-            <AlertTriangle className="h-3.5 w-3.5" style={{ color: "var(--mob-section-color)" }} />
-            <span className="mobile-section-title">Defekt · {stats.defect} Artikel</span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {defectItems.map((item) => (
-              <Link key={item.id} to={`/inventory/${item.id}`} style={{
-                display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px",
-                background: "rgba(239,68,68,.07)", border: "1px solid rgba(239,68,68,.18)",
-                borderRadius: "12px", textDecoration: "none",
-                backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-              }}>
-                <div style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#ef4444", flexShrink: 0, boxShadow: "0 0 6px #ef4444" }} />
-                <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--mob-card-text)", margin: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {item.name}
+        <section className="desktop-only grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+          <StatCard title={t('dashboard.stat.total')}      value={stats.total}                      icon={Package}       variant="default"     />
+          <StatCard title={t('dashboard.stat.available')}  value={stats.available}                  icon={CheckCircle}   variant="success"     />
+          <StatCard title={t('dashboard.stat.lent')}       value={activeLoans.length || stats.lent} icon={ArrowRightLeft} variant="warning"    />
+          <StatCard title={t('dashboard.stat.in_use')}     value={stats.inUse}                      icon={Zap}           variant="primary"     />
+          <StatCard title={t('dashboard.stat.defect')}     value={stats.defect}                     icon={AlertTriangle} variant="destructive" />
+          <div className="glass-card p-3 sm:p-5 hover:shadow-md transition-shadow duration-200">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">{t('dashboard.stat.total_value')}</p>
+                <p className="text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1">
+                  {totalValue > 0
+                    ? `${totalValue.toLocaleString(i18n.language === 'de' ? 'de-DE' : 'en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €`
+                    : "–"}
                 </p>
-                <span style={{ fontSize: "10px", color: "var(--mob-card-subtext)", flexShrink: 0 }}>{item.category}</span>
-              </Link>
-            ))}
+              </div>
+              <div className="p-2 sm:p-3 rounded-lg bg-primary/10 flex-shrink-0">
+                <DollarSign className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        </section>
 
-      {/* ══ 3. Anstehende Projekte + Quick Links ══════════════════════════════════ */}
-      <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
-        <Card className="border-border/50">
-          <CardContent className="p-4 sm:p-5">
-            <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-primary" />
-              Anstehende Projekte
-            </h3>
-            {upcomingProjects.length > 0 ? (
-              <div className="space-y-2">
-                {upcomingProjects.map((p) => {
-                  const STATUS_LABEL: Record<string, string> = {
-                    draft: 'Entwurf', planned: 'Geplant', packed: 'Gepackt',
-                    transit: 'Unterwegs', live: 'Live', returning: 'Rücklauf',
-                  };
-                  const STATUS_VARIANT: Record<string, 'secondary' | 'default' | 'destructive'> = {
-                    draft: 'secondary', planned: 'secondary', packed: 'default',
-                    transit: 'default', live: 'default', returning: 'secondary',
-                  };
-                  return (
+        {/* ══ Schnellaktionen ══════════════════════════════════════════════════════ */}
+        <div className="grid gap-3">
+          <button
+            onClick={() => navigate("/scanner")}
+            className="flex items-center gap-3 p-4 rounded-xl bg-primary/10 border border-primary/30 hover:bg-primary/15 active:scale-[0.98] transition-all text-left"
+          >
+            <div className="p-2.5 rounded-lg bg-primary/20 shrink-0 relative flex items-center justify-center">
+              <ScanLine className="h-5 w-5 text-primary" />
+              <QrCode className="h-3.5 w-3.5 text-primary absolute opacity-80" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-sm">{t('nav.scanner')}</p>
+              <p className="text-xs text-muted-foreground truncate">{t('dashboard.quick_actions.scanner_desc')}</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+          </button>
+        </div>
+
+        {/* ══ 2. MOBILE: Defekte Artikel ══════════════════════════════════════════ */}
+        {defectItems.length > 0 && (
+          <div className="mobile-only">
+            <div className="mobile-section-header">
+              <AlertTriangle className="h-3.5 w-3.5" style={{ color: "var(--mob-section-color)" }} />
+              <span className="mobile-section-title">{t('dashboard.defect_section', { count: stats.defect })}</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {defectItems.map((item) => (
+                <Link key={item.id} to={`/inventory/${item.id}`} style={{
+                  display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px",
+                  background: "rgba(239,68,68,.07)", border: "1px solid rgba(239,68,68,.18)",
+                  borderRadius: "12px", textDecoration: "none",
+                  backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+                }}>
+                  <div style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#ef4444", flexShrink: 0, boxShadow: "0 0 6px #ef4444" }} />
+                  <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--mob-card-text)", margin: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {item.name}
+                  </p>
+                  <span style={{ fontSize: "10px", color: "var(--mob-card-subtext)", flexShrink: 0 }}>{item.category}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ══ 3. Anstehende Projekte + Quick Links ═══════════════════════════════ */}
+        <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
+          <Card className="border-border/50">
+            <CardContent className="p-4 sm:p-5">
+              <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
+                <CalendarDays className="h-4 w-4 text-primary" />
+                {t('dashboard.upcoming_projects.title')}
+              </h3>
+              {upcomingProjects.length > 0 ? (
+                <div className="space-y-2">
+                  {upcomingProjects.map((p) => (
                     <Link
                       key={p.id}
                       to={`/projects/${p.id}`}
@@ -587,283 +607,271 @@ export default function Dashboard() {
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          {p.is_favorite && (
-                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 shrink-0" />
-                          )}
+                          {p.is_favorite && <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 shrink-0" />}
                           <p className="text-xs sm:text-sm font-medium truncate">{p.name}</p>
                         </div>
                         <p className="text-[11px] text-muted-foreground">
-                          {format(new Date(p.event_date_start!), 'dd. MMM yyyy', { locale: de })}
+                          {format(new Date(p.event_date_start!), 'dd. MMM yyyy', { locale: dateLocale })}
                           {p.event_date_end && p.event_date_end !== p.event_date_start &&
-                            ` – ${format(new Date(p.event_date_end), 'dd. MMM', { locale: de })}`}
+                            ` – ${format(new Date(p.event_date_end), 'dd. MMM', { locale: dateLocale })}`}
                           {p.location && ` · ${p.location}`}
                         </p>
                       </div>
-                      <Badge
-                        variant={STATUS_VARIANT[p.status] ?? 'secondary'}
-                        className="text-[10px] shrink-0 ml-2"
-                      >
+                      <Badge variant={STATUS_VARIANT[p.status] ?? 'secondary'} className="text-[10px] shrink-0 ml-2">
                         {STATUS_LABEL[p.status] ?? p.status}
                       </Badge>
                     </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 py-6 text-center">
+                  <CalendarDays className="h-8 w-8 text-muted-foreground/30" />
+                  <p className="text-xs text-muted-foreground">{t('dashboard.upcoming_projects.empty')}</p>
+                </div>
+              )}
+              <Link to="/projects" className="flex items-center gap-1 mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                {t('dashboard.upcoming_projects.all_link')} <ArrowRight className="h-3 w-3" />
+              </Link>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-3">
+            <Link
+              to="/projects"
+              className="flex items-center justify-between p-3 sm:p-4 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 active:scale-[0.98] transition-all group"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
+                  <FolderKanban className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-xs sm:text-sm truncate">{t('nav.projects')}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {t('dashboard.projects_card.active_count', {
+                      count: projects.filter(p => p.status !== ('archived' as any)).length
+                    })}
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+            </Link>
+
+            {lentItems.length > 0 && (
+              <Card className="desktop-only border-warning/30">
+                <CardContent className="p-4">
+                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                    <ArrowRightLeft className="h-4 w-4 text-warning" />
+                    {t('dashboard.lent_card.title')}
+                  </h3>
+                  <div className="space-y-1.5">
+                    {lentItems.map((item) => (
+                      <Link key={item.id} to={`/inventory/${item.id}`}
+                        className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/20 active:scale-[0.98] transition-all">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium truncate">{item.name}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {t('dashboard.lent_to', { name: item.lent_to || '–' })}
+                            {item.lent_until && ` · ${t('dashboard.due_until', { date: format(new Date(item.lent_until), 'dd.MM.yy') })}`}
+                          </p>
+                        </div>
+                        {item.isOverdue && (
+                          <Badge variant="destructive" className="text-[10px] shrink-0 ml-2">
+                            {t('dashboard.overdue')}
+                          </Badge>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {defectItems.length > 0 && (
+              <Card className="desktop-only border-destructive/30">
+                <CardContent className="p-4">
+                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                    {t('dashboard.defect_card.title', { count: stats.defect })}
+                  </h3>
+                  <div className="space-y-1.5">
+                    {defectItems.map((item) => (
+                      <Link key={item.id} to={`/inventory/${item.id}`}
+                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/20 active:scale-[0.98] transition-all">
+                        <p className="text-xs font-medium truncate">{item.name}</p>
+                        <span className="text-[11px] text-muted-foreground shrink-0">{item.category}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+
+        {/* ══ 4. MOBILE: Swipeable Lent Items ════════════════════════════════════ */}
+        {lentItems.length > 0 && (
+          <div className="mobile-only">
+            <div className="mobile-section-header">
+              <ArrowRightLeft className="h-3.5 w-3.5" style={{ color: "var(--mob-section-color)" }} />
+              <span className="mobile-section-title">{t('dashboard.lent_section')}</span>
+            </div>
+            {lentItems.map((item) => (
+              <SwipeLentItem
+                key={item.id}
+                item={item}
+                onReturn={async (id) => { await markReturned(id); refetch(); }}
+                onRemind={async (id) => { await deleteRecord(id); hapticFeedback([10, 50, 10]); }}
+              />
+            ))}
+            <Link to="/lending" className="flex items-center gap-1 mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+              {t('dashboard.all_loans')} <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+        )}
+
+        {/* ══ 5. Charts & Aktivitäten ═════════════════════════════════════════════ */}
+        <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
+          <div className="glass-card p-4 sm:p-6" style={{ display: isMobile ? 'none' : 'block' }}>
+            <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
+              <Activity className="h-4 w-4 text-primary" />
+              {t('dashboard.charts.status_distribution')}
+            </h3>
+            {pieData.length > 0 ? (
+              chartsVisible && (
+                <div className="h-[220px] sm:h-[260px] animate-in fade-in duration-1000">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={pieData} cx="50%" cy="50%"
+                        innerRadius={isMobile ? 30 : 55} outerRadius={isMobile ? 60 : 90}
+                        paddingAngle={2} dataKey="value" strokeWidth={0} activeIndex={PIE_ACTIVE_INDEX}>
+                        {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                      </Pie>
+                      <Tooltip content={<PieTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex flex-wrap justify-center gap-2 sm:gap-4 -mt-2">
+                    {pieData.map((d) => (
+                      <div key={d.name} className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs">
+                        <div className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                        <span className="text-muted-foreground truncate">{d.name}</span>
+                        <span className="font-medium shrink-0">{d.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            ) : (
+              <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                <Activity className="h-8 w-8 opacity-20" />
+                <span className="text-sm">{t('dashboard.charts.no_data')}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="glass-card p-4 sm:p-6">
+            <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              {t('dashboard.charts.by_category')}
+            </h3>
+            {categoryData.length > 0 ? (
+              chartsVisible && (
+                <div className="h-[240px] sm:h-[260px] animate-in fade-in duration-1000">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={categoryData} layout="vertical"
+                      margin={{ left: isMobile ? 55 : 80, right: isMobile ? 12 : 16, top: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: isMobile ? 10 : 11, fill: "hsl(var(--muted-foreground))" }} />
+                      <YAxis dataKey="name" type="category" width={isMobile ? 55 : 80}
+                        tick={{ fontSize: isMobile ? 9 : 11, fill: "hsl(var(--muted-foreground))" }} />
+                      <Tooltip content={<BarTooltip />} cursor={{ fill: "rgba(59,130,246,0.1)" }} />
+                      <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]}
+                        activeBar={<AnimatedActiveBar />} label={<BarLabel />} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )
+            ) : (
+              <div className="h-[260px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                <TrendingUp className="h-8 w-8 opacity-20" />
+                <span className="text-sm">{t('dashboard.charts.no_categories')}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
+          <div className="glass-card p-4 sm:p-6" hidden={isMobile}>
+            <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-primary" />
+              {t('dashboard.charts.locations')}
+            </h3>
+            {locationData.length > 0 ? (
+              <div className="space-y-2">
+                {locationData.map(([loc, count]) => {
+                  const pct = stats.total > 0 ? (count / stats.total) * 100 : 0;
+                  return (
+                    <div key={loc} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="truncate font-medium">{loc}</span>
+                        <span className="text-muted-foreground shrink-0 ml-2">
+                          {t('dashboard.charts.piece_count', { count })}
+                        </span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted/40 overflow-hidden">
+                        <div className="h-full rounded-full bg-primary/70 transition-all duration-700" style={{ width: `${Math.max(pct, 2)}%` }} />
+                      </div>
+                    </div>
                   );
                 })}
               </div>
             ) : (
-              /* FIX: Leerer State mit Icon statt reinem Text */
-              <div className="flex flex-col items-center gap-2 py-6 text-center">
-                <CalendarDays className="h-8 w-8 text-muted-foreground/30" />
-                <p className="text-xs text-muted-foreground">Keine Projekte in den nächsten 30 Tagen.</p>
+              <div className="h-[160px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                <MapPin className="h-8 w-8 opacity-20" />
+                <span className="text-sm">{t('dashboard.charts.no_locations')}</span>
               </div>
             )}
-            <Link
-              to="/projects"
-              className="flex items-center gap-1 mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Alle Projekte <ArrowRight className="h-3 w-3" />
-            </Link>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-3">
-          <Link
-            to="/projects"
-            className="flex items-center justify-between p-3 sm:p-4 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 active:scale-[0.98] transition-all group"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
-                <FolderKanban className="h-4 w-4 text-primary" />
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-xs sm:text-sm truncate">Projekte</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {projects.filter(p => p.status !== ('archived' as any)).length} aktive Projekte
-                </p>
-              </div>
-            </div>
-            <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
-          </Link>
-
-          {lentItems.length > 0 && (
-            <Card className="desktop-only border-warning/30">
-              <CardContent className="p-4">
-                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                  <ArrowRightLeft className="h-4 w-4 text-warning" />
-                  Verliehene Artikel
-                </h3>
-                <div className="space-y-1.5">
-                  {lentItems.map((item) => (
-                    <Link key={item.id} to={`/inventory/${item.id}`}
-                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/20 active:scale-[0.98] transition-all">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium truncate">{item.name}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">
-                          an {item.lent_to || '–'}
-                          {item.lent_until && ` · bis ${format(new Date(item.lent_until), 'dd.MM.yy')}`}
-                        </p>
-                      </div>
-                      {item.isOverdue && (
-                        <Badge variant="destructive" className="text-[10px] shrink-0 ml-2">Überfällig</Badge>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {defectItems.length > 0 && (
-            <Card className="desktop-only border-destructive/30">
-              <CardContent className="p-4">
-                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-destructive" />
-                  Defekte Artikel ({stats.defect})
-                </h3>
-                <div className="space-y-1.5">
-                  {defectItems.map((item) => (
-                    <Link key={item.id} to={`/inventory/${item.id}`}
-                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/20 active:scale-[0.98] transition-all">
-                      <p className="text-xs font-medium truncate">{item.name}</p>
-                      <span className="text-[11px] text-muted-foreground shrink-0">{item.category}</span>
-                    </Link>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-
-      {/* ══ 4. MOBILE: Swipeable Lent Items ════════════════════════════════════ */}
-      {lentItems.length > 0 && (
-        <div className="mobile-only">
-          <div className="mobile-section-header">
-            <ArrowRightLeft className="h-3.5 w-3.5" style={{ color: "var(--mob-section-color)" }} />
-            <span className="mobile-section-title">Verliehen · Links wischen</span>
           </div>
-          {lentItems.map((item) => (
-            <SwipeLentItem
-              key={item.id}
-              item={item}
-              onReturn={async (id) => {
-                await markReturned(id);
-                refetch();
-              }}
-              onRemind={async (id) => {
-                await deleteRecord(id);
-                hapticFeedback([10, 50, 10]);
-              }}
-            />
-          ))}
-          <Link to="/lending" className="flex items-center gap-1 mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-            Alle Ausleihen <ArrowRight className="h-3 w-3" />
-          </Link>
-        </div>
-      )}
 
-      {/* ══ 5. Charts & Aktivitäten ═════════════════════════════════════════════ */}
-      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
-        <div className="glass-card p-4 sm:p-6" style={{ display: isMobile ? 'none' : 'block' }}>
-          <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
-            <Activity className="h-4 w-4 text-primary" />
-            Status-Verteilung
-          </h3>
-          {pieData.length > 0 ? (
-            chartsVisible && (
-              <div className="h-[220px] sm:h-[260px] animate-in fade-in duration-1000">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={pieData} cx="50%" cy="50%"
-                      innerRadius={isMobile ? 30 : 55} outerRadius={isMobile ? 60 : 90}
-                      paddingAngle={2} dataKey="value" strokeWidth={0} activeIndex={PIE_ACTIVE_INDEX}>
-                      {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                    </Pie>
-                    <Tooltip content={<PieTooltip />} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="flex flex-wrap justify-center gap-2 sm:gap-4 -mt-2">
-                  {pieData.map((d) => (
-                    <div key={d.name} className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs">
-                      <div className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full" style={{ backgroundColor: d.color }} />
-                      <span className="text-muted-foreground truncate">{d.name}</span>
-                      <span className="font-medium shrink-0">{d.value}</span>
+          <div className="glass-card p-4 sm:p-6">
+            <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
+              <Clock className="h-4 w-4 text-primary" />
+              {t('dashboard.charts.recent_activity')}
+            </h3>
+            {recentActivities.length > 0 ? (
+              <div className="space-y-2">
+                {recentActivities.map((activity, index) => (
+                  <div
+                    key={activity.id + activity.time}
+                    className="activity-item flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors"
+                    style={{ animationDelay: `${index * 60}ms` }}
+                  >
+                    <div className={`p-1.5 rounded-full flex-shrink-0 ${
+                      activity.type === "lent"     ? "bg-warning/20 text-warning"
+                      : activity.type === "returned" ? "bg-primary/20 text-primary"
+                      : "bg-destructive/20 text-destructive"
+                    }`}>
+                      {activity.type === "lent"     ? <ArrowRightLeft className="h-3 w-3" />
+                       : activity.type === "returned" ? <CheckCircle className="h-3 w-3" />
+                       : <AlertTriangle className="h-3 w-3" />}
                     </div>
-                  ))}
-                </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{activity.message}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {format(new Date(activity.time), "dd. MMM yyyy, HH:mm", { locale: dateLocale })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            )
-          ) : (
-            /* FIX: Skeleton statt leerem Div während Charts laden */
-            <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
-              <Activity className="h-8 w-8 opacity-20" />
-              <span className="text-sm">Keine Daten vorhanden</span>
-            </div>
-          )}
-        </div>
-
-        <div className="glass-card p-4 sm:p-6">
-          <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-primary" />
-            Artikel nach Kategorie
-          </h3>
-          {categoryData.length > 0 ? (
-            chartsVisible && (
-              <div className="h-[240px] sm:h-[260px] animate-in fade-in duration-1000">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={categoryData} layout="vertical"
-                    margin={{ left: isMobile ? 55 : 80, right: isMobile ? 12 : 16, top: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: isMobile ? 10 : 11, fill: "hsl(var(--muted-foreground))" }} />
-                    <YAxis dataKey="name" type="category" width={isMobile ? 55 : 80}
-                      tick={{ fontSize: isMobile ? 9 : 11, fill: "hsl(var(--muted-foreground))" }} />
-                    <Tooltip content={<BarTooltip />} cursor={{ fill: "rgba(59,130,246,0.1)" }} />
-                    <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]}
-                      activeBar={<AnimatedActiveBar />} label={<BarLabel />} />
-                  </BarChart>
-                </ResponsiveContainer>
+            ) : (
+              <div className="h-[160px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                <Clock className="h-8 w-8 opacity-20" />
+                <span className="text-sm">{t('dashboard.charts.no_activity')}</span>
               </div>
-            )
-          ) : (
-            <div className="h-[260px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
-              <TrendingUp className="h-8 w-8 opacity-20" />
-              <span className="text-sm">Keine Kategorien vorhanden</span>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
-
-      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
-        <div className="glass-card p-4 sm:p-6" hidden={isMobile}>
-          <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-primary" />
-            Standorte
-          </h3>
-          {locationData.length > 0 ? (
-            <div className="space-y-2">
-              {locationData.map(([loc, count]) => {
-                const pct = stats.total > 0 ? (count / stats.total) * 100 : 0;
-                return (
-                  <div key={loc} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="truncate font-medium">{loc}</span>
-                      <span className="text-muted-foreground shrink-0 ml-2">{count} Stück</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted/40 overflow-hidden">
-                      <div className="h-full rounded-full bg-primary/70 transition-all duration-700" style={{ width: `${Math.max(pct, 2)}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="h-[160px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
-              <MapPin className="h-8 w-8 opacity-20" />
-              <span className="text-sm">Keine Standorte vorhanden.</span>
-            </div>
-          )}
-        </div>
-
-        <div className="glass-card p-4 sm:p-6">
-          <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-primary" />
-            Aktuelle Aktivitäten
-          </h3>
-          {recentActivities.length > 0 ? (
-            <div className="space-y-2">
-              {/* FIX: Stagger-Animation pro Item */}
-              {recentActivities.map((activity, index) => (
-                <div
-                  key={activity.id + activity.time}
-                  className={`activity-item flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors`}
-                  style={{ animationDelay: `${index * 60}ms` }}
-                >
-                  <div className={`p-1.5 rounded-full flex-shrink-0 ${
-                    activity.type === "lent" ? "bg-warning/20 text-warning"
-                    : activity.type === "returned" ? "bg-primary/20 text-primary"
-                    : "bg-destructive/20 text-destructive"
-                  }`}>
-                    {activity.type === "lent" ? <ArrowRightLeft className="h-3 w-3" />
-                     : activity.type === "returned" ? <CheckCircle className="h-3 w-3" />
-                     : <AlertTriangle className="h-3 w-3" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium truncate">{activity.message}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {format(new Date(activity.time), "dd. MMM yyyy, HH:mm", { locale: de })}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="h-[160px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
-              <Clock className="h-8 w-8 opacity-20" />
-              <span className="text-sm">Keine aktuellen Aktivitäten</span>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
     </PullToRefreshWrapper>
   );
 }

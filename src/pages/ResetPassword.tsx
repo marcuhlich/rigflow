@@ -6,17 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
-
-const passwordSchema = z
-  .object({
-    password: z.string().min(6, "Passwort muss mindestens 6 Zeichen lang sein"),
-    confirm: z.string(),
-  })
-  .refine((d) => d.password === d.confirm, {
-    message: "Passwörter stimmen nicht überein",
-    path: ["confirm"],
-  });
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
@@ -29,6 +20,17 @@ const ResetPassword = () => {
 
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
+
+  const passwordSchema = z
+    .object({
+      password: z.string().min(6, t("auth.errors.password_too_short")),
+      confirm: z.string(),
+    })
+    .refine((d) => d.password === d.confirm, {
+      message: t("auth.passwords_dont_match"),
+      path: ["confirm"],
+    });
 
   // Supabase sends the user back with an access_token in the URL hash.
   // We need to wait for the SIGNED_IN event that fires automatically.
@@ -68,8 +70,8 @@ const ResetPassword = () => {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
         toast({
-          title: "Fehler",
-          description: "Passwort konnte nicht geändert werden. Bitte fordere einen neuen Link an.",
+          title: t("common.error"),
+          description: t("auth.change_password_error"),
           variant: "destructive",
         });
       } else {
@@ -101,26 +103,28 @@ const ResetPassword = () => {
               <div className="flex justify-center">
                 <CheckCircle2 className="h-12 w-12 text-green-500" />
               </div>
-              <h2 className="text-xl font-semibold">Passwort geändert!</h2>
+              <h2 className="text-xl font-semibold">{t("auth.password_changed_title")}</h2>
               <p className="text-sm text-muted-foreground">
-                Du wirst in wenigen Sekunden zum Login weitergeleitet…
+                {t("auth.password_changed_description")}
               </p>
             </div>
           ) : !sessionReady ? (
             <div className="text-center space-y-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-              <p className="text-sm text-muted-foreground">Link wird überprüft…</p>
+              <p className="text-sm text-muted-foreground">{t("auth.verifying_link")}</p>
             </div>
           ) : (
             <>
-              <h2 className="text-xl font-semibold text-center mb-2">Neues Passwort</h2>
+              <h2 className="text-xl font-semibold text-center mb-2">
+                {t("auth.reset_password_title")}
+              </h2>
               <p className="text-sm text-muted-foreground text-center mb-6">
-                Gib dein neues Passwort ein.
+                {t("auth.reset_password_description")}
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="password">Neues Passwort</Label>
+                  <Label htmlFor="password">{t("auth.new_password_label")}</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
                     <Input
@@ -137,7 +141,7 @@ const ResetPassword = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirm">Passwort bestätigen</Label>
+                  <Label htmlFor="confirm">{t("auth.confirm_password_label")}</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
                     <Input
@@ -158,17 +162,17 @@ const ResetPassword = () => {
                   onClick={() => setShowPassword((v) => !v)}
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {showPassword ? "Passwörter verbergen" : "Passwörter anzeigen"}
+                  {showPassword ? t("auth.hide_passwords") : t("auth.show_passwords")}
                 </button>
 
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Bitte warten...
+                      {t("common.please_wait")}
                     </>
                   ) : (
-                    "Passwort speichern"
+                    t("auth.save_password")
                   )}
                 </Button>
               </form>
