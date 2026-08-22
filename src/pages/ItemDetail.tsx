@@ -366,6 +366,27 @@ export default function ItemDetail() {
                           <p className="text-lg mt-1">{item.accessories}</p>
                         </div>
                       )}
+                      {item.weight_kg && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">{t('item_form.label.weight_kg')}</label>
+                          <p className="text-lg mt-1">{item.weight_kg} kg</p>
+                        </div>
+                      )}
+                      {item.units_per_case && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">{t('item_form.label.units_per_case')}</label>
+                          <p className="text-lg mt-1">{item.units_per_case}er Case</p>
+                        </div>
+                      )}
+                      {item.dimensions_cm && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">{t('item_form.label.dimensions')}</label>
+                          <p className="text-lg mt-1">
+                            {[(item.dimensions_cm as any).length, (item.dimensions_cm as any).width, (item.dimensions_cm as any).height]
+                              .filter(Boolean).join(' × ')} cm
+                          </p>
+                        </div>
+                      )}
                       {item.condition === "verliehen" && item.lent_to && (
                         <>
                           <div>

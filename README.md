@@ -4,7 +4,7 @@
 
 Nutze RigFlow im Browser, als installierbare PWA auf Smartphone/Tablet oder als Desktop-App für Windows.
 
-[![Live Demo](https://img.shields.io/badge/Live-rigflow--web.vercel.app-blue?style=flat-square)](https://rigflow.net)
+[![Live Demo](https://img.shields.io/badge/Live-rigflow.net-blue?style=flat-square)](https://rigflow.net)
 [![React 18](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)](https://react.dev)
 [![TypeScript 5](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)](https://typescriptlang.org)
 [![Tailwind CSS 3](https://img.shields.io/badge/Tailwind-3-06B6D4?style=flat-square&logo=tailwindcss)](https://tailwindcss.com)
@@ -539,18 +539,27 @@ build/
 3. Über den grünen Playbutton Preview starten
 4. Entweder auf virtuellem Gerät anzeigen, oder App auf echtem Gerät über USB-Debugging anzeigen (empfohlen)
 
-#### Build App Bundle (für Google Play)
+#### App builden
+
+##### Build App Bundle (für Google Play)
 
 ```bash
 ./gradlew bundleRelease
 # Bundle ist unter: android/app/build/outputs/bundle/release/
 ```
 
-#### Installation auf Gerät
+##### Installation auf Gerät
 
 ```bash
 # Falls ADB installiert:
 adb install android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+##### Build APK
+
+```bash
+./gradlew assembleRelease
+# APK ist unter android/app/build/outputs/apk/release/app-release.apk
 ```
 
 ---

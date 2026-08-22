@@ -24,7 +24,8 @@ export interface Category {
 export interface LichtAttributes {
   lamp_type?: 'LED' | 'Halogen' | 'Entladung' | 'Laser';
   cooling?:   'Aktiv' | 'Passiv';
-  beam_angle?: number;
+  beam_angle_min?: number;
+  beam_angle_max?: number;
   dmx_mode?:  string;
 }
 export interface AudioAttributes {
@@ -80,6 +81,9 @@ export interface InventoryItem {
   dmx_channels?: number | null;
   dmx_universe?: number | null;
   unit_price?: number | null;
+  weight_kg?: number | null;
+  units_per_case?: number | null;
+  dimensions_cm?: { length?: number; width?: number; height?: number; } | null;
   image_url?: string | null;
   attributes?: ItemAttributes | null;
   tags: string[];

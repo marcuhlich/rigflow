@@ -35,7 +35,8 @@
     "decline": "Ablehnen",
     "accept": "Akzeptieren",
     "later": "Später",
-    "next":"Weiter"
+    "next":"Weiter",
+    "saved": "Gespeichert"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -468,10 +469,12 @@
     "btn_add": "Hinzufügen",
     "category_properties": "{{name}}-Eigenschaften",
     "tags_hint": "Enter oder Komma = Tag hinzufügen",
+    "section_physical": "Physische Eigenschaften",
     "error": {
       "name_required": "Name ist erforderlich",
       "category_required": "Kategorie ist erforderlich",
-      "quantity_zero": "Menge darf nicht 0 sein"
+      "quantity_zero": "Menge darf nicht 0 sein",
+      "units_per_case_exceeds_quantity": "Kann nicht größer sein als die Gesamtmenge"
     },
     "label": {
       "name": "Name",
@@ -487,7 +490,16 @@
       "dmx_start_address": "Startadresse",
       "dmx_channels": "Kanäle",
       "tags": "Tags",
-      "photo": "Foto"
+      "photo": "Foto",
+      "weight_kg": "Gewicht (kg)",
+      "units_per_case": "Stück pro Case",
+      "units_per_case_hint": "z. B. 2 = 2er Case, 4 = 4er Case",
+      "weight_dimensions": "Maße & Gewicht",
+      "notes_photo": "Notizen & Foto",
+      "dim_length": "Länge (cm)",
+      "dim_width": "Breite (cm)",
+      "dim_height": "Höhe (cm)",
+      "dimensions": "Maße (L × B × H)"
     },
     "placeholder": {
       "name": "z.B. Moving Head LED",
@@ -508,7 +520,8 @@
     "licht": {
       "lamp_type": "Lampentyp",
       "cooling": "Kühlung",
-      "beam_angle": "Abstrahlwinkel",
+      "beam_angle_min": "Abstrahlwinkel min.",
+      "beam_angle_max": "Abstrahlwinkel max.",
       "dmx_mode": "DMX-Modus"
     },
     "audio": {

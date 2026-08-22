@@ -292,7 +292,7 @@ export const InventoryGrid = React.memo(function InventoryGrid({
                       <h3 className="font-semibold truncate text-sm sm:text-base leading-tight">
                         {item.name}
                       </h3>
-                      <p className="text-xs text-muted-foreground truncate">{item.category}</p>
+                      <p className="text-xs text-muted-foreground uppercase truncate">{item.category}</p>
                     </div>
                     <StatusBadge condition={item.condition} />
                   </div>
@@ -326,7 +326,7 @@ export const InventoryGrid = React.memo(function InventoryGrid({
                   )}
 
                   {item.dmx_start_address && (
-                    <div className="mt-2 text-xs text-primary/80 bg-primary/10 rounded px-2 py-0.5 inline-block w-fit">
+                    <div className="dmx-badge mt-2 text-xs text-primary/80 bg-primary/10 rounded px-2 py-0.5 inline-block w-fit">
                       DMX U{item.dmx_universe || 1}/{item.dmx_start_address}–
                       {(item.dmx_start_address || 0) + (item.dmx_channels || 1) - 1}
                     </div>

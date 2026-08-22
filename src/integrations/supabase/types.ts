@@ -332,6 +332,9 @@ export type Database = {
           notes: string | null
           quantity: number
           unit_price: number | null
+          weight_kg: number | null
+          units_per_case: number | null
+          dimensions_cm: Json | null
           updated_at: string
           user_id: string
         }
@@ -355,6 +358,9 @@ export type Database = {
           notes?: string | null
           quantity?: number
           unit_price?: number | null
+          weight_kg?: number | null
+          units_per_case?: number | null
+          dimensions_cm?: Json | null
           updated_at?: string
           user_id: string
         }
