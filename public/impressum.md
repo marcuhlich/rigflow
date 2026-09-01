@@ -8,7 +8,7 @@ Angaben gemäß § 5 TMG
 
 Marc Uhlich  
 c/o flexdienst – #21087  
-Kurt-Schumacher-Straße 76  
+Kurt-Schumacher-Straße 74  
 67663 Kaiserslautern  
 Deutschland
 
