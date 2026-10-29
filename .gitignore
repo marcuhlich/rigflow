@@ -33,3 +33,8 @@ assets/icon-background.png
 
 # Sonstiges
 .nextcloudignore
+# Supabase CLI local cache
+supabase/.temp/
+
+# Claude Code local settings
+.claude/settings.local.json

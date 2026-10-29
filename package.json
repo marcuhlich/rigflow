@@ -1,5 +1,8 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "rigflow",
+  "description": "Inventory, lending, projects and DMX patch planning for event technicians",
+  "license": "AGPL-3.0-only",
+  "repository": "github:marcuhlich/rigflow",
   "private": true,
   "version": "1.0.0",
   "type": "module",
