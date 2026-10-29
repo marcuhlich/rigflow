@@ -151,7 +151,7 @@ export function useInventory() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (userId) posthog.identify(userId);
+    if (userId && localStorage.getItem(ANALYTICS_CONSENT_KEY) === 'true') posthog.identify(userId);
   }, [userId]);
 
   // ── Queries ────────────────────────────────────────────────────────────────

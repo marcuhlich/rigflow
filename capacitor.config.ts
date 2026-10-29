@@ -13,7 +13,7 @@ const config: CapacitorConfig = {
   plugins: {
     LocalNotifications: {
       smallIcon: 'ic_stat_rigflow',
-      iconColor: '#6366f1',
+      iconColor: '#F59E0B',
       sound: 'default',
     },
   },

@@ -2,7 +2,7 @@ import './i18n';
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import { initializePostHog } from "./lib/consentUtils";
+import { hasAnalyticsConsent, initializePostHog } from "./lib/consentUtils";
 import { logger } from "./lib/logger";
 
 // Chunk-Ladefehler abfangen (z.B. nach Deployments) – aber nicht in eine Reload-Schleife geraten,
@@ -20,10 +20,11 @@ window.addEventListener('vite:preloadError', (event) => {
   window.location.reload();
 });
 
-// Initialize PostHog (consent is managed in App.tsx via ConsentGuard).
+// PostHog is only loaded after consent: even with capturing opted out it would
+// still fetch and show surveys. Without consent, ConsentScreen initializes it on "accept".
 // Analytics must never prevent the app from rendering.
 try {
-  initializePostHog();
+  if (hasAnalyticsConsent()) initializePostHog();
 } catch (error) {
   logger.error('main', 'PostHog initialization failed', error);
 }
