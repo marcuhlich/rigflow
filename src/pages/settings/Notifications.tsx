@@ -1,24 +1,18 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import {
-  ChevronLeft,
-  Bell,
-  Package,
-  CheckSquare,
-  Users,
-  ShieldAlert,
-} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { BellOff, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { isNative } from '@/services/platform';
+import { isNative } from "@/services/platform";
 import {
   checkNativeNotificationPermission,
   requestNativeNotificationPermission,
-} from '@/services/native/notifications';
-import { useTranslation } from 'react-i18next';
-
-// ─── Types ───────────────────────────────────────────────────────────────────
+} from "@/services/native/notifications";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { PageHeader } from "@/components/PageHeader";
+import { SettingsPage, SettingsRow, SettingsSection } from "@/components/settings/SettingsSection";
 
 interface NotificationPrefs {
   loanReminders: boolean;
@@ -27,6 +21,8 @@ interface NotificationPrefs {
   securityAlerts: boolean;
 }
 
+type PrefKey = keyof NotificationPrefs;
+
 const DEFAULTS: NotificationPrefs = {
   loanReminders: true,
   checklistUpdates: true,
@@ -34,253 +30,183 @@ const DEFAULTS: NotificationPrefs = {
   securityAlerts: true,
 };
 
-// ─── Toggle Component ─────────────────────────────────────────────────────────
+const ROWS: { key: PrefKey; i18n: string }[] = [
+  { key: "loanReminders", i18n: "loan_reminders" },
+  { key: "checklistUpdates", i18n: "checklist_updates" },
+  { key: "newMembers", i18n: "new_members" },
+  { key: "securityAlerts", i18n: "security_alerts" },
+];
 
-interface ToggleProps {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  disabled?: boolean;
-  saving?: boolean;
+/** "unsupported": no notification API at all (e.g. iOS Safari outside a PWA). */
+type PushState = "loading" | "granted" | "blocked" | "unsupported";
+
+function readPrefs(raw: unknown): NotificationPrefs {
+  if (!raw || typeof raw !== "object") return DEFAULTS;
+  const r = raw as Partial<Record<PrefKey, unknown>>;
+  const pick = (k: PrefKey) => (typeof r[k] === "boolean" ? (r[k] as boolean) : DEFAULTS[k]);
+  return {
+    loanReminders: pick("loanReminders"),
+    checklistUpdates: pick("checklistUpdates"),
+    newMembers: pick("newMembers"),
+    securityAlerts: pick("securityAlerts"),
+  };
 }
-
-const Toggle = ({ checked, onChange, disabled, saving }: ToggleProps) => (
-  <button
-    role="switch"
-    aria-checked={checked}
-    disabled={disabled || saving}
-    onClick={() => onChange(!checked)}
-    className={`
-      relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2
-      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
-      disabled:cursor-not-allowed
-      transition-colors duration-300
-      ${checked ? "bg-primary border-primary" : "bg-muted border-border"}
-      ${saving ? "opacity-80" : "opacity-100"}
-    `}
-  >
-    {saving && (
-      <span className={`
-        absolute inset-0 rounded-full animate-ping opacity-30
-        ${checked ? "bg-primary" : "bg-muted-foreground"}
-      `} />
-    )}
-    <span
-      className={`
-        pointer-events-none relative inline-block h-4 w-4 rounded-full shadow-md
-        transition-all duration-300 ease-in-out
-        ${checked ? "translate-x-5" : "translate-x-0.5"}
-        ${saving
-          ? "scale-90 bg-white/80"
-          : checked
-            ? "scale-100 bg-primary-foreground"
-            : "scale-100 bg-muted-foreground/60"
-        }
-      `}
-    >
-      {saving && (
-        <span className="absolute inset-1 rounded-full bg-primary/60 animate-pulse" />
-      )}
-    </span>
-  </button>
-);
-
-// ─── Notification Row ─────────────────────────────────────────────────────────
-
-interface NotificationRowProps {
-  icon: React.ReactNode;
-  label: string;
-  description: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  disabled?: boolean;
-  disabledReason?: string;
-  saving?: boolean;
-}
-
-const NotificationRow = ({
-  icon,
-  label,
-  description,
-  checked,
-  onChange,
-  disabled,
-  disabledReason,
-  saving,
-}: NotificationRowProps) => (
-  <div className={`flex items-start gap-4 py-4 ${disabled ? "opacity-60" : ""}`}>
-    <div className={`mt-0.5 p-2 rounded-lg shrink-0 ${checked && !disabled ? "bg-primary/15 text-primary" : "bg-muted/50 text-muted-foreground"} transition-colors duration-300`}>
-      {icon}
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className="text-sm font-medium text-foreground leading-tight">{label}</p>
-      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-        {disabled && disabledReason ? disabledReason : description}
-      </p>
-    </div>
-    <div className="shrink-0 flex items-center mt-0.5">
-      <Toggle checked={checked} onChange={onChange} disabled={disabled} saving={saving} />
-    </div>
-  </div>
-);
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
 
 const Notifications = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t } = useTranslation();
 
-  const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULTS);
-  const [savingKey, setSavingKey] = useState<keyof NotificationPrefs | null>(null);
-  const [pushGranted, setPushGranted] = useState<boolean | null>(null);
+  const [prefs, setPrefs] = useState<NotificationPrefs>(() => readPrefs(user?.user_metadata?.notification_prefs));
+  const [savingKey, setSavingKey] = useState<PrefKey | null>(null);
+  const [push, setPush] = useState<PushState>("loading");
+  const [requesting, setRequesting] = useState(false);
+  const mounted = useRef(true);
 
   useEffect(() => {
-    const saved = user?.user_metadata?.notification_prefs;
-    if (saved) setPrefs({ ...DEFAULTS, ...saved });
-  }, [user]);
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  const savedPrefs = user?.user_metadata?.notification_prefs;
+  useEffect(() => {
+    setPrefs(readPrefs(savedPrefs));
+  }, [savedPrefs]);
 
   useEffect(() => {
+    let cancelled = false;
     const check = async () => {
+      let next: PushState;
       if (isNative()) {
         const p = await checkNativeNotificationPermission();
-        setPushGranted(p === 'granted');
-      } else if ('Notification' in window) {
-        setPushGranted(Notification.permission === 'granted');
+        next = p === "granted" ? "granted" : "blocked";
+      } else if ("Notification" in window) {
+        next = Notification.permission === "granted" ? "granted" : "blocked";
       } else {
-        setPushGranted(false);
+        next = "unsupported";
       }
+      if (!cancelled) setPush(next);
     };
-    check();
+    check().catch(() => {
+      if (!cancelled) setPush("unsupported");
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const requestPushPermission = async () => {
-    if (isNative()) {
-      const result = await requestNativeNotificationPermission();
-      setPushGranted(result === 'granted');
-      if (result !== 'granted') {
+    setRequesting(true);
+    try {
+      if (isNative()) {
+        const result = await requestNativeNotificationPermission();
+        if (!mounted.current) return;
+        setPush(result === "granted" ? "granted" : "blocked");
+        if (result !== "granted") {
+          toast({
+            title: t("notifications.push_blocked_title"),
+            description:
+              result === "denied"
+                ? t("notifications.push_blocked_native_denied")
+                : t("notifications.push_blocked_native_other"),
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+      if (!("Notification" in window)) return;
+      const result = await Notification.requestPermission();
+      if (!mounted.current) return;
+      setPush(result === "granted" ? "granted" : "blocked");
+      if (result !== "granted") {
         toast({
-          title: t('notifications.push_blocked_title'),
-          description: result === 'denied'
-            ? t('notifications.push_blocked_native_denied')
-            : t('notifications.push_blocked_native_other'),
-          variant: 'destructive',
+          title: t("notifications.push_blocked_title"),
+          description: t("notifications.push_blocked_web"),
+          variant: "destructive",
         });
       }
-      return;
-    }
-
-    if (!('Notification' in window)) return;
-    const result = await Notification.requestPermission();
-    setPushGranted(result === 'granted');
-    if (result !== 'granted') {
-      toast({
-        title: t('notifications.push_blocked_title'),
-        description: t('notifications.push_blocked_web'),
-        variant: 'destructive',
-      });
+    } catch {
+      toast({ title: t("notifications.push_blocked_title"), variant: "destructive" });
+    } finally {
+      if (mounted.current) setRequesting(false);
     }
   };
 
-  const handleToggle = async (key: keyof NotificationPrefs, value: boolean) => {
+  const handleToggle = async (key: PrefKey, value: boolean) => {
+    const previous = prefs;
     const updated = { ...prefs, [key]: value };
     setPrefs(updated);
     setSavingKey(key);
 
-    try {
-      const { error } = await supabase.auth.updateUser({
-        data: { notification_prefs: updated },
-      });
-      if (error) throw error;
+    const { error } = await supabase.auth.updateUser({ data: { notification_prefs: updated } });
+    if (!mounted.current) return;
+    setSavingKey(null);
 
-      toast({
-        title: value ? t('notifications.toast_enabled') : t('notifications.toast_disabled'),
-        description: t('notifications.toast_saved'),
-      });
-    } catch {
-      setPrefs(prefs);
-      toast({
-        title: t('common.error'),
-        description: t('notifications.toast_error'),
-        variant: 'destructive',
-      });
-    } finally {
-      setSavingKey(null);
+    if (error) {
+      setPrefs(previous);
+      toast({ title: t("common.error"), description: t("notifications.toast_error"), variant: "destructive" });
+      return;
     }
+    toast({
+      title: value ? t("notifications.toast_enabled") : t("notifications.toast_disabled"),
+      description: t("notifications.toast_saved"),
+    });
   };
 
-  const pushDisabled = pushGranted === false;
+  const pushOff = push === "blocked" || push === "unsupported";
 
   return (
-    <div className="min-h-screen">
-      <div className="max-w-lg mx-auto px-4 py-8 space-y-5">
+    <SettingsPage>
+      <PageHeader title={t("settings.notifications")} description={t("notifications.footer_hint")} />
 
-        {/* Push permission banner */}
-        {pushGranted === false && (
-          <button
-            onClick={requestPushPermission}
-            className="w-full glass-card p-4 flex items-start gap-3 text-left border border-accent/30 bg-accent/5 hover:bg-accent/10 transition-colors"
-          >
-            <Bell className="h-5 w-5 text-accent shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold text-accent">
-                {t('notifications.push_banner_title')}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {t('notifications.push_banner_description')}
-              </p>
-            </div>
-          </button>
-        )}
-
-        {/* Main toggles */}
-        <div className="glass-card px-4 divide-y divide-border/50">
-          <NotificationRow
-            icon={<Package className="h-4 w-4" />}
-            label={t('notifications.loan_reminders_label')}
-            description={t('notifications.loan_reminders_description')}
-            checked={prefs.loanReminders}
-            onChange={(v) => handleToggle("loanReminders", v)}
-            disabled={pushDisabled}
-            disabledReason={t('notifications.push_disabled_reason')}
-            saving={savingKey === "loanReminders"}
-          />
-          <NotificationRow
-            icon={<CheckSquare className="h-4 w-4" />}
-            label={t('notifications.checklist_updates_label')}
-            description={t('notifications.checklist_updates_description')}
-            checked={prefs.checklistUpdates}
-            onChange={(v) => handleToggle("checklistUpdates", v)}
-            disabled={pushDisabled}
-            disabledReason={t('notifications.push_disabled_reason')}
-            saving={savingKey === "checklistUpdates"}
-          />
-          <NotificationRow
-            icon={<Users className="h-4 w-4" />}
-            label={t('notifications.new_members_label')}
-            description={t('notifications.new_members_description')}
-            checked={prefs.newMembers}
-            onChange={(v) => handleToggle("newMembers", v)}
-            disabled={pushDisabled}
-            disabledReason={t('notifications.push_disabled_reason')}
-            saving={savingKey === "newMembers"}
-          />
-          <NotificationRow
-            icon={<ShieldAlert className="h-4 w-4" />}
-            label={t('notifications.security_alerts_label')}
-            description={t('notifications.security_alerts_description')}
-            checked={prefs.securityAlerts}
-            onChange={(v) => handleToggle("securityAlerts", v)}
-            disabled={pushDisabled}
-            disabledReason={t('notifications.push_disabled_reason')}
-            saving={savingKey === "securityAlerts"}
-          />
+      {push === "blocked" && (
+        <div className="surface flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center">
+          <BellOff className="hidden h-4 w-4 shrink-0 text-warning sm:block" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">{t("notifications.push_banner_title")}</p>
+            <p className="mt-0.5 text-[13px] text-muted-foreground">{t("notifications.push_banner_description")}</p>
+          </div>
+          <Button size="sm" onClick={() => void requestPushPermission()} disabled={requesting}>
+            {requesting && <Loader2 className="animate-spin" />}
+            {t("notifications.push_allow")}
+          </Button>
         </div>
+      )}
 
-        <p className="text-xs text-muted-foreground text-center px-4">
-          {t('notifications.footer_hint')}
-        </p>
-      </div>
-    </div>
+      {push === "unsupported" && (
+        <div className="surface flex items-start gap-3 px-4 py-3.5">
+          <BellOff className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <p className="text-[13px] text-muted-foreground">{t("notifications.push_unsupported")}</p>
+        </div>
+      )}
+
+      <SettingsSection>
+        {ROWS.map(({ key, i18n }) => {
+          const id = `notif-${key}`;
+          return (
+            <SettingsRow
+              key={key}
+              htmlFor={id}
+              disabled={pushOff}
+              label={t(`notifications.${i18n}_label`)}
+              description={
+                pushOff ? t("notifications.push_disabled_reason") : t(`notifications.${i18n}_description`)
+              }
+              control={
+                <Switch
+                  id={id}
+                  checked={prefs[key]}
+                  disabled={pushOff || push === "loading" || savingKey !== null}
+                  onCheckedChange={(v) => void handleToggle(key, v)}
+                />
+              }
+            />
+          );
+        })}
+      </SettingsSection>
+    </SettingsPage>
   );
 };
 

@@ -1,237 +1,85 @@
-import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import {
-  ArrowLeft, Shield, Wifi, QrCode,
-  SlidersHorizontal, Wrench, Package
-} from 'lucide-react';
+import { useTranslation } from "react-i18next";
+import { Package, QrCode, Shield, SlidersHorizontal, Wifi, Wrench } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
+import { SettingsPage, SettingsRow, SettingsSection } from "@/components/settings/SettingsSection";
 
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+// App version – hier anpassen
+const APP_VERSION = "1.0.0-beta";
+const BUILD_YEAR = "2026";
 
-// ── App version – hier anpassen ─────────────────────────────────────────────
-const APP_VERSION = '1.0.0-beta';
-const BUILD_DATE = '2026';
+const VALUES = [
+  { key: "offline_first", icon: Wifi },
+  { key: "qr_workflow", icon: QrCode },
+  { key: "dmx_management", icon: SlidersHorizontal },
+  { key: "maintenance", icon: Wrench },
+  { key: "project_packages", icon: Package },
+  { key: "data_security", icon: Shield },
+] as const;
 
-const CSS = `
-  @keyframes pageSlideIn { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
-  .page-enter { animation: pageSlideIn 0.38s cubic-bezier(0.22,1,0.36,1) forwards; }
-
-  @keyframes fadeUp {
-    from { opacity:0; transform:translateY(18px); }
-    to   { opacity:1; transform:translateY(0); }
-  }
-  .au-0 { animation: fadeUp 0.5s cubic-bezier(0.22,1,0.36,1) both; animation-delay: 0ms;   }
-  .au-1 { animation: fadeUp 0.5s cubic-bezier(0.22,1,0.36,1) both; animation-delay: 80ms;  }
-  .au-2 { animation: fadeUp 0.5s cubic-bezier(0.22,1,0.36,1) both; animation-delay: 160ms; }
-  .au-3 { animation: fadeUp 0.5s cubic-bezier(0.22,1,0.36,1) both; animation-delay: 240ms; }
-  .au-4 { animation: fadeUp 0.5s cubic-bezier(0.22,1,0.36,1) both; animation-delay: 320ms; }
-  .au-5 { animation: fadeUp 0.5s cubic-bezier(0.22,1,0.36,1) both; animation-delay: 400ms; }
-
-  @keyframes logoPulse {
-    0%,100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.25); }
-    50%      { box-shadow: 0 0 0 14px hsl(var(--primary) / 0); }
-  }
-  .logo-pulse { animation: logoPulse 3s ease-in-out infinite; }
-
-  .about-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid hsl(var(--border) / 0.4);
-    font-size: 0.875rem;
-    transition: background 0.15s ease;
-  }
-  .about-row:last-child { border-bottom: none; }
-  .about-row:hover { background: hsl(var(--muted) / 0.3); }
-  .about-row.no-hover:hover { background: transparent; }
-
-  .tech-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.25rem 0.65rem;
-    border-radius: 9999px;
-    font-size: 0.7rem;
-    font-weight: 500;
-    border: 1px solid hsl(var(--border) / 0.6);
-    background: hsl(var(--muted) / 0.3);
-    color: hsl(var(--muted-foreground));
-    transition: border-color 0.15s, background 0.15s;
-  }
-  .tech-pill:hover {
-    border-color: hsl(var(--primary) / 0.4);
-    background: hsl(var(--primary) / 0.06);
-    color: hsl(var(--foreground));
-  }
-`;
-
-export default function UeberRigflow() {
-  const navigate = useNavigate();
+export default function AboutRigFlow() {
   const { t } = useTranslation();
 
-  const VALUES = [
-    {
-      icon: Wifi,
-      label: t('about.values.offline_first.label'),
-      desc: t('about.values.offline_first.desc'),
-    },
-    {
-      icon: QrCode,
-      label: t('about.values.qr_workflow.label'),
-      desc: t('about.values.qr_workflow.desc'),
-    },
-    {
-      icon: SlidersHorizontal,
-      label: t('about.values.dmx_management.label'),
-      desc: t('about.values.dmx_management.desc'),
-    },
-    {
-      icon: Wrench,
-      label: t('about.values.maintenance.label'),
-      desc: t('about.values.maintenance.desc'),
-    },
-    {
-      icon: Package,
-      label: t('about.values.project_packages.label'),
-      desc: t('about.values.project_packages.desc'),
-    },
-    {
-      icon: Shield,
-      label: t('about.values.data_security.label'),
-      desc: t('about.values.data_security.desc'),
-    },
-  ];
-
-  const STACK = t('about.tech_stack', {
-    returnObjects: true,
-  }) as string[];
+  const stackRaw: unknown = t("about.tech_stack", { returnObjects: true });
+  const stack = Array.isArray(stackRaw) ? stackRaw.filter((s): s is string => typeof s === "string") : [];
 
   return (
-    <>
-      <style>{CSS}</style>
+    <SettingsPage>
+      <PageHeader title={t("about.title")} />
 
-      <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 page-enter">
-
-        {/* ── Header ── */}
-        <header className="border-b border-border/50 bg-background/60 backdrop-blur-sm sticky top-0 z-50">
-          <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate(-1)}
-              className="h-8 w-8 text-muted-foreground"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-
-            <h1 className="text-base font-semibold">
-              {t('about.title')}
-            </h1>
-          </div>
-        </header>
-
-        <div className="max-w-2xl mx-auto px-4 py-10 space-y-8">
-
-          {/* ── Hero ── */}
-          <div className="au-0 flex flex-col items-center text-center gap-4 pt-2 pb-4">
-            <div className="relative">
-              <div className="logo-pulse rounded-2xl">
-                <img
-                  src="/logo-transparent.png"
-                  alt="RigFlow"
-                  className="h-20 w-20 object-contain drop-shadow-xl"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="text-2xl font-bold gradient-text">
-                RigFlow
-              </div>
-
-              <div className="text-xs text-muted-foreground font-mono">
-                {t('about.version', { version: APP_VERSION })}
-              </div>
-            </div>
-
-            <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
-              {t('about.hero_description')}
-            </p>
-          </div>
-
-          {/* ── Was ist RigFlow ── */}
-          <div className="au-1 space-y-3">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
-              {t('about.what_is_rigflow')}
-            </h2>
-
-            <Card className="glass-card border border-border/50 p-5 space-y-3 text-sm text-muted-foreground leading-relaxed">
-              <p>{t('about.description_1')}</p>
-              <p>{t('about.description_2')}</p>
-            </Card>
-          </div>
-
-          {/* ── Kernwerte ── */}
-          <div className="au-2 space-y-3">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
-              {t('about.core_features')}
-            </h2>
-
-            <Card className="glass-card border border-border/50 overflow-hidden">
-              <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x-0 divide-border/40">
-                {VALUES.map((v, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-3 p-4 border-b border-border/30 last:border-b-0 sm:last:border-b sm:[&:nth-child(even)]:border-b-0"
-                  >
-                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <v.icon className="h-4 w-4 text-primary" />
-                    </div>
-
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium">
-                        {v.label}
-                      </div>
-
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {v.desc}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </div>
-
-          {/* ── Tech Stack ── */}
-          <div className="au-3 space-y-3">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
-              {t('about.built_with')}
-            </h2>
-
-            <Card className="glass-card border border-border/50 p-4">
-              <div className="flex flex-wrap gap-2">
-                {STACK.map((tech, i) => (
-                  <span key={i} className="tech-pill">
-                    {tech}
-                  </span>
-                ))}
-              </div>
-            </Card>
-          </div>
-
-          {/* ── Footer ── */}
-          <div className="au-5 flex flex-col items-center gap-2 pt-4 pb-8 text-center">
-            <div className="text-xs text-muted-foreground/40 font-mono">
-              {t('about.footer', {
-                year: BUILD_DATE,
-                version: APP_VERSION,
-              })}
-            </div>
-          </div>
+      {/* Identity */}
+      <section className="surface flex items-center gap-4 px-4 py-4">
+        <img
+          src="/logo-transparent.png"
+          alt=""
+          className="h-12 w-12 shrink-0 rounded-md border border-border bg-surface-sunken object-contain p-1.5"
+        />
+        <div className="min-w-0">
+          <p className="text-base font-semibold tracking-tight">RigFlow</p>
+          <p className="tech text-xs text-muted-foreground">{t("about.version", { version: APP_VERSION })}</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{t("about.hero_description")}</p>
         </div>
-      </div>
-    </>
+      </section>
+
+      <SettingsSection title={t("about.what_is_rigflow")}>
+        <div className="space-y-3 px-4 py-4 text-sm leading-relaxed text-muted-foreground">
+          <p>{t("about.description_1")}</p>
+          <p>{t("about.description_2")}</p>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection title={t("about.core_features")}>
+        {VALUES.map(({ key, icon: Icon }) => (
+          <SettingsRow
+            key={key}
+            label={
+              <span className="inline-flex items-center gap-2">
+                <Icon className="h-4 w-4 text-muted-foreground" />
+                {t(`about.values.${key}.label`)}
+              </span>
+            }
+            description={<span className="block pl-6">{t(`about.values.${key}.desc`)}</span>}
+          />
+        ))}
+      </SettingsSection>
+
+      {stack.length > 0 && (
+        <SettingsSection title={t("about.built_with")}>
+          <div className="flex flex-wrap gap-1.5 px-4 py-3.5">
+            {stack.map((tech) => (
+              <span
+                key={tech}
+                className="rounded border border-border bg-surface-sunken px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground"
+              >
+                {tech}
+              </span>
+            ))}
+          </div>
+        </SettingsSection>
+      )}
+
+      <p className="tech text-center text-xs text-muted-foreground">
+        {t("about.footer", { year: BUILD_YEAR, version: APP_VERSION })}
+      </p>
+    </SettingsPage>
   );
 }

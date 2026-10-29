@@ -69,7 +69,7 @@ export default function SettingsLayout() {
       <aside className="hidden lg:block">
         <div className="sticky top-0 space-y-6">
           <div>
-            <h1 className="px-2.5 pb-3 text-[22px] font-semibold tracking-tight">{t("settings.title")}</h1>
+            <p className="eyebrow px-2.5 pb-2">{t("settings.title")}</p>
             <nav className="space-y-px">
               {NAV_ITEMS.map(({ to, labelKey, icon: Icon, end }) => (
                 <NavLink

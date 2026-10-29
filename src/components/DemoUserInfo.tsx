@@ -1,144 +1,67 @@
-import { motion } from "framer-motion";
-import { ArrowRight, Lock, Sparkles, Shield, Slash, BadgeAlert } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Loader2, Lock } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/PageHeader";
 
-function Ring({ size, delay = 0 }: { size: number; delay?: number }) {
-  return (
-    <motion.div
-      className="absolute rounded-full border border-white/10"
-      style={{ width: size, height: size }}
-      animate={{ rotate: 360, scale: [1, 1.04, 1] }}
-      transition={{ duration: 14, repeat: Infinity, ease: "linear", delay }}
-    />
-  );
-}
-
+/** Shown instead of the settings area when the shared demo account is signed in. */
 export default function DemoBlockedSettings() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { signOut } = useAuth();
+  const [switching, setSwitching] = useState(false);
 
-  const blockedItems: string[] = t('demo.blocked_items', { returnObjects: true }) as string[];
+  const raw: unknown = t("demo.blocked_items", { returnObjects: true });
+  const blockedItems = Array.isArray(raw) ? raw.filter((s): s is string => typeof s === "string") : [];
+
+  // /auth redirects signed-in users away, so leave the demo session first.
+  const signInOwnAccount = async () => {
+    setSwitching(true);
+    try {
+      await signOut();
+    } catch {
+      /* fall through to /auth anyway */
+    }
+    navigate("/auth", { replace: true });
+  };
 
   return (
-    <div className="relative overflow-hidden text-[#F9FAFB] pt-6 pb-20">
-      <div className="relative mx-auto w-full max-w-6xl px-0">
-        <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
-          className="grid w-full gap-6 lg:grid-cols-[1.1fr_0.9fr]"
-        >
-          {/* Left: message */}
-          <section className="rounded-2xl border border-white/10 bg-[rgba(31,41,55,0.65)] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl sm:p-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#34D399]/20 bg-[#34D399]/10 px-3 py-1 text-[12px] font-medium text-[#34D399]">
-              <BadgeAlert size={14} />
-              {t('demo.badge')}
-            </div>
+    <div className="max-w-3xl">
+      <PageHeader title={t("settings.title")} />
 
-            <div className="mt-6 max-w-xl">
-              <h1 className="text-3xl font-semibold tracking-tight text-[#F9FAFB] sm:text-4xl">
-                {t('demo.title')}
-              </h1>
-              <p className="mt-4 text-[15px] leading-7 text-[#9CA3AF] sm:text-[16px]">
-                {t('demo.description')}
-              </p>
-            </div>
+      <section className="surface overflow-hidden">
+        <div className="space-y-3 px-5 py-5">
+          <Badge variant="outline">{t("demo.badge")}</Badge>
+          <h2 className="text-base font-semibold tracking-tight">{t("demo.title")}</h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">{t("demo.description")}</p>
+        </div>
 
-            <div className="mt-8 rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
-              {blockedItems.map((item, index) => (
-                <motion.div
-                  key={item}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.08 * index, duration: 0.25 }}
-                  className="flex items-center gap-3 text-sm text-[#9CA3AF]"
-                >
-                  <Lock size={13} className="shrink-0 text-red-400" />
-                  {item}
-                </motion.div>
-              ))}
-            </div>
+        {blockedItems.length > 0 && (
+          <ul className="divide-y divide-border border-t border-border">
+            {blockedItems.map((item) => (
+              <li key={item} className="flex items-center gap-3 px-5 py-2.5 text-sm text-muted-foreground">
+                <Lock className="h-3.5 w-3.5 shrink-0" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        )}
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <button
-                onClick={() => navigate("/")}
-                className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[#34D399] px-5 py-3 text-sm font-medium text-[#0B1F1A] shadow-[0_10px_30px_rgba(52,211,153,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_40px_rgba(52,211,153,0.24)] active:translate-y-0"
-              >
-                {t('demo.go_dashboard')}
-                <ArrowRight className="transition group-hover:translate-x-0.5" size={16} />
-              </button>
-              <button
-                onClick={() => navigate("/auth")}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-transparent px-5 py-3 text-sm font-medium text-[#F9FAFB] transition hover:border-white/20 hover:bg-white/[0.04]"
-              >
-                {t('demo.sign_in_own_account')}
-              </button>
-            </div>
-          </section>
+        <div className="border-t border-border bg-surface-sunken px-5 py-3.5">
+          <p className="text-[13px] font-medium">{t("demo.not_a_bug_title")}</p>
+          <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">{t("demo.not_a_bug_desc")}</p>
+        </div>
+      </section>
 
-          {/* Right: illustration */}
-          <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-[rgba(31,41,55,0.65)] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl sm:p-8">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,_rgba(52,211,153,0.12),_transparent_40%),radial-gradient(circle_at_70%_70%,_rgba(245,158,11,0.12),_transparent_35%)]" />
-
-            <div className="relative flex min-h-[380px] items-center justify-center">
-              <motion.div
-                className="absolute h-56 w-56 rounded-full border border-white/10 bg-white/[0.02]"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-              />
-              <Ring size={220} delay={0.2} />
-              <Ring size={290} delay={0.8} />
-
-              <motion.div
-                animate={{ y: [0, -6, 0], rotate: [-2, 2, -2] }}
-                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                className="relative z-10 w-full max-w-sm rounded-[28px] border border-white/10 bg-[rgba(17,24,39,0.72)] p-6 shadow-[0_20px_70px_rgba(0,0,0,0.45)]"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-[#9CA3AF]">
-                    <Shield size={16} className="text-[#34D399]" />
-                    {t('demo.protected_area')}
-                  </div>
-                  <motion.div
-                    animate={{ scale: [1, 1.06, 1] }}
-                    transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-                    className="rounded-full border border-[#34D399]/20 bg-[#34D399]/10 px-3 py-1 text-[12px] text-[#34D399]"
-                  >
-                    {t('demo.locked')}
-                  </motion.div>
-                </div>
-
-                <div className="relative mt-8 flex items-center justify-center py-8">
-                  <motion.div
-                    animate={{ rotate: [0, -6, 0, 6, 0], scale: [1, 1.03, 1] }}
-                    transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                    className="relative flex h-28 w-28 items-center justify-center rounded-[32px] border border-white/10 bg-gradient-to-br from-[#34D399]/20 via-white/[0.03] to-[#F59E0B]/12 shadow-[0_0_45px_rgba(52,211,153,0.08)]"
-                  >
-                    <Lock size={42} className="text-[#F9FAFB]" />
-                    <motion.div
-                      className="absolute -right-3 top-2 rounded-full border border-white/10 bg-[#F59E0B] p-2 text-[#1F1305] shadow-lg"
-                      animate={{ y: [0, -4, 0], rotate: [0, 8, 0] }}
-                      transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
-                    >
-                      <Slash size={14} />
-                    </motion.div>
-                  </motion.div>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                  <div className="flex items-center gap-2 text-sm font-medium text-[#F9FAFB]">
-                    <Sparkles size={15} className="text-[#F59E0B]" />
-                    {t('demo.not_a_bug_title')}
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-[#9CA3AF]">
-                    {t('demo.not_a_bug_desc')}
-                  </p>
-                </div>
-              </motion.div>
-            </div>
-          </section>
-        </motion.div>
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+        <Button onClick={() => navigate("/")}>{t("demo.go_dashboard")}</Button>
+        <Button variant="outline" onClick={() => void signInOwnAccount()} disabled={switching}>
+          {switching && <Loader2 className="animate-spin" />}
+          {t("demo.sign_in_own_account")}
+        </Button>
       </div>
     </div>
   );

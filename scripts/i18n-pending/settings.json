@@ -1,0 +1,122 @@
+{
+  "settings.member_since": {
+    "de": "Mitglied seit",
+    "en": "Member since"
+  },
+  "settings.account_id": {
+    "de": "Konto-ID",
+    "en": "Account ID"
+  },
+  "appearance.language.de": {
+    "de": "Deutsch",
+    "en": "Deutsch"
+  },
+  "appearance.language.en": {
+    "de": "English",
+    "en": "English"
+  },
+  "notifications.push_allow": {
+    "de": "Erlauben",
+    "en": "Allow"
+  },
+  "notifications.push_unsupported": {
+    "de": "Dieser Browser unterstützt keine Push-Benachrichtigungen. Installiere RigFlow als App, um Hinweise zu erhalten.",
+    "en": "This browser does not support push notifications. Install RigFlow as an app to receive alerts."
+  },
+  "wishlist.new_button": {
+    "de": "Vorschlag",
+    "en": "Suggest"
+  },
+  "wishlist.admin_hint": {
+    "de": "Admin-Ansicht: Status ändern und löschen aktiv",
+    "en": "Admin view: status changes and deletion enabled"
+  },
+  "wishlist.form_title": {
+    "de": "Neuer Vorschlag",
+    "en": "New suggestion"
+  },
+  "wishlist.title_label": {
+    "de": "Titel",
+    "en": "Title"
+  },
+  "wishlist.title_placeholder": {
+    "de": "Funktion kurz beschreiben",
+    "en": "Describe the feature briefly"
+  },
+  "wishlist.description_label": {
+    "de": "Details (optional)",
+    "en": "Details (optional)"
+  },
+  "wishlist.submit": {
+    "de": "Einreichen",
+    "en": "Submit"
+  },
+  "wishlist.submitting": {
+    "de": "Wird eingereicht…",
+    "en": "Submitting…"
+  },
+  "wishlist.submit_error": {
+    "de": "Vorschlag konnte nicht eingereicht werden.",
+    "en": "Suggestion could not be submitted."
+  },
+  "wishlist.submitted": {
+    "de": "Danke für deinen Vorschlag!",
+    "en": "Thanks for your suggestion!"
+  },
+  "wishlist.empty_title": {
+    "de": "Noch keine Vorschläge",
+    "en": "No suggestions yet"
+  },
+  "wishlist.empty_description": {
+    "de": "Sei der Erste und schlage eine Funktion vor.",
+    "en": "Be the first to suggest a feature."
+  },
+  "wishlist.vote": {
+    "de": "Abstimmen",
+    "en": "Upvote"
+  },
+  "wishlist.unvote": {
+    "de": "Stimme zurückziehen",
+    "en": "Remove vote"
+  },
+  "wishlist.vote_error": {
+    "de": "Deine Stimme konnte nicht gespeichert werden.",
+    "en": "Your vote could not be saved."
+  },
+  "wishlist.update_error": {
+    "de": "Änderung konnte nicht gespeichert werden.",
+    "en": "Change could not be saved."
+  },
+  "wishlist.delete_title": {
+    "de": "Vorschlag löschen?",
+    "en": "Delete suggestion?"
+  },
+  "wishlist.delete_description": {
+    "de": "„{{title}}“ wird dauerhaft entfernt.",
+    "en": "“{{title}}” will be removed permanently."
+  },
+  "wishlist.status_label": {
+    "de": "Status",
+    "en": "Status"
+  },
+  "wishlist.status.offen": {
+    "de": "Offen",
+    "en": "Open"
+  },
+  "wishlist.status.geplant": {
+    "de": "Geplant",
+    "en": "Planned"
+  },
+  "wishlist.status.in_arbeit": {
+    "de": "In Arbeit",
+    "en": "In progress"
+  },
+  "wishlist.status.umgesetzt": {
+    "de": "Umgesetzt",
+    "en": "Done"
+  },
+  "wishlist.status.abgelehnt": {
+    "de": "Abgelehnt",
+    "en": "Declined"
+  }
+}
