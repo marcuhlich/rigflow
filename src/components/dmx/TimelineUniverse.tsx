@@ -1,55 +1,43 @@
-import { CSSProperties, MouseEvent, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { PatchplanRow } from "@/lib/dmxPatchplan";
 import { cn } from "@/lib/utils";
 import { DMX_UNIVERSE_SIZE, countPatchedChannels, padAddress } from "@/components/dmx/dmxFormat";
-import { DMX_SCROLL_ATTR } from "@/components/dmx/usePinchZoom";
-import { TimelineTrack } from "@/components/dmx/TimelineTrack";
-import { addrToPct, assignLanes } from "@/components/dmx/timelineLayout";
-
-/** Minimum track width on small screens so blocks stay readable (forces h-scroll). */
-const MOBILE_MIN_WIDTH = 300;
+import { PatchGrid } from "@/components/dmx/PatchGrid";
 
 interface TimelineUniverseProps {
   universe: number;
   rows: PatchplanRow[];
-  marks: number[];
-  zoom: number;
-  compact: boolean;
+  /** Number of conflicting pairs in this universe (same count as the summary). */
+  conflictCount: number;
   conflictIndex: Map<string, PatchplanRow[]>;
   hoveredRowId?: string | null;
-  draggingId: string | null;
-  previewAddr: number | null;
-  canDrag: boolean;
+  selectedRow: PatchplanRow | null;
   onRowHover?: (row: PatchplanRow | null) => void;
-  onBlockClick: (row: PatchplanRow) => void;
-  onDragStart: (e: MouseEvent, row: PatchplanRow, track: HTMLElement) => void;
+  onRowSelect: (row: PatchplanRow) => void;
+  onChannelClick: (universe: number, channel: number, rows: PatchplanRow[]) => void;
 }
 
-/** One universe: header, address ruler, track, and a compact patch legend. */
+/** One universe: header, channel grid, and the patch list. */
 export function TimelineUniverse({
   universe,
   rows,
-  marks,
-  zoom,
-  compact,
+  conflictCount,
   conflictIndex,
   hoveredRowId,
-  draggingId,
-  previewAddr,
-  canDrag,
+  selectedRow,
   onRowHover,
-  onBlockClick,
-  onDragStart,
+  onRowSelect,
+  onChannelClick,
 }: TimelineUniverseProps) {
   const { t } = useTranslation();
-  const { lanes, laneCount } = useMemo(() => assignLanes(rows), [rows]);
+  const [showAll, setShowAll] = useState(false);
   const used = useMemo(() => countPatchedChannels(rows), [rows]);
-  const conflicts = rows.filter((r) => conflictIndex.has(r.id)).length;
+  const lastUsed = useMemo(() => rows.reduce((max, r) => Math.max(max, r.endAddress), 0), [rows]);
 
-  const innerStyle: CSSProperties | undefined = compact
-    ? { minWidth: MOBILE_MIN_WIDTH, width: zoom > 1.05 ? `${zoom * 100}%` : undefined }
-    : undefined;
+  // Show the used range plus one free line, so there is always room to patch into.
+  const visibleUntil = showAll ? DMX_UNIVERSE_SIZE : Math.min(DMX_UNIVERSE_SIZE, lastUsed + 32);
+  const canToggle = lastUsed + 32 < DMX_UNIVERSE_SIZE;
 
   return (
     <section className="surface overflow-hidden">
@@ -59,67 +47,54 @@ export function TimelineUniverse({
           {used}/{DMX_UNIVERSE_SIZE}
         </span>
         <div className="ml-auto flex items-center gap-3 text-[12px] text-muted-foreground">
-          {conflicts > 0 && (
-            <span className="font-medium text-destructive">{t("dmx.badge_conflicts", { count: conflicts })}</span>
+          {conflictCount > 0 && (
+            <span className="font-medium text-destructive">{t("dmx.badge_conflicts", { count: conflictCount })}</span>
           )}
-          <span>{t("dmx_timeline.device_count", { count: rows.length })}</span>
+          <span className="hidden sm:inline">{t("dmx_timeline.device_count", { count: rows.length })}</span>
+          {canToggle && (
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              className="font-medium text-foreground hover:underline"
+            >
+              {showAll ? t("dmx_timeline.show_used") : t("dmx_timeline.show_all")}
+            </button>
+          )}
         </div>
       </header>
 
-      <div {...{ [DMX_SCROLL_ATTR]: "" }} className="overflow-x-auto px-2 pb-2 pt-2 sm:px-4 sm:pb-3">
-        <div className="relative" style={innerStyle}>
-          <div className="relative mb-1 h-4" aria-hidden>
-            {marks.map((m) => (
-              <span
-                key={m}
-                className={cn(
-                  "absolute font-mono text-[10px] tabular-nums text-muted-foreground",
-                  m === 1 ? "translate-x-0" : "-translate-x-1/2"
-                )}
-                style={{ left: `${addrToPct(m)}%` }}
-              >
-                {padAddress(m)}
-              </span>
-            ))}
-            <span className="absolute right-0 font-mono text-[10px] tabular-nums text-muted-foreground">
-              {DMX_UNIVERSE_SIZE}
-            </span>
-          </div>
-          <TimelineTrack
-            rows={rows}
-            lanes={lanes}
-            laneCount={laneCount}
-            marks={marks}
-            conflictIndex={conflictIndex}
-            hoveredRowId={hoveredRowId}
-            draggingId={draggingId}
-            previewAddr={previewAddr}
-            canDrag={canDrag}
-            onRowHover={onRowHover}
-            onBlockClick={onBlockClick}
-            onDragStart={onDragStart}
-          />
-        </div>
+      <div className="p-2 sm:p-3">
+        <PatchGrid
+          rows={rows}
+          visibleUntil={visibleUntil}
+          hoveredRowId={hoveredRowId}
+          selectedRow={selectedRow?.universe === universe ? selectedRow : null}
+          onRowHover={onRowHover}
+          onChannelClick={(channel, here) => onChannelClick(universe, channel, here)}
+        />
       </div>
 
       <ul className="grid grid-cols-1 gap-x-4 border-t border-border px-1.5 py-1.5 sm:grid-cols-2 sm:px-2.5 xl:grid-cols-3">
         {rows.map((row) => {
           const conflict = conflictIndex.has(row.id);
           const hovered = hoveredRowId === row.id;
+          const selected = selectedRow?.id === row.id;
           return (
             <li key={row.id}>
               <button
                 type="button"
+                aria-pressed={selected}
                 className={cn(
                   "flex w-full items-center gap-2 rounded-[4px] px-1.5 py-1 text-left text-[12px] transition-colors hover:bg-muted/60",
                   hovered && "bg-muted/60",
+                  selected && "bg-primary/15 hover:bg-primary/20",
                   conflict && "text-destructive"
                 )}
                 onMouseEnter={() => onRowHover?.(row)}
                 onMouseLeave={() => onRowHover?.(null)}
                 onFocus={() => onRowHover?.(row)}
                 onBlur={() => onRowHover?.(null)}
-                onClick={() => onBlockClick(row)}
+                onClick={() => onRowSelect(row)}
               >
                 <span className="shrink-0 font-mono tabular-nums">
                   {padAddress(row.startAddress)}–{padAddress(row.endAddress)}

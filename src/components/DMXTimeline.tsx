@@ -1,20 +1,17 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ZoomIn } from "lucide-react";
+import { Pencil, X } from "lucide-react";
 import type { DMXConflict, PatchplanRow } from "@/lib/dmxPatchplan";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
 import { EmptyPanel } from "@/components/QueryState";
 import { DMXAddressDialog } from "@/components/dmx/DMXAddressDialog";
 import { TimelineUniverse } from "@/components/dmx/TimelineUniverse";
-import { buildConflictIndex, groupByUniverse } from "@/components/dmx/dmxFormat";
-import { rulerMarks, rulerStep } from "@/components/dmx/timelineLayout";
-import { useBlockDrag } from "@/components/dmx/useBlockDrag";
-import { usePinchZoom } from "@/components/dmx/usePinchZoom";
+import { DMX_UNIVERSE_SIZE, buildConflictIndex, groupByUniverse, padAddress } from "@/components/dmx/dmxFormat";
 
 interface DMXTimelineProps {
   rows: PatchplanRow[];
   conflicts: DMXConflict[];
-  /** Called on block click when the timeline is read-only (no onInstanceChange). */
+  /** Called on fixture click when the view is read-only (no onInstanceChange). */
   onRowClick?: (row: PatchplanRow) => void;
   onRowHover?: (row: PatchplanRow | null) => void;
   hoveredRowId?: string | null;
@@ -23,9 +20,9 @@ interface DMXTimelineProps {
 }
 
 /**
- * Patch overview per universe: each fixture instance is a block on a
- * 512-channel track. Click a block to edit, drag (desktop) to re-patch,
- * pinch to zoom (mobile).
+ * Patch overview per universe as a channel grid (like a lighting console).
+ * Select a fixture (grid or list), then click a free channel to re-patch it,
+ * or open the address dialog for exact values / another universe.
  */
 export function DMXTimeline({
   rows,
@@ -37,48 +34,78 @@ export function DMXTimeline({
   onResetInstance,
 }: DMXTimelineProps) {
   const { t } = useTranslation();
-  const isMobile = useIsMobile();
+  const editable = !!onInstanceChange;
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingRow, setEditingRow] = useState<PatchplanRow | null>(null);
-
-  const { wrapperRef, zoom, resetZoom } = usePinchZoom(isMobile);
-
-  const commitDrag = useCallback(
-    (row: PatchplanRow, newAddress: number) =>
-      onInstanceChange ? onInstanceChange(row.itemId, row.instanceNumber, newAddress, row.universe) : Promise.resolve(),
-    [onInstanceChange]
-  );
-  const { draggingId, previewAddr, startDrag, canDrag } = useBlockDrag(
-    onInstanceChange && !isMobile ? commitDrag : undefined
-  );
+  const [moving, setMoving] = useState(false);
 
   const groups = useMemo(() => groupByUniverse(rows), [rows]);
   const conflictIndex = useMemo(() => buildConflictIndex(conflicts), [conflicts]);
-  const marks = useMemo(() => rulerMarks(rulerStep(zoom)), [zoom]);
+  // Re-resolve by id so the selection follows the row after a re-patch refetch.
+  const selectedRow = useMemo(() => rows.find((r) => r.id === selectedId) ?? null, [rows, selectedId]);
 
-  const handleBlockClick = useCallback(
+  useEffect(() => {
+    if (!selectedId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedId(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedId]);
+
+  const selectRow = useCallback(
     (row: PatchplanRow) => {
-      if (onInstanceChange) setEditingRow(row);
-      else onRowClick?.(row);
+      if (!editable) {
+        onRowClick?.(row);
+        return;
+      }
+      setSelectedId((current) => (current === row.id ? null : row.id));
     },
-    [onInstanceChange, onRowClick]
+    [editable, onRowClick]
   );
 
-  // The wrapper is always rendered so the pinch listeners stay attached.
+  const handleChannelClick = useCallback(
+    async (universe: number, channel: number, here: PatchplanRow[]) => {
+      if (here.length > 0) {
+        // Clicking a patched channel selects (or toggles) the fixture there.
+        selectRow(here[0]);
+        return;
+      }
+      if (!selectedRow || !onInstanceChange || moving) return;
+      if (channel + selectedRow.channels - 1 > DMX_UNIVERSE_SIZE) return;
+      setMoving(true);
+      try {
+        await onInstanceChange(selectedRow.itemId, selectedRow.instanceNumber, channel, universe);
+      } finally {
+        setMoving(false);
+      }
+    },
+    [selectRow, selectedRow, onInstanceChange, moving]
+  );
+
   return (
-    <div ref={wrapperRef} className="w-full space-y-3 overflow-x-hidden">
+    <div className="w-full space-y-3">
       {rows.length === 0 && <EmptyPanel title={t("dmx_timeline.empty")} />}
 
-      {isMobile && rows.length > 0 && (
-        <div className="flex h-6 select-none items-center justify-between text-[12px] text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <ZoomIn className="h-3.5 w-3.5" />
-            {t("dmx_timeline.zoom_hint")}
+      {selectedRow && (
+        <div className="sticky top-0 z-20 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-primary/40 bg-card px-3 py-2 text-[13px] shadow-sm">
+          <span className="font-mono tabular-nums text-muted-foreground">
+            {selectedRow.universe}.{padAddress(selectedRow.startAddress)}
           </span>
-          {zoom > 1.05 && (
-            <button type="button" className="font-medium text-foreground" onClick={resetZoom}>
-              {t("dmx_timeline.zoom_reset", { scale: Math.round(zoom * 10) / 10 })}
-            </button>
-          )}
+          <span className="font-medium">
+            {selectedRow.itemName}
+            {selectedRow.totalInstances > 1 && <span className="ml-1 font-mono text-muted-foreground">#{selectedRow.instanceNumber}</span>}
+          </span>
+          <span className="text-muted-foreground">{t("dmx_timeline.select_hint", { name: selectedRow.itemName })}</span>
+          <div className="ml-auto flex items-center gap-1.5">
+            <Button size="sm" variant="outline" onClick={() => setEditingRow(selectedRow)}>
+              <Pencil />
+              {t("dmx_timeline.edit_address")}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelectedId(null)} aria-label={t("dmx_timeline.deselect")}>
+              <X />
+            </Button>
+          </div>
         </div>
       )}
 
@@ -87,17 +114,13 @@ export function DMXTimeline({
           key={universe}
           universe={universe}
           rows={universeRows}
-          marks={marks}
-          zoom={zoom}
-          compact={isMobile}
+          conflictCount={conflicts.filter((c) => c.universe === universe).length}
           conflictIndex={conflictIndex}
           hoveredRowId={hoveredRowId}
-          draggingId={draggingId}
-          previewAddr={previewAddr}
-          canDrag={canDrag}
+          selectedRow={selectedRow}
           onRowHover={onRowHover}
-          onBlockClick={handleBlockClick}
-          onDragStart={startDrag}
+          onRowSelect={selectRow}
+          onChannelClick={(u, ch, here) => void handleChannelClick(u, ch, here)}
         />
       ))}
 
@@ -108,9 +131,7 @@ export function DMXTimeline({
         onSave={async (row, address, universe) => {
           await onInstanceChange?.(row.itemId, row.instanceNumber, address, universe);
         }}
-        onReset={
-          onResetInstance ? (row) => onResetInstance(row.itemId, row.instanceNumber) : undefined
-        }
+        onReset={onResetInstance ? (row) => onResetInstance(row.itemId, row.instanceNumber) : undefined}
       />
     </div>
   );
