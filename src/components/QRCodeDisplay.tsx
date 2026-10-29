@@ -1,24 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Check, Copy, Download, Loader2, Printer, RotateCw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
-import {
-  generateQRCodeDataUrl,
-  downloadQRCode,
-  printQRCode,
-} from '@/lib/qrCode';
-import { Download, Printer, Copy, Check } from 'lucide-react';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
+import { downloadQRCode, generateQRCodeDataUrl, printQRCode } from '@/lib/qrCode';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 
@@ -35,21 +21,42 @@ interface QRCodeDisplayProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-function useIsMobile(breakpoint = 640) {
-  const [isMobile, setIsMobile] = useState(
-    () => window.innerWidth < breakpoint
-  );
+const SIZE_PX = { sm: 200, md: 260, lg: 300 } as const;
 
+function useIsSmallScreen(breakpoint = 640) {
+  const [small, setSmall] = useState(() => typeof window !== 'undefined' && window.innerWidth < breakpoint);
   useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth < breakpoint);
-
-    window.addEventListener('resize', handler);
-
-    return () => window.removeEventListener('resize', handler);
+    const mql = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const handler = () => setSmall(mql.matches);
+    handler();
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
   }, [breakpoint]);
-
-  return isMobile;
+  return small;
 }
+
+async function copyText(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    // Fallback for older mobile browsers without the Clipboard API
+    const el = document.createElement('textarea');
+    el.value = text;
+    el.style.position = 'fixed';
+    el.style.opacity = '0';
+    document.body.appendChild(el);
+    el.focus();
+    el.select();
+    try {
+      return document.execCommand('copy');
+    } finally {
+      document.body.removeChild(el);
+    }
+  }
+}
+
+type LoadState = 'loading' | 'ready' | 'error';
 
 export function QRCodeDisplay({
   itemId,
@@ -60,298 +67,163 @@ export function QRCodeDisplay({
   size = 'md',
 }: QRCodeDisplayProps) {
   const { t } = useTranslation();
-
-  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [containerWidth, setContainerWidth] = useState(window.innerWidth);
-
   const { toast } = useToast();
+  const isSmall = useIsSmallScreen();
+  const px = SIZE_PX[size];
 
-  const isMobile = useIsMobile();
-
-  const baseMap = { sm: 200, md: 300, lg: 400 };
-  const baseSize = baseMap[size];
-
-  const sizePixels = Math.min(baseSize, (containerWidth - 48) * 0.85);
-
-  useEffect(() => {
-    const handleResize = () => setContainerWidth(window.innerWidth);
-
-    window.addEventListener('resize', handleResize);
-
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [state, setState] = useState<LoadState>('loading');
+  const [attempt, setAttempt] = useState(0);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (isOpen) loadQRCode();
-  }, [isOpen, itemId]);
-
-  const loadQRCode = async () => {
-    try {
-      setLoading(true);
-      setQrCodeUrl(null);
-
-      const url = await generateQRCodeDataUrl(itemId, {
-        width: sizePixels,
+    if (!isOpen) return;
+    let cancelled = false;
+    setState('loading');
+    setQrUrl(null);
+    // Request at 2x for sharp rendering on high-DPI screens
+    generateQRCodeDataUrl(itemId, { width: px * 2 })
+      .then(url => {
+        if (cancelled) return;
+        if (!url) throw new Error(t('qr.errors.empty_url'));
+        setQrUrl(attempt > 0 ? `${url}&_r=${attempt}` : url);
+      })
+      .catch(err => {
+        if (cancelled) return;
+        logger.error('QRCodeDisplay', 'Error generating QR code', err);
+        setState('error');
       });
+    return () => { cancelled = true; };
+  }, [isOpen, itemId, px, attempt, t]);
 
-      if (!url) {
-        throw new Error(t('qr.errors.empty_url'));
-      }
-
-      setQrCodeUrl(url);
-    } catch (error) {
-      logger.error('Error loading QR code:', error);
-
-      toast({
-        title: t('qr.errors.title'),
-        description: `${
-          error instanceof Error
-            ? error.message
-            : t('common.unknown_error')
-        }. ${t('qr.errors.connection_hint')}`,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    if (!copied) return;
+    const id = window.setTimeout(() => setCopied(false), 2000);
+    return () => window.clearTimeout(id);
+  }, [copied]);
 
   const handleDownload = async () => {
     try {
       await downloadQRCode(itemId, itemName);
-
-      toast({
-        title: t('common.success'),
-        description: t('qr.download_success'),
-      });
+      toast({ title: t('common.success'), description: t('qr.download_success') });
     } catch (error) {
-      logger.error('Error downloading QR code:', error);
-
-      toast({
-        title: t('common.error'),
-        description: t('qr.download_error'),
-        variant: 'destructive',
-      });
+      logger.error('QRCodeDisplay', 'Error downloading QR code', error);
+      toast({ title: t('common.error'), description: t('qr.download_error'), variant: 'destructive' });
     }
   };
 
   const handlePrint = async () => {
     try {
       await printQRCode(itemId, itemName, itemDetails);
-
-      toast({
-        title: t('common.success'),
-        description: t('qr.print_success'),
-      });
+      toast({ title: t('common.success'), description: t('qr.print_success') });
     } catch (error) {
-      logger.error('Error printing QR code:', error);
-
-      toast({
-        title: t('common.error'),
-        description: t('qr.print_error'),
-        variant: 'destructive',
-      });
+      logger.error('QRCodeDisplay', 'Error printing QR code', error);
+      toast({ title: t('common.error'), description: t('qr.print_error'), variant: 'destructive' });
     }
   };
 
-  const handleCopyItemId = async () => {
-    try {
-      await navigator.clipboard.writeText(itemId);
-
-      setCopied(true);
-
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Fallback für ältere Mobile-Browser ohne Clipboard API
-      const el = document.createElement('textarea');
-
-      el.value = itemId;
-      el.style.position = 'fixed';
-      el.style.opacity = '0';
-
-      document.body.appendChild(el);
-
-      el.focus();
-      el.select();
-
-      try {
-        document.execCommand('copy');
-
-        setCopied(true);
-
-        setTimeout(() => setCopied(false), 2000);
-      } finally {
-        document.body.removeChild(el);
-      }
-    }
+  const handleCopy = async () => {
+    if (await copyText(itemId)) setCopied(true);
   };
+
+  const categoryLabel = itemDetails?.category
+    ? t(`categories.${itemDetails.category}`, { defaultValue: itemDetails.category })
+    : null;
+
+  const details: { label: string; value: string; mono?: boolean }[] = [
+    ...(categoryLabel ? [{ label: t('fields.category'), value: categoryLabel }] : []),
+    ...(itemDetails?.quantity !== undefined && itemDetails.quantity !== null
+      ? [{ label: t('fields.quantity'), value: String(itemDetails.quantity), mono: true }]
+      : []),
+    ...(itemDetails?.location ? [{ label: t('fields.location'), value: itemDetails.location }] : []),
+  ];
+
+  const ready = state === 'ready';
 
   const content = (
-    <div className="space-y-4 py-4 w-full">
-      {/* QR-Code Anzeige */}
-      <div className="flex justify-center w-full">
-        {loading ? (
-          <div
-            className="flex items-center justify-center"
-            style={{ width: sizePixels, height: sizePixels }}
-          >
-            <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
-          </div>
-        ) : qrCodeUrl ? (
-          <div
-            className="border-2 border-border rounded-lg p-2 bg-white flex items-center justify-center"
-            style={{
-              width: sizePixels + 16,
-              height: sizePixels + 16,
-            }}
-          >
+    <div className="space-y-4">
+      {/* Code */}
+      <div className="flex justify-center">
+        <div
+          className="relative flex aspect-square w-full items-center justify-center rounded-lg border border-border bg-white p-3"
+          style={{ maxWidth: px + 26 }}
+        >
+          {qrUrl && state !== 'error' && (
             <img
-              src={qrCodeUrl}
+              src={qrUrl}
               alt={t('qr.image_alt', { itemName })}
-              style={{
-                width: sizePixels,
-                height: sizePixels,
-                display: 'block',
-                aspectRatio: '1 / 1',
-                objectFit: 'contain',
-              }}
-              className="rounded"
+              onLoad={() => setState('ready')}
+              onError={() => setState('error')}
+              className="h-full w-full object-contain [image-rendering:pixelated]"
             />
-          </div>
-        ) : (
-          <div className="text-muted-foreground text-sm">
-            {t('qr.load_error')}
-          </div>
-        )}
-      </div>
-
-      {/* Item-Informationen */}
-      <div className="bg-muted/40 rounded-lg p-3 space-y-2">
-        <div className="text-sm">
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-1 sm:gap-0">
-            <span className="text-muted-foreground">
-              {t('fields.name')}:
-            </span>
-
-            <span className="font-medium truncate">{itemName}</span>
-          </div>
-
-          <div className="flex flex-col sm:flex-row justify-between sm:items-start mt-2 gap-1 sm:gap-0">
-            <span className="text-muted-foreground">
-              {t('qr.item_id')}:
-            </span>
-
-            <div className="flex items-center gap-1 overflow-hidden">
-              <code className="text-xs bg-background px-2 py-1 rounded font-mono truncate">
-                {itemId.slice(0, 8)}...{itemId.slice(-8)}
-              </code>
-
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className={`h-6 w-6 p-0 shrink-0 transition-colors duration-200 ${
-                  copied ? 'text-green-500 hover:text-green-500' : ''
-                }`}
-                onPointerDown={(e) => e.preventDefault()}
-                onClick={handleCopyItemId}
-                aria-label={t('qr.copy_item_id')}
-              >
-                {copied ? (
-                  <Check className="h-3 w-3 transition-all duration-200" />
-                ) : (
-                  <Copy className="h-3 w-3 transition-all duration-200" />
-                )}
+          )}
+          {state === 'loading' && (
+            <Loader2 className="absolute h-5 w-5 animate-spin text-neutral-400" />
+          )}
+          {state === 'error' && (
+            <div className="flex flex-col items-center gap-2 px-4 text-center">
+              <p className="text-[13px] text-neutral-600">{t('qr.load_error')}</p>
+              <p className="text-xs text-neutral-500">{t('qr.errors.connection_hint')}</p>
+              <Button variant="outline" size="sm" onClick={() => setAttempt(a => a + 1)} className="mt-1 bg-white text-neutral-900 hover:bg-neutral-100">
+                <RotateCw />
+                {t('common.retry')}
               </Button>
-            </div>
-          </div>
-
-          {itemDetails?.category && (
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center mt-2 gap-1 sm:gap-0">
-              <span className="text-muted-foreground">
-                {t('fields.category')}:
-              </span>
-
-              <span className="font-medium truncate">
-                {itemDetails.category}
-              </span>
-            </div>
-          )}
-
-          {itemDetails?.quantity && (
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center mt-2 gap-1 sm:gap-0">
-              <span className="text-muted-foreground">
-                {t('fields.quantity')}:
-              </span>
-
-              <span className="font-medium">
-                {itemDetails.quantity}
-              </span>
-            </div>
-          )}
-
-          {itemDetails?.location && (
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center mt-2 gap-1 sm:gap-0">
-              <span className="text-muted-foreground">
-                {t('fields.location')}:
-              </span>
-
-              <span className="font-medium truncate">
-                {itemDetails.location}
-              </span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Aktions-Buttons */}
-      <div className="flex flex-col sm:flex-row gap-2 pt-2 w-full">
-        <Button
-          variant="outline"
-          onClick={handleDownload}
-          className="flex-1 gap-2 py-4 px-4"
-          disabled={loading || !qrCodeUrl}
-        >
-          <Download className="h-4 w-4 shrink-0" />
+      {/* Details */}
+      <dl className="surface divide-y divide-border text-[13px]">
+        <div className="flex items-center justify-between gap-3 px-3 py-2">
+          <dt className="shrink-0 text-muted-foreground">{t('qr.item_id')}</dt>
+          <dd className="flex min-w-0 items-center gap-1">
+            <code className="truncate font-mono text-xs tabular-nums">{itemId}</code>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              onPointerDown={e => e.preventDefault()}
+              onClick={handleCopy}
+              aria-label={t('qr.copy_item_id')}
+              title={t('qr.copy_item_id')}
+            >
+              {copied ? <Check className="text-success" /> : <Copy />}
+            </Button>
+          </dd>
+        </div>
+        {details.map(d => (
+          <div key={d.label} className="flex items-center justify-between gap-3 px-3 py-2">
+            <dt className="shrink-0 text-muted-foreground">{d.label}</dt>
+            <dd className={d.mono ? 'font-mono tabular-nums' : 'min-w-0 truncate font-medium'}>{d.value}</dd>
+          </div>
+        ))}
+      </dl>
 
-          <span>{t('common.download')}</span>
+      {/* Actions */}
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="outline" onClick={handleDownload} disabled={!ready}>
+          <Download />
+          {t('common.download')}
         </Button>
-
-        <Button
-          variant="outline"
-          onClick={handlePrint}
-          className="flex-1 gap-2 py-4 px-4"
-          disabled={loading || !qrCodeUrl}
-        >
-          <Printer className="h-4 w-4 shrink-0" />
-
-          <span>{t('common.print')}</span>
+        <Button onClick={handlePrint} disabled={!ready}>
+          <Printer />
+          {t('common.print')}
         </Button>
-      </div>
-
-      {/* Hinweis */}
-      <div className="text-xs text-muted-foreground text-center pt-2">
-        {t('qr.description')}
       </div>
     </div>
   );
 
-  if (isMobile) {
+  if (isSmall) {
     return (
-      <Drawer
-        open={isOpen}
-        onOpenChange={(open) => !open && onClose()}
-      >
-        <DrawerContent className="flex flex-col max-h-[92dvh]">
-          <DrawerHeader className="px-4 shrink-0">
-            <DrawerTitle>
-              {t('qr.title', { itemName })}
-            </DrawerTitle>
+      <Drawer open={isOpen} onOpenChange={open => { if (!open) onClose(); }}>
+        <DrawerContent className="flex max-h-[92dvh] flex-col">
+          <DrawerHeader className="shrink-0 px-4 text-left">
+            <DrawerTitle className="truncate">{t('qr.title', { itemName })}</DrawerTitle>
+            <DrawerDescription className="text-xs">{t('qr.description')}</DrawerDescription>
           </DrawerHeader>
-
-          <div className="overflow-y-auto px-4 pb-6">
+          <div className="overflow-y-auto px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             {content}
           </div>
         </DrawerContent>
@@ -360,14 +232,17 @@ export function QRCodeDisplay({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="glass-card border-border/50 max-w-[500px] p-6 overflow-auto max-h-[90vh]">
+    <Dialog open={isOpen} onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {t('qr.title', { itemName })}
-          </DialogTitle>
+          <DialogTitle className="truncate pr-6">{t('qr.title', { itemName })}</DialogTitle>
+          <DialogDescription className="text-xs">{t('qr.description')}</DialogDescription>
         </DialogHeader>
-
+        <DialogClose asChild>
+          <Button variant="ghost" size="icon" className="absolute right-3 top-3 h-8 w-8" aria-label={t('common.close')}>
+            <X />
+          </Button>
+        </DialogClose>
         {content}
       </DialogContent>
     </Dialog>

@@ -1,42 +1,28 @@
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { format, differenceInDays, parseISO } from 'date-fns';
-import type { Locale } from 'date-fns';
+import { differenceInCalendarDays, parseISO } from 'date-fns';
 import { de, enUS } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
-import {
-  CheckCheck, Wrench, Sparkles, Search,
-  Clock, AlertTriangle, CheckCircle2,
-  Plus, Loader2, Trash2, ImageIcon, X, CalendarDays,
-} from 'lucide-react';
-import { Button }   from '@/components/ui/button';
-import { Card }     from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Input }    from '@/components/ui/input';
+import { AlertTriangle, Check, CheckCheck, CheckCircle2, Clock, Loader2, Plus, Wrench } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import {
-  MaintenanceRecord, MaintenanceType,
-  MAINTENANCE_TYPES, MAINTENANCE_TYPE_DOT_COLOR,
-} from '@/types/maintenance';
-import { getMaintenanceTypeLabel } from '@/i18n/helpers';
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { EmptyPanel, ErrorState } from '@/components/QueryState';
 import { useMaintenanceRecords } from '@/hooks/useMaintenanceRecords';
-import '@/styles/maintenance.css';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import { MaintenanceEntryForm, MaintenanceEntryDraft } from '@/components/item-detail/maintenance/MaintenanceEntryForm';
+import { MaintenanceEntryRow } from '@/components/item-detail/maintenance/MaintenanceEntryRow';
+import { todayLocalIso } from '@/components/item-detail/maintenance/utils';
 
 const GLOBAL_DEFAULT_INTERVAL = 180;
 
-const TYPE_ICONS: Record<MaintenanceType, React.ReactNode> = {
-  check:      <CheckCheck className="h-3.5 w-3.5" />,
-  reparatur:  <Wrench     className="h-3.5 w-3.5" />,
-  reinigung:  <Sparkles   className="h-3.5 w-3.5" />,
-  inspektion: <Search     className="h-3.5 w-3.5" />,
-};
-
-function todayIso() { return new Date().toISOString().split('T')[0]; }
-
 interface MaintenanceTimelineProps {
-  itemId:                   string;
+  itemId: string;
   maintenanceIntervalDays?: number | null;
+  /** Reports the current status once records are loaded (and after every change). */
   onStatusChange?: (overdue: boolean, warning: boolean) => void;
 }
 
@@ -46,297 +32,103 @@ export function MaintenanceTimeline({
   onStatusChange,
 }: MaintenanceTimelineProps) {
   const { t, i18n } = useTranslation();
+  const { toast } = useToast();
   const dateLocale = i18n.language.startsWith('de') ? de : enUS;
 
   const {
-    records, loading,
+    records, loading, error, refresh,
     addRecord, updateRecord, deleteRecord, uploadPhoto,
   } = useMaintenanceRecords(itemId);
 
-  const interval      = maintenanceIntervalDays ?? GLOBAL_DEFAULT_INTERVAL;
-  const lastRecord    = records[0] ?? null;
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [quickSaving, setQuickSaving] = useState(false);
+  const [quickSaved, setQuickSaved] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const interval = maintenanceIntervalDays ?? GLOBAL_DEFAULT_INTERVAL;
+  const lastRecord = records[0] ?? null;
   const daysSinceLast = lastRecord
-    ? differenceInDays(new Date(), parseISO(lastRecord.performed_at))
+    ? differenceInCalendarDays(new Date(), parseISO(lastRecord.performed_at))
     : null;
   const isOverdue = daysSinceLast === null || daysSinceLast > interval;
   const isWarning = !isOverdue && daysSinceLast !== null && daysSinceLast > interval * 0.75;
 
   useEffect(() => {
+    if (loading || error) return;
     onStatusChange?.(isOverdue, isWarning);
-  }, [isOverdue, isWarning]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loading, error, isOverdue, isWarning]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [showForm,      setShowForm]      = useState(false);
-  const [formVisible,   setFormVisible]   = useState(false);
-  const [formType,      setFormType]      = useState<MaintenanceType>('check');
-  const [formDate,      setFormDate]      = useState(todayIso);
-  const [formNotes,     setFormNotes]     = useState('');
-  const [formCost,      setFormCost]      = useState('');
-  const [formPhotoFile, setFormPhotoFile] = useState<File | null>(null);
-  const [formPhotoUrl,  setFormPhotoUrl]  = useState<string | null>(null);
-  const [saving,        setSaving]        = useState(false);
-  const [quickSaving,   setQuickSaving]   = useState(false);
-  const [quickSuccess,  setQuickSuccess]  = useState(false);
-  const [deletingId,    setDeletingId]    = useState<string | null>(null);
-  const [newEntryId,    setNewEntryId]    = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!quickSaved) return;
+    const id = window.setTimeout(() => setQuickSaved(false), 1800);
+    return () => window.clearTimeout(id);
+  }, [quickSaved]);
 
-  // ── DatePicker (nutzt dateLocale aus äußerem Scope via Closure) ───────────
-  function DatePicker({
-    value,
-    onChange,
-  }: {
-    value: Date | undefined;
-    onChange: (d: Date | undefined) => void;
-  }) {
-    const [open, setOpen]       = useState(false);
-    const [month, setMonth]     = useState(value ?? new Date());
-    const [slideDir, setSlideDir] = useState<'left' | 'right' | null>(null);
-    const prevMonth = useRef(value ?? new Date());
-
-    // Lokalisierte Wochentag- und Monatsnamen via date-fns
-    // Jan 7 2024 = Sonntag → 7 aufeinanderfolgende Tage = So..Sa
-    const DOW = Array.from({ length: 7 }, (_, i) =>
-      format(new Date(2024, 0, 7 + i), 'EEEEEE', { locale: dateLocale })
-    );
-    const MONTHS = Array.from({ length: 12 }, (_, i) =>
-      format(new Date(2024, i, 1), 'LLLL', { locale: dateLocale })
-    );
-
-    const dateFormat = t('maintenance.date_format');
-
-    const eq = (a: Date, b: Date) =>
-      a.getFullYear() === b.getFullYear() &&
-      a.getMonth()    === b.getMonth()    &&
-      a.getDate()     === b.getDate();
-
-    const handleMonthChange = (delta: number) => {
-      const next = new Date(month.getFullYear(), month.getMonth() + delta, 1);
-      setSlideDir(delta > 0 ? 'left' : 'right');
-      prevMonth.current = month;
-      setMonth(next);
-      setTimeout(() => setSlideDir(null), 220);
-    };
-
-    const handleDayClick = (day: Date) => {
-      onChange(day);
-      setTimeout(() => setOpen(false), 120);
-    };
-
-    const label = value
-      ? format(value, dateFormat, { locale: dateLocale })
-      : t('maintenance.date_picker.placeholder');
-
-    const firstDow   = new Date(month.getFullYear(), month.getMonth(), 1).getDay();
-    const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
-    const cells: (Date | null)[] = [
-      ...Array(firstDow).fill(null),
-      ...Array.from({ length: daysInMonth }, (_, i) =>
-        new Date(month.getFullYear(), month.getMonth(), i + 1)
-      ),
-    ];
-    while (cells.length % 7 !== 0) cells.push(null);
-
-    const getDayStyle = (day: Date): React.CSSProperties => {
-      if (value && eq(day, value)) return {
-        background: 'hsl(var(--primary))',
-        color: 'hsl(var(--primary-foreground))',
-        borderRadius: '9999px',
-      };
-      if (eq(day, new Date())) return {
-        boxShadow: 'inset 0 0 0 1.5px hsl(var(--primary) / 0.5)',
-        borderRadius: '9999px',
-      };
-      return {};
-    };
-
-    return (
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn(
-              'w-full justify-start text-left font-normal text-xs h-9 gap-1.5',
-              !value && 'text-muted-foreground'
-            )}
-          >
-            <CalendarDays className="h-3.5 w-3.5" />
-            <span className="flex-1">{label}</span>
-            {value && (
-              <span onClick={e => { e.stopPropagation(); onChange(undefined); }}>
-                <X className="h-3 w-3" />
-              </span>
-            )}
-          </Button>
-        </PopoverTrigger>
-
-        <PopoverContent className="w-auto p-0" align="start">
-          <div className="p-3 select-none" style={{ width: 280 }}>
-            <div className="flex items-center justify-between mb-3">
-              <button onClick={() => handleMonthChange(-1)}>‹</button>
-              <span style={{ animation: slideDir ? `cal-${slideDir} .2s ease-out` : undefined }}>
-                {MONTHS[month.getMonth()]} {month.getFullYear()}
-              </span>
-              <button onClick={() => handleMonthChange(1)}>›</button>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
-              {DOW.map(d => (
-                <div
-                  key={d}
-                  style={{ textAlign: 'center', fontSize: 11, color: 'hsl(var(--muted-foreground))', padding: '2px 0 6px' }}
-                >
-                  {d}
-                </div>
-              ))}
-            </div>
-
-            <table style={{ width: '100%' }}>
-              <tbody>
-                {Array.from({ length: cells.length / 7 }, (_, row) => (
-                  <tr key={row}>
-                    {cells.slice(row * 7, row * 7 + 7).map((day, col) => (
-                      <td key={col}>
-                        {day && (
-                          <button
-                            onClick={() => handleDayClick(day)}
-                            style={{ width: '100%', aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, ...getDayStyle(day) }}
-                            className="hover:bg-muted rounded-full"
-                          >
-                            {day.getDate()}
-                          </button>
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </PopoverContent>
-      </Popover>
-    );
-  }
-
-  function openForm() {
-    setShowForm(true);
-    requestAnimationFrame(() => requestAnimationFrame(() => setFormVisible(true)));
-  }
-
-  function closeForm(cb?: () => void) {
-    setFormVisible(false);
-    setTimeout(() => { setShowForm(false); cb?.(); }, 280);
-  }
-
-  function resetForm() {
-    closeForm(() => {
-      setFormType('check');
-      setFormDate(todayIso());
-      setFormNotes('');
-      setFormCost('');
-      setFormPhotoFile(null);
-      setFormPhotoUrl(null);
-    });
-  }
+  const saveError = () =>
+    toast({ title: t('common.error'), description: t('maintenance.save_error'), variant: 'destructive' });
 
   async function handleQuickConfirm() {
     setQuickSaving(true);
-    const { data: record } = await addRecord({
-      item_id: itemId, performed_at: todayIso(),
+    const { error: err } = await addRecord({
+      item_id: itemId, performed_at: todayLocalIso(),
       type: 'check', notes: null, cost: null, image_url: null,
     });
     setQuickSaving(false);
-    setQuickSuccess(true);
-    if (record) setNewEntryId(record.id);
-    setTimeout(() => setQuickSuccess(false), 1800);
-    setTimeout(() => setNewEntryId(null), 800);
+    if (err) saveError();
+    else setQuickSaved(true);
   }
 
-  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setFormPhotoFile(file);
-    const reader = new FileReader();
-    reader.onload = ev => setFormPhotoUrl(ev.target?.result as string);
-    reader.readAsDataURL(file);
-  }
-
-  async function handleSave() {
+  async function handleSave(draft: MaintenanceEntryDraft) {
     setSaving(true);
-    const { data: record } = await addRecord({
+    const cost = draft.cost ? parseFloat(draft.cost) : null;
+    const { data: record, error: err } = await addRecord({
       item_id:      itemId,
-      performed_at: formDate,
-      type:         formType,
-      notes:        formNotes.trim() || null,
-      cost:         formCost ? parseFloat(formCost) : null,
+      performed_at: draft.date,
+      type:         draft.type,
+      notes:        draft.notes.trim() || null,
+      cost:         cost !== null && !isNaN(cost) ? cost : null,
       image_url:    null,
     });
-    if (record && formPhotoFile) {
-      const url = await uploadPhoto(formPhotoFile, record.id);
-      if (url) await updateRecord(record.id, { image_url: url });
+    if (err || !record) {
+      setSaving(false);
+      saveError();
+      return;
+    }
+    if (draft.photo) {
+      const url = await uploadPhoto(draft.photo, record.id);
+      const patched = url ? await updateRecord(record.id, { image_url: url }) : null;
+      if (!url || patched?.error) {
+        toast({ title: t('common.error'), description: t('image_upload.error'), variant: 'destructive' });
+      }
     }
     setSaving(false);
-    if (record) setNewEntryId(record.id);
-    closeForm(() => {
-      setFormType('check');
-      setFormDate(todayIso());
-      setFormNotes('');
-      setFormCost('');
-      setFormPhotoFile(null);
-      setFormPhotoUrl(null);
-    });
-    setTimeout(() => setNewEntryId(null), 900);
+    setShowForm(false);
   }
 
   async function handleDelete(id: string) {
+    setConfirmDeleteId(null);
     setDeletingId(id);
-    await deleteRecord(id);
+    const { error: err } = await deleteRecord(id);
     setDeletingId(null);
+    if (err) {
+      toast({ title: t('common.error'), description: t('maintenance.delete_error'), variant: 'destructive' });
+    }
   }
-
-  const statusConfig = (() => {
-    if (daysSinceLast === null) return {
-      icon: <AlertTriangle className="h-4 w-4 shrink-0" />,
-      text: t('maintenance.status.never'),
-      cls:  'bg-destructive/10 text-destructive border-destructive/20',
-      pulse: true,
-    };
-    if (isOverdue) return {
-      icon: <AlertTriangle className="h-4 w-4 shrink-0" />,
-      text: t('maintenance.status.overdue', { count: daysSinceLast }),
-      cls:  'bg-destructive/10 text-destructive border-destructive/20',
-      pulse: true,
-    };
-    if (isWarning) return {
-      icon: <Clock className="h-4 w-4 shrink-0" />,
-      text: t('maintenance.status.warning', { count: daysSinceLast }),
-      cls:  'bg-amber-500/10 text-amber-600 border-amber-500/20',
-      pulse: false,
-    };
-    return {
-      icon: <CheckCircle2 className="h-4 w-4 shrink-0" />,
-      text: t('maintenance.status.ok', { count: daysSinceLast }),
-      cls:  'bg-green-500/10 text-green-600 border-green-500/20',
-      pulse: false,
-    };
-  })();
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-12 w-full rounded-lg" />
-        <div className="flex gap-2">
-          <Skeleton className="h-9 flex-1 rounded-md" />
-          <Skeleton className="h-9 w-24 rounded-md" />
-        </div>
-        <div className="space-y-4 pt-2">
+      <div className="space-y-3">
+        <Skeleton className="h-11 w-full" />
+        <Skeleton className="h-9 w-full" />
+        <div className="surface divide-y divide-border">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="flex gap-3">
-              <div className="flex flex-col items-center">
-                <Skeleton className="w-3 h-3 rounded-full" />
-                <Skeleton className="w-px flex-1 mt-1" />
-              </div>
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-16 w-full rounded-lg" />
+            <div key={i} className="flex gap-3 px-4 py-3">
+              <Skeleton className="h-3.5 w-20" />
+              <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-3.5 w-1/3" />
+                <Skeleton className="h-3 w-2/3" />
               </div>
             </div>
           ))}
@@ -345,310 +137,102 @@ export function MaintenanceTimeline({
     );
   }
 
+  if (error) {
+    return <ErrorState error={error} onRetry={() => void refresh()} />;
+  }
+
+  const status = daysSinceLast === null
+    ? { Icon: AlertTriangle, tone: 'text-destructive', text: t('maintenance.status.never') }
+    : isOverdue
+      ? { Icon: AlertTriangle, tone: 'text-destructive', text: t('maintenance.status.overdue', { count: daysSinceLast }) }
+      : isWarning
+        ? { Icon: Clock, tone: 'text-warning', text: t('maintenance.status.warning', { count: daysSinceLast }) }
+        : { Icon: CheckCircle2, tone: 'text-success', text: t('maintenance.status.ok', { count: daysSinceLast }) };
+
   return (
-    <>
-      <div className="space-y-4">
-
-        {/* Status-Banner */}
-        <div
-          className={`flex items-center gap-2 px-4 py-3 rounded-lg border text-sm font-medium
-            transition-all duration-300
-            ${statusConfig.cls}
-            ${statusConfig.pulse ? 'status-overdue-pulse' : ''}`}
-        >
-          <span className="shrink-0">{statusConfig.icon}</span>
-          <span className="flex-1 min-w-0">{statusConfig.text}</span>
-          <span className="text-xs font-normal opacity-60 shrink-0">
-            {t('maintenance.interval_label', { days: interval })}
-          </span>
+    <div className="space-y-3">
+      {/* Status + actions */}
+      <div className="surface flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <status.Icon className={cn('h-4 w-4 shrink-0', status.tone)} />
+          <div className="min-w-0">
+            <p className="text-sm font-medium">{status.text}</p>
+            <p className="font-mono text-xs tabular-nums text-muted-foreground">
+              {t('maintenance.interval_label', { days: interval })}
+            </p>
+          </div>
         </div>
-
-        {/* Aktionszeile */}
         <div className="flex gap-2">
-          <Button
-            className={`flex-1 gap-2 transition-all duration-150
-              hover:shadow-md hover:-translate-y-px active:translate-y-0
-              ${quickSuccess ? 'btn-success' : ''}`}
-            size="sm"
-            onClick={handleQuickConfirm}
-            disabled={quickSaving || saving}
-          >
-            {quickSaving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : quickSuccess ? (
-              <CheckCheck className="h-4 w-4 text-green-300 transition-all duration-200" />
-            ) : (
-              <CheckCheck className="h-4 w-4" />
-            )}
-            {quickSuccess ? t('maintenance.quick_saved') : t('maintenance.quick_confirm')}
-          </Button>
           <Button
             variant="outline"
             size="sm"
-            className={`gap-1.5 transition-all duration-150
-              hover:shadow-sm hover:-translate-y-px active:translate-y-0
-              ${showForm ? 'bg-muted' : ''}`}
-            onClick={() => showForm ? resetForm() : openForm()}
+            onClick={() => setShowForm(s => !s)}
             disabled={saving || quickSaving}
+            aria-expanded={showForm}
+            className="max-sm:flex-1"
           >
-            <Plus className={`h-4 w-4 transition-transform duration-250 ${showForm ? 'rotate-45' : 'rotate-0'}`} />
+            <Plus />
             {t('maintenance.add_entry')}
           </Button>
+          <Button
+            size="sm"
+            variant={showForm ? 'outline' : 'default'}
+            onClick={handleQuickConfirm}
+            disabled={quickSaving || saving}
+            className="max-sm:flex-1"
+          >
+            {quickSaving ? <Loader2 className="animate-spin" /> : quickSaved ? <Check /> : <CheckCheck />}
+            {quickSaved ? t('common.saved') : t('maintenance.quick_confirm')}
+          </Button>
         </div>
+      </div>
 
-        {/* Inline-Formular */}
-        {showForm && (
-          <div className={formVisible ? 'form-enter-active' : 'form-exit-active'}>
-            <Card className="p-4 space-y-3 border-primary/30 bg-primary/5">
+      {showForm && (
+        <MaintenanceEntryForm
+          saving={saving}
+          onCancel={() => setShowForm(false)}
+          onSave={draft => void handleSave(draft)}
+        />
+      )}
 
-              <div className="flex flex-wrap gap-2">
-                {MAINTENANCE_TYPES.map(type => (
-                  <TypePill
-                    key={type}
-                    type={type}
-                    isActive={formType === type}
-                    onSelect={() => setFormType(type)}
-                  />
-                ))}
-              </div>
-
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">
-                  {t('maintenance.form.date_label')}
-                </label>
-                <DatePicker
-                  value={formDate ? new Date(formDate) : undefined}
-                  onChange={date => setFormDate(date ? format(date, 'yyyy-MM-dd') : '')}
-                />
-              </div>
-
-              <Textarea
-                placeholder={t('maintenance.form.notes_placeholder')}
-                value={formNotes}
-                onChange={e => setFormNotes(e.target.value)}
-                className="text-sm min-h-[72px] resize-none transition-shadow duration-150 focus:shadow-md"
-              />
-
-              <div className="flex gap-2 items-end">
-                <div className="flex-1">
-                  <label className="text-xs text-muted-foreground mb-1 block">
-                    {t('maintenance.form.cost_label')}
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">€</span>
-                    <Input
-                      type="number" step="0.01" min="0" placeholder="0,00"
-                      value={formCost} onChange={e => setFormCost(e.target.value)}
-                      className="pl-7 text-sm transition-shadow duration-150 focus:shadow-md"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <input
-                    ref={fileRef} type="file" accept="image/*" capture="environment"
-                    className="hidden" onChange={handlePhotoSelect}
-                  />
-                  <Button
-                    type="button"
-                    variant={formPhotoFile ? 'default' : 'outline'}
-                    size="sm"
-                    className={`gap-1.5 h-9 transition-all duration-150
-                      hover:shadow-sm hover:-translate-y-px active:translate-y-0
-                      ${formPhotoFile ? 'scale-105' : ''}`}
-                    onClick={() => fileRef.current?.click()}
-                  >
-                    <ImageIcon className="h-4 w-4" />
-                    {formPhotoFile ? t('maintenance.form.photo_selected') : t('maintenance.form.photo')}
-                  </Button>
-                </div>
-              </div>
-
-              {formPhotoUrl && (
-                <div className="relative inline-block" style={{ animation: 'entry-pop-in 0.25s ease forwards' }}>
-                  <img
-                    src={formPhotoUrl}
-                    alt={t('maintenance.photo_preview_alt')}
-                    className="w-28 h-20 object-cover rounded-lg border"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => { setFormPhotoFile(null); setFormPhotoUrl(null); }}
-                    className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5
-                      transition-transform duration-150 hover:scale-110 active:scale-95"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-2 pt-1">
-                <Button
-                  variant="ghost" size="sm"
-                  onClick={resetForm}
-                  className="transition-all duration-150 hover:bg-muted/70 active:scale-95"
-                >
-                  {t('common.cancel')}
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="transition-all duration-150 hover:shadow-md hover:-translate-y-px active:translate-y-0 active:shadow-none"
-                >
-                  {saving && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
-                  {t('common.save')}
-                </Button>
-              </div>
-            </Card>
+      {records.length === 0 ? (
+        <EmptyPanel icon={Wrench} title={t('maintenance.empty')} />
+      ) : (
+        <div className="surface overflow-hidden">
+          <div className="border-b border-border bg-surface-sunken px-3 py-2 sm:px-4">
+            <p className="eyebrow">{t('maintenance.timeline.title')}</p>
           </div>
-        )}
-
-        {/* Timeline */}
-        {records.length === 0 ? (
-          <p className="text-center py-8 text-sm text-muted-foreground">
-            {t('maintenance.empty')}
-          </p>
-        ) : (
-          <div>
-            {records.map((record, idx) => (
-              <TimelineEntry
+          <ul className="divide-y divide-border">
+            {records.map(record => (
+              <MaintenanceEntryRow
                 key={record.id}
                 record={record}
-                isLast={idx === records.length - 1}
-                isDeleting={deletingId === record.id}
-                isNew={newEntryId === record.id}
-                onDelete={() => handleDelete(record.id)}
                 dateLocale={dateLocale}
+                isDeleting={deletingId === record.id}
+                onDelete={() => setConfirmDeleteId(record.id)}
               />
             ))}
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
-
-// ── TypePill ──────────────────────────────────────────────────────────────────
-function TypePill({ type, isActive, onSelect }: { type: MaintenanceType; isActive: boolean; onSelect: () => void }) {
-  const { t } = useTranslation();
-  const [bouncing, setBouncing] = useState(false);
-
-  function handleClick() {
-    if (isActive) return;
-    setBouncing(true);
-    onSelect();
-    setTimeout(() => setBouncing(false), 250);
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border
-        transition-all duration-200 select-none
-        ${isActive
-          ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-          : 'bg-background border-border hover:border-primary/50 hover:bg-primary/5 hover:scale-105 active:scale-95'
-        }
-        ${bouncing ? 'pill-bounce' : ''}
-      `}
-    >
-      {TYPE_ICONS[type]}
-      {getMaintenanceTypeLabel(type, t)}
-    </button>
-  );
-}
-
-// ── TimelineEntry ─────────────────────────────────────────────────────────────
-interface EntryProps {
-  record:     MaintenanceRecord;
-  isLast:     boolean;
-  isDeleting: boolean;
-  isNew:      boolean;
-  onDelete:   () => void;
-  dateLocale: Locale;
-}
-
-function TimelineEntry({ record, isLast, isDeleting, isNew, onDelete, dateLocale }: EntryProps) {
-  const { t } = useTranslation();
-  const type     = record.type as MaintenanceType;
-  const dotColor = MAINTENANCE_TYPE_DOT_COLOR[type] ?? '#6366f1';
-
-  const dateLabel = (() => {
-    const d    = parseISO(record.performed_at);
-    const days = differenceInDays(new Date(), d);
-    if (days === 0) return t('maintenance.timeline.today');
-    if (days === 1) return t('maintenance.timeline.yesterday');
-    if (days < 7)  return t('maintenance.timeline.days_ago', { count: days });
-    return format(d, t('maintenance.date_format_long'), { locale: dateLocale });
-  })();
-
-  return (
-    <div className={`flex gap-3 ${isNew ? 'entry-new' : ''}`}>
-      <div className="flex flex-col items-center shrink-0">
-        <div className="h-[1.1rem] shrink-0" />
-        <div
-          className={`w-3 h-3 rounded-full ring-2 ring-background shrink-0 z-10
-            transition-transform duration-200
-            ${isNew ? 'scale-125' : 'scale-100'}`}
-          style={{ backgroundColor: dotColor }}
-        />
-        {!isLast && <div className="w-px flex-1 bg-border mt-1 min-h-[0.75rem]" />}
-      </div>
-
-      <div className={`flex-1 min-w-0 ${isLast ? 'pb-1' : 'pb-3'}`}>
-        <div
-          className={`group rounded-lg border bg-card px-4 py-3 shadow-sm
-            transition-all duration-200 hover:shadow-md hover:border-border/80
-            ${isDeleting ? 'opacity-50 scale-98 pointer-events-none' : ''}
-            ${isNew ? 'border-primary/30 bg-primary/5' : 'border-border'}
-          `}
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-medium">
-                  {getMaintenanceTypeLabel(type, t)}
-                </span>
-                <span className="text-xs text-muted-foreground">{dateLabel}</span>
-                {record.cost != null && (
-                  <span className="ml-auto text-xs bg-muted px-1.5 py-0.5 rounded font-mono
-                    transition-colors duration-150 group-hover:bg-muted/70">
-                    € {record.cost.toFixed(2)}
-                  </span>
-                )}
-              </div>
-              {record.notes && (
-                <p className="text-sm text-muted-foreground mt-1 break-words">{record.notes}</p>
-              )}
-              {record.image_url && (
-                <img
-                  src={record.image_url}
-                  alt={t('maintenance.timeline.photo_alt')}
-                  className="mt-2 w-32 h-24 object-cover rounded-lg border cursor-pointer
-                    transition-all duration-200 hover:opacity-90 hover:scale-105 hover:shadow-md"
-                  onClick={() => window.open(record.image_url!, '_blank')}
-                />
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={onDelete}
-              disabled={isDeleting}
-              className="shrink-0 p-1.5 rounded-md text-muted-foreground/40
-                hover:text-destructive hover:bg-destructive/10
-                transition-all duration-150 hover:scale-110 active:scale-95
-                opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-              title={t('maintenance.timeline.delete_title')}
-            >
-              {isDeleting
-                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                : <Trash2  className="h-3.5 w-3.5" />}
-            </button>
-          </div>
+          </ul>
         </div>
-      </div>
+      )}
+
+      <AlertDialog open={!!confirmDeleteId} onOpenChange={open => { if (!open) setConfirmDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('maintenance.timeline.delete_title')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('maintenance.delete_confirm_description')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (confirmDeleteId) void handleDelete(confirmDeleteId); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t('common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
