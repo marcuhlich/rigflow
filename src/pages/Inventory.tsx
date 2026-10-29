@@ -136,6 +136,7 @@ export default function Inventory() {
     if (!action) return;
     if (action === "toggle-view") setViewMode((prev) => (prev === "grid" ? "table" : "grid"));
     else if (action === "toggle-selection") setSelectionMode((prev) => !prev);
+    else if (action === "new-item") { setEditItem(null); setIsFormOpen(true); }
     const next = new URLSearchParams(searchParams);
     next.delete("action");
     navigate({ search: next.toString() }, { replace: true });
