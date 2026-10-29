@@ -49,7 +49,7 @@ export default function Lending() {
   }, [tab, activeLoans, completedLoans, search]);
 
   const handleAdd = async ({ item, lentTo, dueDate, notes }: NewLoanData) => {
-    // useLendingHistory catches and toasts its own errors.
+    // useLendingHistory toasts its own errors and rethrows; the dialog stays open on failure.
     await addRecord({
       item_id:     item.id,
       item_name:   item.name,
@@ -68,6 +68,8 @@ export default function Lending() {
     try {
       await markReturned(record.id);
       hapticFeedback(50);
+    } catch {
+      // already toasted by useLendingHistory
     } finally {
       setReturningIds(prev => { const next = new Set(prev); next.delete(record.id); return next; });
     }
@@ -77,8 +79,12 @@ export default function Lending() {
     const target = deleteTarget;
     setDeleteTarget(null);
     if (!target) return;
-    await deleteRecord(target.id);
-    hapticFeedback(100);
+    try {
+      await deleteRecord(target.id);
+      hapticFeedback(100);
+    } catch {
+      // already toasted by useLendingHistory
+    }
   };
 
   const renderList = () => {

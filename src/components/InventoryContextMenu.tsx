@@ -30,7 +30,7 @@ interface InventoryContextMenuProps {
   ) => Promise<void>;
   onAddItem: (
     item: Omit<InventoryItem, 'id' | 'user_id' | 'created_at' | 'updated_at'>
-  ) => Promise<void>;
+  ) => Promise<unknown>;
   onFilterCategory: (category: string) => void;
   /** Projects offered in "Add to project". Fetched once by the list, not per row. */
   projects?: Project[];

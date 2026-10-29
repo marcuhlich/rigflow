@@ -31,7 +31,7 @@ interface InventoryTableProps {
   /** When true a row click toggles selection instead of opening the item. */
   selectionMode?: boolean;
   onUpdateItem?: (id: string, updates: ItemUpdate) => Promise<void>;
-  onAddItem?: (item: ItemDraft) => Promise<void>;
+  onAddItem?: (item: ItemDraft) => Promise<unknown>;
   onFilterCategory?: (category: string) => void;
   categories?: CategoryRef[];
   projects?: Project[];

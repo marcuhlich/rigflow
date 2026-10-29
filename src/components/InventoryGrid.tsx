@@ -24,7 +24,7 @@ interface InventoryGridProps {
   onToggleSelection?: (id: string) => void;
   selectionMode?: boolean;
   onUpdateItem: (id: string, updates: ItemUpdate) => Promise<void>;
-  onAddItem: (item: ItemDraft) => Promise<void>;
+  onAddItem: (item: ItemDraft) => Promise<unknown>;
   onFilterCategory: (category: string) => void;
   onEnterSelectionMode?: (firstItemId: string) => void;
   categories?: CategoryRef[];

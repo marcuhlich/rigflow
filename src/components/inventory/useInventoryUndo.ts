@@ -33,7 +33,7 @@ export function useInventoryUndo(ops: Ops) {
   const opsRef = useRef(ops);
   useEffect(() => { opsRef.current = ops; });
 
-  const { undo: popUndo, redo: popRedo, pushAction } = history;
+  const { undo: popUndo, redo: popRedo, pushAction, remapItemId } = history;
 
   const undo = useCallback(async () => {
     const action = popUndo();
@@ -68,7 +68,13 @@ export function useInventoryUndo(ops: Ops) {
     try {
       switch (action.type) {
         case "add":
-          await addItem(toDraft(action.item));
+        {
+          // Redo re-creates the item with a new id; point the history at it
+          // so a later undo deletes the right row.
+          const created = await addItem(toDraft(action.item));
+          const newId = (created as { id?: string } | undefined)?.id;
+          if (newId && newId !== action.item.id) remapItemId(action.item.id, newId);
+        }
           toast({ title: t("undo_redo.redo"), description: t("inventory.redo_add_description", { name: action.item.name }) });
           break;
         case "update":
@@ -81,7 +87,7 @@ export function useInventoryUndo(ops: Ops) {
           break;
       }
     } catch { /* error toast shown by useInventory */ }
-  }, [popRedo, toast, t]);
+  }, [popRedo, remapItemId, toast, t]);
 
   useEffect(() => {
     register({

@@ -46,7 +46,11 @@ export default function Dashboard() {
 
   const handleReturn = useCallback(
     async (loanId: string) => {
-      await markReturned(loanId);
+      try {
+        await markReturned(loanId);
+      } catch {
+        return; // already toasted by useLendingHistory
+      }
       await refetchInventory();
     },
     [markReturned, refetchInventory]
