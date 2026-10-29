@@ -10,7 +10,32 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -68,6 +93,36 @@ export type Database = {
           is_dmx_capable?: boolean
           name?: string
           sort_order?: number
+        }
+        Relationships: []
+      }
+      category_attributes: {
+        Row: {
+          attribute_key: string
+          category_id: string
+          created_at: string
+          enabled: boolean
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attribute_key: string
+          category_id: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attribute_key?: string
+          category_id?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -319,6 +374,7 @@ export type Database = {
           condition: Database["public"]["Enums"]["item_condition"]
           created_at: string
           deleted_at: string | null
+          dimensions_cm: Json | null
           dmx_channels: number | null
           dmx_start_address: number | null
           dmx_universe: number | null
@@ -332,11 +388,10 @@ export type Database = {
           notes: string | null
           quantity: number
           unit_price: number | null
-          weight_kg: number | null
           units_per_case: number | null
-          dimensions_cm: Json | null
           updated_at: string
           user_id: string
+          weight_kg: number | null
         }
         Insert: {
           accessories?: string | null
@@ -345,6 +400,7 @@ export type Database = {
           condition?: Database["public"]["Enums"]["item_condition"]
           created_at?: string
           deleted_at?: string | null
+          dimensions_cm?: Json | null
           dmx_channels?: number | null
           dmx_start_address?: number | null
           dmx_universe?: number | null
@@ -358,11 +414,10 @@ export type Database = {
           notes?: string | null
           quantity?: number
           unit_price?: number | null
-          weight_kg?: number | null
           units_per_case?: number | null
-          dimensions_cm?: Json | null
           updated_at?: string
           user_id: string
+          weight_kg?: number | null
         }
         Update: {
           accessories?: string | null
@@ -371,6 +426,7 @@ export type Database = {
           condition?: Database["public"]["Enums"]["item_condition"]
           created_at?: string
           deleted_at?: string | null
+          dimensions_cm?: Json | null
           dmx_channels?: number | null
           dmx_start_address?: number | null
           dmx_universe?: number | null
@@ -384,8 +440,10 @@ export type Database = {
           notes?: string | null
           quantity?: number
           unit_price?: number | null
+          units_per_case?: number | null
           updated_at?: string
           user_id?: string
+          weight_kg?: number | null
         }
         Relationships: []
       }
@@ -947,7 +1005,7 @@ export type Database = {
       is_demo_user: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      item_condition: "verfügbar" | "verliehen" | "in-einsatz" | "defekt"
+      item_condition: "verf??gbar" | "verliehen" | "in-einsatz" | "defekt"
       project_status:
         | "draft"
         | "planned"
@@ -971,12 +1029,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1000,11 +1058,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1025,11 +1083,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1050,11 +1108,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1067,11 +1125,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1081,9 +1139,12 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
-      item_condition: ["verfügbar", "verliehen", "in-einsatz", "defekt"],
+      item_condition: ["verf??gbar", "verliehen", "in-einsatz", "defekt"],
       project_status: [
         "draft",
         "planned",

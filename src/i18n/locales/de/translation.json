@@ -36,7 +36,10 @@
     "accept": "Akzeptieren",
     "later": "SpÃ¤ter",
     "next":"Weiter",
-    "saved": "Gespeichert"
+    "saved": "Gespeichert",
+    "enabled": "Aktiviert",
+    "disabled": "Deaktiviert",
+    "unit": "Einheit"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -136,6 +139,14 @@
     "imprint_link": "Impressum",
     "privacy_policy_link": "DatenschutzerklÃ¤rung",
     "about_rigflow": "Ãœber RigFlow"
+  },
+  "category_settings": {
+    "title": "Kategorie-Eigenschaften",
+    "description": "Passe an, welche Metadaten-Felder fÃ¼r jede Kategorie angezeigt werden sollen.",
+    "available_fields": "VerfÃ¼gbare Felder fÃ¼r {{category}}",
+    "attribute_enabled": "{{attr}} aktiviert",
+    "attribute_disabled": "{{attr}} deaktiviert",
+    "error_updating_attribute": "Fehler beim Aktualisieren der Eigenschaft"
   },
   "audit": {
     "panel_title": "Letzte Ã„nderungen",
@@ -2278,6 +2289,41 @@
         "label": "Deine Daten",
         "desc": "MFA, DSGVO-konform, Export jederzeit mÃ¶glich."
       }
+      }
+  },
+  "attr": {
+    "common": {
+      "unit_price": "Stückpreis",
+      "weight_kg": "Gewicht",
+      "dimensions_cm": "Abmessungen",
+      "units_per_case": "Stück pro Karton",
+      "connectivity": "Anschlüsse"
+    },
+    "audio": {
+      "frequency_range": "Frequenzbereich",
+      "impedance": "Impedanz",
+      "connector_type": "Anschlusstyp"
+    },
+    "video": {
+      "resolution": "Auflösung"
+    },
+    "licht": {
+      "lamp_type": "Lampentyp",
+      "cooling": "Kühlung",
+      "beam_angle_min": "Abstrahlwinkel (min)",
+      "beam_angle_max": "Abstrahlwinkel (max)",
+      "dmx_mode": "DMX-Modus"
+    },
+    "rigging": {
+      "load_capacity": "Tragkraft",
+      "material": "Material"
+    },
+    "strom": {
+      "amperage": "Stromstärke",
+      "voltage": "Spannung"
+    },
+    "network": {
+      "bandwidth": "Bandbreite"
     }
   }
-}
+  }

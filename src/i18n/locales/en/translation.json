@@ -36,7 +36,10 @@
     "accept": "Accept",
     "later": "Later",
     "next": "Next",
-    "saved": "Saved"
+    "saved": "Saved",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "unit": "Unit"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -130,12 +133,21 @@
     "privacy": "Privacy & Security",
     "general": "General",
     "account_info": "Account Information",
+    "category_attributes": "Category Attributes",
     "help_link": "User Guide",
     "about_link": "About RigFlow",
     "terms_link": "Terms of Use",
     "imprint_link": "Legal Notice",
     "privacy_policy_link": "Privacy Policy",
     "about_rigflow": "About RigFlow"
+  },
+  "category_settings": {
+    "title": "Category Attributes",
+    "description": "Customize which metadata fields are displayed for each category.",
+    "available_fields": "Available fields for {{category}}",
+    "attribute_enabled": "{{attr}} enabled",
+    "attribute_disabled": "{{attr}} disabled",
+    "error_updating_attribute": "Error updating attribute"
   },
   "audit": {
     "panel_title": "Recent Changes",
@@ -2281,6 +2293,41 @@
         "label": "Your Data",
         "desc": "MFA, GDPR compliant, export available anytime."
       }
+      }
+  },
+  "attr": {
+    "common": {
+      "unit_price": "Unit Price",
+      "weight_kg": "Weight",
+      "dimensions_cm": "Dimensions",
+      "units_per_case": "Units per Case",
+      "connectivity": "Connectivity"
+    },
+    "audio": {
+      "frequency_range": "Frequency Range",
+      "impedance": "Impedance",
+      "connector_type": "Connector Type"
+    },
+    "video": {
+      "resolution": "Resolution"
+    },
+    "licht": {
+      "lamp_type": "Lamp Type",
+      "cooling": "Cooling",
+      "beam_angle_min": "Beam Angle (min)",
+      "beam_angle_max": "Beam Angle (max)",
+      "dmx_mode": "DMX Mode"
+    },
+    "rigging": {
+      "load_capacity": "Load Capacity",
+      "material": "Material"
+    },
+    "strom": {
+      "amperage": "Amperage",
+      "voltage": "Voltage"
+    },
+    "network": {
+      "bandwidth": "Bandwidth"
     }
   }
-}
+  }

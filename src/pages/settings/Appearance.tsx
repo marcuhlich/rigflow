@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Sun, Moon, Monitor, Palette, Eye,
-  Keyboard, Info, ChevronLeft, RotateCcw,
+  Keyboard, Info, ChevronLeft, RotateCcw, Tags,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Slider } from "@/components/ui/slider";
@@ -16,6 +16,7 @@ import {
   type Theme, type AccentColor,
 } from "@/lib/appearanceUtils";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { CategorySettingsPanel } from "@/components/CategorySettingsPanel";
 import { useTranslation } from 'react-i18next';
 
 // ─── Lokale Types ─────────────────────────────────────────────────────────────
@@ -170,6 +171,7 @@ export default function Appearance() {
     if (isMobile) return false;
     return localStorage.getItem(STORAGE_KEY_SHORTCUTS) !== "false";
   });
+  const [showCategorySettings, setShowCategorySettings] = useState(false);
 
   // ── Init ───────────────────────────────────────────────────────────────────
 
@@ -445,6 +447,31 @@ export default function Appearance() {
           </div>
         </div>
 
+        {/* ── KATEGORIE-EIGENSCHAFTEN ────────────────────────────────────────── */}
+        <div className="glass-card p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <Tags className="w-4 h-4 text-primary" />
+                <SectionLabel>
+                  {t('category_settings.title')}
+                </SectionLabel>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {t('category_settings.description')}
+              </p>
+            </div>
+            <Button 
+              onClick={() => setShowCategorySettings(true)}
+              variant="outline"
+              size="sm"
+              className="mt-0.5 shrink-0"
+            >
+              {t('common.edit')}
+            </Button>
+          </div>
+        </div>
+
         {/* ── TASTATURKÜRZEL ─────────────────────────────────────────────────── */}
         <div className="glass-card p-5">
           <SectionLabel>{t('appearance.section.shortcuts')}</SectionLabel>
@@ -521,6 +548,12 @@ export default function Appearance() {
         </div>
 
       </div>
+
+      {/* ── Category Settings Dialog ── */}
+      <CategorySettingsPanel 
+        isOpen={showCategorySettings} 
+        onClose={() => setShowCategorySettings(false)} 
+      />
     </div>
   );
 }

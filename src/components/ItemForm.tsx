@@ -23,58 +23,8 @@ import { validators } from '@/lib/validators';
 import { hapticFeedback } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type FieldType = 'text' | 'number' | 'select' | 'boolean' | 'date';
-interface AttributeFieldDef {
-  key: string;
-  label: string;
-  type: FieldType;
-  options?: string[];
-  placeholder?: string;
-  unit?: string;
-}
-
-function getAttributeFields(t: (k: string) => string): Record<string, AttributeFieldDef[]> {
-  return {
-    licht: [
-      { key: 'lamp_type',       label: t('attr.licht.lamp_type'),       type: 'select', options: ['LED', 'Halogen', 'Entladung', 'Laser'] },
-      { key: 'cooling',         label: t('attr.licht.cooling'),         type: 'select', options: ['Aktiv', 'Passiv'] },
-      { key: 'beam_angle_min',  label: t('attr.licht.beam_angle_min'),  type: 'number', unit: '°', placeholder: '5'  },
-      { key: 'beam_angle_max',  label: t('attr.licht.beam_angle_max'),  type: 'number', unit: '°', placeholder: '60' },
-      { key: 'dmx_mode',        label: t('attr.licht.dmx_mode'),        type: 'text',   placeholder: 'Standard / Extended' },
-    ],
-    audio: [
-      { key: 'frequency_range', label: t('attr.audio.frequency_range'), type: 'text',    placeholder: '20Hz – 20kHz' },
-      { key: 'is_active',       label: t('attr.audio.is_active'),       type: 'boolean' },
-      { key: 'impedance',       label: t('attr.audio.impedance'),       type: 'number', unit: 'Ω', placeholder: '8' },
-      { key: 'connector_type',  label: t('attr.audio.connector_type'),  type: 'text',   placeholder: 'XLR, Speakon …' },
-    ],
-    video: [
-      { key: 'resolution',       label: t('attr.video.resolution'),       type: 'text',   placeholder: '1920 × 1080' },
-      { key: 'brightness_lumen', label: t('attr.video.brightness_lumen'), type: 'number', unit: 'lm', placeholder: '5000' },
-      { key: 'signal_type',      label: t('attr.video.signal_type'),      type: 'text',   placeholder: 'HDMI, SDI …' },
-    ],
-    rigging: [
-      { key: 'wll',                label: t('attr.rigging.wll'),                type: 'number', unit: 'kg', placeholder: '500' },
-      { key: 'self_weight',        label: t('attr.rigging.self_weight'),        type: 'number', unit: 'kg', placeholder: '2.5' },
-      { key: 'certification_date', label: t('attr.rigging.certification_date'), type: 'date' },
-    ],
-    strom: [
-      { key: 'voltage',       label: t('attr.strom.voltage'),       type: 'number', unit: 'V',  placeholder: '230' },
-      { key: 'max_amperage',  label: t('attr.strom.max_amperage'),  type: 'number', unit: 'A',  placeholder: '16' },
-      { key: 'connector_in',  label: t('attr.strom.connector_in'),  type: 'text',   placeholder: 'CEE 32A, Schuko …' },
-      { key: 'connector_out', label: t('attr.strom.connector_out'), type: 'text',   placeholder: 'Schuko, CEE 16A …' },
-    ],
-    'it-netzwerk': [
-      { key: 'ip_range',   label: t('attr.it_netzwerk.ip_range'),   type: 'text',   placeholder: '192.168.1.0/24' },
-      { key: 'protocol',   label: t('attr.it_netzwerk.protocol'),   type: 'text',   placeholder: 'sACN, Art-Net, Dante …' },
-      { key: 'port_count', label: t('attr.it_netzwerk.port_count'), type: 'number', placeholder: '8' },
-    ],
-    werkzeug: [],
-  };
-}
+import type { AttributeFieldDef } from '@/hooks/useAttributeFields';
+import { useAttributeFields } from '@/hooks/useAttributeFields';
 
 interface ItemFormProps {
   isOpen: boolean;
@@ -232,6 +182,7 @@ function CollapsibleSection({
 export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] }: ItemFormProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { getFieldsForCategory } = useAttributeFields();
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData]   = useState(emptyForm(categories[0]?.id));
@@ -246,10 +197,8 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
   const [allUserTags, setAllUserTags]         = useState<string[]>([]);
   const tagInputRef = useRef<HTMLInputElement>(null);
 
-  const ATTRIBUTE_FIELDS = getAttributeFields(t);
-
   const selectedCat = categories.find(c => c.id === formData.category);
-  const attrFields  = ATTRIBUTE_FIELDS[formData.category] ?? [];
+  const attrFields  = getFieldsForCategory(formData.category);
   const showDMX     = selectedCat?.is_dmx_capable ?? false;
   const showLent    = formData.condition === 'verliehen';
 
@@ -1137,17 +1086,19 @@ export function ItemForm({ isOpen, onClose, onSubmit, editItem, categories = [] 
 
 // ── AttributeField ────────────────────────────────────────────────────────────
 
+interface AttributeFieldProps {
+  field: AttributeFieldDef;
+  value: string | number | boolean | undefined;
+  onChange: (val: string | number | boolean) => void;
+  selectPlaceholder: string;
+}
+
 function AttributeField({
   field,
   value,
   onChange,
   selectPlaceholder,
-}: {
-  field: AttributeFieldDef;
-  value: string | number | boolean | undefined;
-  onChange: (val: string | number | boolean) => void;
-  selectPlaceholder: string;
-}) {
+}: AttributeFieldProps) {
   const { t } = useTranslation();
 
   if (field.type === 'boolean') {

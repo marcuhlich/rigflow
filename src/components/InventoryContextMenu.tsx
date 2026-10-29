@@ -202,10 +202,33 @@ export function InventoryContextMenu({
   };
 
   const handleDuplicate = async () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, user_id, created_at, updated_at, ...rest } = item;
+    // Build an explicit insert payload instead of spreading the fetched row. This
+    // prevents read-only/runtime fields from reaching Supabase and ensures a copy
+    // starts as an independent, available item rather than inheriting a loan or
+    // occupied DMX patch from the original.
+    const duplicate = {
+      name: t('inventory_context.copy_name', { name: item.name }),
+      category: item.category,
+      quantity: item.quantity,
+      condition: 'verfügbar' as const,
+      location: item.location,
+      notes: item.notes ?? null,
+      lent_to: null,
+      lent_until: null,
+      accessories: item.accessories ?? null,
+      dmx_start_address: null,
+      dmx_channels: item.dmx_channels ?? null,
+      dmx_universe: null,
+      unit_price: item.unit_price ?? null,
+      weight_kg: item.weight_kg ?? null,
+      units_per_case: item.units_per_case ?? null,
+      dimensions_cm: item.dimensions_cm ?? null,
+      image_url: item.image_url ?? null,
+      attributes: item.attributes ?? null,
+      tags: [...(item.tags ?? [])],
+    };
     try {
-      await onAddItem({ ...rest, name: t('inventory_context.copy_name', { name: item.name }) });
+      await onAddItem(duplicate);
       toast({
         title: t('inventory_context.duplicated'),
         description: t('inventory_context.duplicated_desc', { name: item.name }),
@@ -257,7 +280,13 @@ export function InventoryContextMenu({
           <QtyPopover item={item} onCommit={handleQuantityCommit} />
 
           {/* ── 3. Duplizieren ─────────────────────────────────────────── */}
-          <ContextMenuItem className={ITEM_CLS} onSelect={handleDuplicate}>
+          <ContextMenuItem
+            className={ITEM_CLS}
+            onSelect={(event) => {
+              event.preventDefault();
+              void handleDuplicate();
+            }}
+          >
             <Copy className="h-4 w-4 text-primary shrink-0" />
             {t('inventory_context.duplicate')}
           </ContextMenuItem>

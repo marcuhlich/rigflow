@@ -160,19 +160,31 @@ export default function AccountSettings() {
 
       {/* ── Nav Menu Items (mobile) ── */}
       <Card className="glass-card overflow-hidden p-0 lg:hidden">
-        {navMenuItems.map((item, idx, arr) => (
-          <div key={item.to}>
-            <Link
-              to={item.to}
-              className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors"
-            >
-              <item.icon className="h-5 w-5 text-primary shrink-0" />
-              <span className="flex-1 text-sm font-medium">{item.label}</span>
-              {item.trailing ?? <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-            </Link>
-            {idx < arr.length - 1 && <div className="h-px bg-border/50 mx-4" />}
-          </div>
-        ))}
+        {navMenuItems.map((item, idx, arr) => {
+          const isActionItem = 'action' in item;
+          const Component = isActionItem ? 'button' : Link;
+          const componentProps = isActionItem
+            ? {
+                type: 'button' as const,
+                onClick: (item as any).action,
+                className: 'w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors text-left',
+              }
+            : {
+                to: (item as any).to,
+                className: 'flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors',
+              };
+          
+          return (
+            <div key={isActionItem ? (item as any).label : (item as any).to}>
+              <Component {...componentProps}>
+                <item.icon className="h-5 w-5 text-primary shrink-0" />
+                <span className="flex-1 text-sm font-medium">{item.label}</span>
+                {item.trailing ?? <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              </Component>
+              {idx < arr.length - 1 && <div className="h-px bg-border/50 mx-4" />}
+            </div>
+          );
+        })}
       </Card>
 
       {/* ── General info (desktop) ── */}
