@@ -60,7 +60,7 @@ export function MfaForm({ onSuccess, onBack }: MfaFormProps) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
             Authorization: `Bearer ${session?.access_token ?? ""}`,
           },
           body: JSON.stringify({ action: "verify", code }),
