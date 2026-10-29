@@ -490,7 +490,7 @@
   },
   "filter_bar": {
     "title": "Filter",
-    "search_placeholder": "Suche nach Name, Standort...",
+    "search_placeholder": "Name, Kategorie, Standort, Tag …",
     "search_placeholder_short": "Suchen...",
     "open_filters": "Filter öffnen",
     "all": "Alle",

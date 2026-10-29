@@ -12,6 +12,7 @@ import { hapticFeedback } from '@/lib/utils';
 import posthog from "posthog-js";
 import { ANALYTICS_CONSENT_KEY } from '@/lib/constants';
 import i18n from '@/i18n';
+import { useTranslation } from 'react-i18next';
 
 const t = i18n.t.bind(i18n);
 
@@ -136,6 +137,8 @@ let lastItemsErrorToastAt = 0;
 
 export function useInventory() {
   const [searchQuery, setSearchQuery] = useState('');
+  // Re-filters when the language changes, because the search matches translated category names
+  const { t: translate } = useTranslation();
   const [categoryFilter, setCategoryFilter] = useState<ItemCategory | 'all'>('all');
   const [conditionFilter, setConditionFilter] = useState<ItemCondition | 'all'>('all');
   const [locationFilter, setLocationFilter] = useState<string>('all');
@@ -266,20 +269,31 @@ export function useInventory() {
   }, [items]);
 
   const filteredItems = useMemo(() => {
-    const q = searchQuery.toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
+    // Category label in the current language ("Licht" / "Lighting"), cached per category id
+    const categoryLabels = new Map<string, string>();
+    const categoryLabel = (id: string) => {
+      let label = categoryLabels.get(id);
+      if (label === undefined) {
+        label = `${id} ${translate(`categories.${id}`, { defaultValue: id })}`.toLowerCase();
+        categoryLabels.set(id, label);
+      }
+      return label;
+    };
     return items.filter((item) => {
       const tags = item.tags ?? [];
       const matchesSearch = q === '' ||
         item.name.toLowerCase().includes(q) ||
         (item.location ?? '').toLowerCase().includes(q) ||
-        tags.some(t => t.toLowerCase().includes(q));
+        tags.some(t => t.toLowerCase().includes(q)) ||
+        (!!item.category && categoryLabel(item.category).includes(q));
       const matchesCategory  = categoryFilter  === 'all' || item.category  === categoryFilter;
       const matchesCondition = conditionFilter === 'all' || item.condition === conditionFilter;
       const matchesLocation  = locationFilter  === 'all' || item.location  === locationFilter;
       const matchesTag       = tagFilter       === 'all' || tags.includes(tagFilter);
       return matchesSearch && matchesCategory && matchesCondition && matchesLocation && matchesTag;
     });
-  }, [items, searchQuery, categoryFilter, conditionFilter, locationFilter, tagFilter]);
+  }, [items, searchQuery, categoryFilter, conditionFilter, locationFilter, tagFilter, translate]);
 
   const stats = useMemo(() => {
     const total     = items.reduce((sum, item) => sum + item.quantity, 0);

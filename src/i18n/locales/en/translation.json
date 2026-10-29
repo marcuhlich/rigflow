@@ -491,7 +491,7 @@
   },
   "filter_bar": {
     "title": "Filters",
-    "search_placeholder": "Search by name, location...",
+    "search_placeholder": "Name, category, location, tag…",
     "search_placeholder_short": "Search...",
     "open_filters": "Open filters",
     "all": "All",
