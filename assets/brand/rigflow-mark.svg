@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="12 10 80 80">
+  <!-- RigFlow mark: flight-case "R". Chamfered corner = case corner, holes = rivets. Use ≥ 48 px. -->
+  <path fill="#F59E0B" fill-rule="evenodd" d="M18 14H64L82 32V48L72 60L86 86H62L51 63H40V86H18Z M40 30H59L64 35V47H40Z M29 19.6a3.4 3.4 0 1 0 0 6.8a3.4 3.4 0 1 0 0-6.8Z M29 73.6a3.4 3.4 0 1 0 0 6.8a3.4 3.4 0 1 0 0-6.8Z"/>
+</svg>

@@ -38,7 +38,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["apple-touch-icon.png", "mask-icon.svg"],
+      includeAssets: ["apple-touch-icon.png", "favicon.svg"],
       strategies: "generateSW",
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,md}"],
@@ -79,8 +79,8 @@ export default defineConfig(({ mode }) => ({
         name: "RigFlow - Event Gear Inventory",
         short_name: "RigFlow",
         description: "Verwalte deine Veranstaltungstechnik einfach und übersichtlich",
-        theme_color: "#34D399",
-        background_color: "#0F172A",
+        theme_color: "#0F0F11",
+        background_color: "#0F0F11",
         display: "standalone",
         orientation: "portrait-primary",
         scope: "/",

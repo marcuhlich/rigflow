@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Package, QrCode, Shield, SlidersHorizontal, Wifi, Wrench } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { Logo } from "@/components/layout/Logo";
 import { SettingsPage, SettingsRow, SettingsSection } from "@/components/settings/SettingsSection";
 
 // App version – hier anpassen
@@ -28,11 +29,9 @@ export default function AboutRigFlow() {
 
       {/* Identity */}
       <section className="surface flex items-center gap-4 px-4 py-4">
-        <img
-          src="/logo-transparent.png"
-          alt=""
-          className="h-12 w-12 shrink-0 rounded-md border border-border bg-surface-sunken object-contain p-1.5"
-        />
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-border bg-surface-sunken">
+          <Logo withWordmark={false} rivets markClassName="h-8 w-8" />
+        </span>
         <div className="min-w-0">
           <p className="text-base font-semibold tracking-tight">RigFlow</p>
           <p className="tech text-xs text-muted-foreground">{t("about.version", { version: APP_VERSION })}</p>
