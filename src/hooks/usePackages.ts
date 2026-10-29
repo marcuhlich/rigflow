@@ -1,19 +1,40 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/lib/logger';
 import { Package, PackageItem, PackageWithItems } from '@/types/project';
 import { InventoryItem } from '@/types/inventory';
+
+type PackageItemRow = Database['public']['Tables']['package_items']['Row'];
+type PackageUpdate = Database['public']['Tables']['packages']['Update'];
 
 export function usePackages() {
   const [packages, setPackages] = useState<PackageWithItems[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const { user } = useAuth();
+  const userId = user?.id;
   const { toast } = useToast();
 
+  // Guards against out-of-order responses and state updates after unmount
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
   const fetchPackages = useCallback(async () => {
-    if (!user) { setPackages([]); setLoading(false); return; }
+    const requestId = ++requestIdRef.current;
+    const isCurrent = () => mountedRef.current && requestId === requestIdRef.current;
+
+    if (!userId) {
+      if (isCurrent()) { setPackages([]); setInventoryItems([]); setLoading(false); }
+      return;
+    }
     try {
       const [pkgRes, itemsRes, invRes] = await Promise.all([
         supabase.from('packages').select('*').order('created_at', { ascending: false }),
@@ -23,16 +44,19 @@ export function usePackages() {
       if (pkgRes.error) throw pkgRes.error;
       if (itemsRes.error) throw itemsRes.error;
       if (invRes.error) throw invRes.error;
+      if (!isCurrent()) return;
 
-      const inv = (invRes.data ?? []) as unknown as InventoryItem[];
+      const inv = (invRes.data ?? []).map(row => ({ ...row, tags: [] }) as unknown as InventoryItem);
+      const invById = new Map(inv.map(i => [i.id, i]));
       setInventoryItems(inv);
 
+      const pkgItems: PackageItemRow[] = itemsRes.data ?? [];
       const enriched: PackageWithItems[] = (pkgRes.data ?? []).map(pkg => ({
         ...(pkg as Package),
-        items: (itemsRes.data ?? [])
-          .filter((pi: any) => pi.package_id === pkg.id)
-          .map((pi: any): PackageItem => {
-            const invItem = inv.find(i => i.id === pi.inventory_item_id);
+        items: pkgItems
+          .filter(pi => pi.package_id === pkg.id)
+          .map((pi): PackageItem => {
+            const invItem = invById.get(pi.inventory_item_id);
             return {
               ...pi,
               item_name: invItem?.name,
@@ -42,38 +66,47 @@ export function usePackages() {
           }),
       }));
       setPackages(enriched);
-    } catch {
-      if (navigator.onLine) {
+      setError(null);
+    } catch (error) {
+      logger.error('usePackages', 'Failed to load packages', error);
+      if (isCurrent()) setError(error instanceof Error ? error : new Error(String(error)));
+      if (isCurrent() && navigator.onLine) {
         toast({ title: 'Fehler', description: 'Pakete konnten nicht geladen werden.', variant: 'destructive' });
       }
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
-  }, [user, toast]);
+  }, [userId, toast]);
 
   useEffect(() => { fetchPackages(); }, [fetchPackages]);
+
+  const fail = (action: string, error: unknown): never => {
+    logger.error('usePackages', action, error);
+    toast({ title: 'Fehler', variant: 'destructive' });
+    throw error;
+  };
 
   const createPackage = async (data: { name: string; description?: string; color?: string; icon?: string }) => {
     if (!user) return;
     const { data: pkg, error } = await supabase
       .from('packages')
-      .insert({ ...data, user_id: user.id } as any)
+      .insert({ ...data, user_id: user.id })
       .select()
       .single();
-    if (error) { toast({ title: 'Fehler', variant: 'destructive' }); throw error; }
+    if (error) fail('Create package failed', error);
     await fetchPackages();
     return pkg as Package;
   };
 
   const updatePackage = async (id: string, updates: Partial<Pick<Package, 'name' | 'description' | 'color' | 'icon'>>) => {
-    const { error } = await supabase.from('packages').update(updates as any).eq('id', id);
-    if (error) { toast({ title: 'Fehler', variant: 'destructive' }); throw error; }
+    const { error } = await supabase.from('packages').update(updates as PackageUpdate).eq('id', id);
+    if (error) fail('Update package failed', error);
     await fetchPackages();
   };
 
   const deletePackage = async (id: string) => {
     const { error } = await supabase.from('packages').delete().eq('id', id);
-    if (error) { toast({ title: 'Fehler', variant: 'destructive' }); throw error; }
+    if (error) fail('Delete package failed', error);
     await fetchPackages();
   };
 
@@ -86,11 +119,12 @@ export function usePackages() {
       inventory_item_id: inventoryItemId,
       quantity,
       position: maxPos,
-    } as any);
+    });
     if (error) {
       if (error.code === '23505') {
         toast({ title: 'Hinweis', description: 'Artikel ist bereits im Paket enthalten.' });
       } else {
+        logger.error('usePackages', 'Add item to package failed', error);
         toast({ title: 'Fehler', variant: 'destructive' });
       }
       throw error;
@@ -99,14 +133,14 @@ export function usePackages() {
   };
 
   const updatePackageItemQuantity = async (itemId: string, quantity: number) => {
-    const { error } = await supabase.from('package_items').update({ quantity } as any).eq('id', itemId);
-    if (error) { toast({ title: 'Fehler', variant: 'destructive' }); throw error; }
+    const { error } = await supabase.from('package_items').update({ quantity }).eq('id', itemId);
+    if (error) fail('Update package item quantity failed', error);
     await fetchPackages();
   };
 
   const removeItemFromPackage = async (itemId: string) => {
     const { error } = await supabase.from('package_items').delete().eq('id', itemId);
-    if (error) { toast({ title: 'Fehler', variant: 'destructive' }); throw error; }
+    if (error) fail('Remove item from package failed', error);
     await fetchPackages();
   };
 
@@ -114,19 +148,34 @@ export function usePackages() {
     // Optimistisch
     setPackages(prev => prev.map(pkg => {
       if (pkg.id !== packageId) return pkg;
-      const map = Object.fromEntries(pkg.items.map(i => [i.id, i]));
-      return { ...pkg, items: orderedIds.map((id, idx) => ({ ...map[id], position: idx })) };
+      const map = new Map(pkg.items.map(i => [i.id, i]));
+      return {
+        ...pkg,
+        items: orderedIds
+          .map((id, idx) => {
+            const item = map.get(id);
+            return item ? { ...item, position: idx } : null;
+          })
+          .filter((i): i is PackageItem => i !== null),
+      };
     }));
     // Persistieren
-    await Promise.all(
+    const results = await Promise.all(
       orderedIds.map((id, idx) =>
-        supabase.from('package_items').update({ position: idx } as any).eq('id', id)
+        supabase.from('package_items').update({ position: idx }).eq('id', id)
       )
     );
+    const failed = results.find(r => r.error);
+    if (failed?.error) {
+      logger.error('usePackages', 'Reorder failed', failed.error);
+      toast({ title: 'Fehler', variant: 'destructive' });
+      // Roll back to the server state
+      await fetchPackages();
+    }
   };
 
   return {
-    packages, loading, inventoryItems,
+    packages, loading, error, inventoryItems,
     createPackage, updatePackage, deletePackage,
     addItemToPackage, updatePackageItemQuantity, removeItemFromPackage,
     reorderPackageItems,

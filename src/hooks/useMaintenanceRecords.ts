@@ -1,8 +1,9 @@
 // src/hooks/useMaintenanceRecords.ts
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { MaintenanceRecord } from '@/types/maintenance';
 import { useAuth } from '@/hooks/useAuth';
+import { logger } from '@/lib/logger';
 
 // ── Canvas-based image compressor ─────────────────────────────────────────────
 // Ziel: < 200 KB je Bild (Freeplan Supabase Storage)
@@ -16,7 +17,8 @@ async function compressImage(file: File, maxWidth = 1200, quality = 0.65): Promi
       const canvas = document.createElement('canvas');
       canvas.width  = Math.round(img.width  * scale);
       canvas.height = Math.round(img.height * scale);
-      const ctx = canvas.getContext('2d')!;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('Canvas 2D context not available')); return; }
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       canvas.toBlob(
         blob => (blob ? resolve(blob) : reject(new Error('Canvas toBlob failed'))),
@@ -24,7 +26,10 @@ async function compressImage(file: File, maxWidth = 1200, quality = 0.65): Promi
         quality,
       );
     };
-    img.onerror = reject;
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Image could not be decoded'));
+    };
     img.src = objectUrl;
   });
 }
@@ -36,11 +41,24 @@ export function useMaintenanceRecords(itemId: string) {
   const [loading, setLoading] = useState(true);
   const [error,   setError  ] = useState<string | null>(null);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any; // new table not yet in generated types
+  const db = supabase;
+
+  // Guards against out-of-order responses (item switch) and updates after unmount
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const fetchRecords = useCallback(async () => {
-    if (!itemId) return;
+    const requestId = ++requestIdRef.current;
+    const isCurrent = () => mountedRef.current && requestId === requestIdRef.current;
+    if (!itemId) {
+      setRecords([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data, error: err } = await db
       .from('maintenance_records')
@@ -49,10 +67,16 @@ export function useMaintenanceRecords(itemId: string) {
       .order('performed_at', { ascending: false })
       .order('created_at',   { ascending: false });
 
-    if (err) setError(err.message);
-    else     setRecords((data ?? []) as MaintenanceRecord[]);
+    if (!isCurrent()) return;
+    if (err) {
+      logger.error('useMaintenanceRecords', 'Failed to load maintenance records', err, { itemId });
+      setError(err.message);
+    } else {
+      setError(null);
+      setRecords((data ?? []) as MaintenanceRecord[]);
+    }
     setLoading(false);
-  }, [itemId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [itemId, db]);
 
   useEffect(() => { fetchRecords(); }, [fetchRecords]);
 
@@ -77,7 +101,10 @@ export function useMaintenanceRecords(itemId: string) {
       .select()
       .single();
 
-    if (err) return { data: null, error: err.message };
+    if (err) {
+      logger.error('useMaintenanceRecords', 'Failed to add maintenance record', err);
+      return { data: null, error: err.message };
+    }
 
     const record = data as MaintenanceRecord;
     setRecords(prev => sortDesc([...prev, record]));
@@ -94,7 +121,8 @@ export function useMaintenanceRecords(itemId: string) {
       .update(patch)
       .eq('id', id);
 
-    if (!err) setRecords(prev => prev.map(r => (r.id === id ? { ...r, ...patch } : r)));
+    if (err) logger.error('useMaintenanceRecords', 'Failed to update maintenance record', err);
+    else setRecords(prev => prev.map(r => (r.id === id ? { ...r, ...patch } : r)));
     return { error: err?.message ?? null };
   }
 
@@ -105,7 +133,8 @@ export function useMaintenanceRecords(itemId: string) {
       .delete()
       .eq('id', id);
 
-    if (!err) setRecords(prev => prev.filter(r => r.id !== id));
+    if (err) logger.error('useMaintenanceRecords', 'Failed to delete maintenance record', err);
+    else setRecords(prev => prev.filter(r => r.id !== id));
     return { error: err?.message ?? null };
   }
 
@@ -120,14 +149,14 @@ export function useMaintenanceRecords(itemId: string) {
         .upload(path, blob, { contentType: 'image/jpeg' });
 
       if (uploadErr) {
-        console.error('[uploadPhoto]', uploadErr.message);
+        logger.error('useMaintenanceRecords', 'Photo upload failed', uploadErr);
         return null;
       }
 
       const { data } = supabase.storage.from('item-images').getPublicUrl(path);
       return data.publicUrl;
     } catch (e) {
-      console.error('[uploadPhoto] compression/upload error', e);
+      logger.error('useMaintenanceRecords', 'Photo compression/upload error', e);
       return null;
     }
   }

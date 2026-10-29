@@ -7,13 +7,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const ignoreHapticsError = () => { /* haptics are best-effort (plugin may be unavailable) */ };
+
 export function hapticFeedback(pattern: number | number[] = 50) {
   if (isNative()) {
-    if (Array.isArray(pattern)) {
-      nativeHaptics.pattern(pattern);
-    } else {
-      nativeHaptics.impact(pattern);
-    }
+    const run = Array.isArray(pattern) ? nativeHaptics.pattern(pattern) : nativeHaptics.impact(pattern);
+    run.catch(ignoreHapticsError);
   } else {
     navigator.vibrate?.(pattern);
   }
@@ -29,9 +28,16 @@ export function hapticStop() {
 export function hapticLongPress(durationMs: number) {
   if (isNative()) {
     // Long-Press nativ: Light am Anfang, Heavy am Ende
-    nativeHaptics.impact(30);
-    setTimeout(() => nativeHaptics.impact(100), durationMs - 30);
+    nativeHaptics.impact(30).catch(ignoreHapticsError);
+    setTimeout(() => { nativeHaptics.impact(100).catch(ignoreHapticsError); }, Math.max(0, durationMs - 30));
   } else {
-    navigator.vibrate?.([12, durationMs - 30, 60]);
+    navigator.vibrate?.([12, Math.max(0, durationMs - 30), 60]);
   }
+}
+/** Returns the local calendar date as `YYYY-MM-DD` (unlike toISOString(), which uses UTC and can be off by one day). */
+export function toLocalDateString(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }

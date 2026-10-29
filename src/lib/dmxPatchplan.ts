@@ -65,7 +65,9 @@ export function generatePatchplan(
     const channels = item.dmx_channels!;
     const itemConfigs = configsByItem.get(item.id);
 
-    for (let i = 1; i <= item.quantity; i++) {
+    // Guard against bogus quantities (negative/NaN/huge) creating endless loops
+    const quantity = Math.max(0, Math.min(Math.floor(Number(item.quantity) || 0), 512 * 64));
+    for (let i = 1; i <= quantity; i++) {
       const instanceCfg = itemConfigs?.get(i);
 
       let startAddr: number;
@@ -92,7 +94,7 @@ export function generatePatchplan(
         itemId: item.id,
         itemName: item.name,
         instanceNumber: i,
-        totalInstances: item.quantity,
+        totalInstances: quantity,
         universe,
         startAddress: startAddr,
         endAddress: endAddr,
@@ -155,11 +157,14 @@ export function findNextAvailableChannel(
   return -1;
 }
 
+/** Quotes a CSV field and escapes embedded quotes (RFC 4180). */
+const quoteCsv = (value: string | null | undefined) => `"${(value ?? '').replace(/"/g, '""')}"`;
+
 export function exportPatchplanAsCSV(rows: PatchplanRow[]): string {
   const headers = ['Universe', 'Item Name', 'Instance', 'Start Address', 'End Address', 'Channels', 'Condition', 'Location'];
   const csv = [headers.join(',')];
   rows.forEach(row => {
-    csv.push([row.universe, `"${row.itemName}"`, row.instanceNumber, row.startAddress, row.endAddress, row.channels, row.condition, `"${row.location}"`].join(','));
+    csv.push([row.universe, quoteCsv(row.itemName), row.instanceNumber, row.startAddress, row.endAddress, row.channels, row.condition, quoteCsv(row.location)].join(','));
   });
   return csv.join('\n');
 }

@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode, useState, useCallback } from "react";
+import { createContext, useContext, ReactNode, useState, useCallback, useMemo } from "react";
 
 interface UndoRedoContextType {
   canUndo: boolean;
@@ -18,6 +18,7 @@ const UndoRedoContext = createContext<UndoRedoContextType>({
   unregister: () => {},
 });
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useUndoRedoContext() {
   return useContext(UndoRedoContext);
 }
@@ -38,8 +39,11 @@ export function UndoRedoProvider({ children }: { children: ReactNode }) {
     setState({ canUndo: false, canRedo: false, onUndo: null, onRedo: null });
   }, []);
 
+  // Stable value → consumers only re-render when the registered state actually changes
+  const value = useMemo(() => ({ ...state, register, unregister }), [state, register, unregister]);
+
   return (
-    <UndoRedoContext.Provider value={{ ...state, register, unregister }}>
+    <UndoRedoContext.Provider value={value}>
       {children}
     </UndoRedoContext.Provider>
   );

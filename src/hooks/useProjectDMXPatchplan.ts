@@ -6,10 +6,11 @@
  * - Quantity kommt aus dem Projekt-Item (nicht Inventar-Bestand)
  *   → 20x PAR im Inventar, 10x im Projekt → nur 10 Instanzen im Patchplan
  */
-import { useMemo, useCallback, useState, useEffect } from 'react';
+import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { useInventory } from './useInventory';
 import { useToast }     from './use-toast';
 import { supabase }     from '@/integrations/supabase/client';
+import { logger }       from '@/lib/logger';
 import {
   PatchplanRow,
   DMXConflict,
@@ -52,21 +53,37 @@ export function useProjectDMXPatchplan(
    * verwendeten Geräte als Instanzen im Patchplan angezeigt.
    */
   const projectInventoryItems = useMemo(() => {
+    const byInventoryId = new Map<string, EnrichedProjectItem>();
+    projectItems.forEach(pi => {
+      if (pi.inventory_item_id && !byInventoryId.has(pi.inventory_item_id)) byInventoryId.set(pi.inventory_item_id, pi);
+    });
     return allItems
       .filter(i => projectInventoryItemIds.has(i.id))
       .map(i => {
-        const projectItem = projectItems.find(pi => pi.inventory_item_id === i.id);
+        const projectItem = byInventoryId.get(i.id);
         return projectItem ? { ...i, quantity: projectItem.quantity } : i;
       });
   }, [allItems, projectInventoryItemIds, projectItems]);
 
+  // Guards against out-of-order responses (project switch) and updates after unmount
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
   const fetchProjectConfigs = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
+    const isCurrent = () => mountedRef.current && requestId === requestIdRef.current;
     if (!projectId) { setProjectConfigs([]); setLoading(false); return; }
     const { data, error } = await supabase
       .from('project_dmx_instances')
       .select('*')
       .eq('project_id', projectId);
-    if (!error && data) setProjectConfigs(data as ProjectDMXInstance[]);
+    if (!isCurrent()) return;
+    if (error) logger.error('useProjectDMXPatchplan', 'Failed to load project DMX configs', error);
+    else setProjectConfigs((data ?? []) as ProjectDMXInstance[]);
     setLoading(false);
   }, [projectId]);
 
@@ -113,7 +130,8 @@ export function useProjectDMXPatchplan(
         if (error) throw error;
         await fetchProjectConfigs();
         toast({ title: 'Gespeichert', description: `Instanz ${instanceNumber}: CH ${newStartAddress}–${endAddress}, Universe ${newUniverse}` });
-      } catch {
+      } catch (error) {
+        logger.error('useProjectDMXPatchplan', 'Failed to save instance config', error);
         toast({ title: 'Fehler', description: 'Konnte nicht gespeichert werden.', variant: 'destructive' });
       }
     },
@@ -133,7 +151,8 @@ export function useProjectDMXPatchplan(
         if (error) throw error;
         await fetchProjectConfigs();
         toast({ title: 'Zurückgesetzt', description: 'Instanz nutzt wieder die Inventar-Standard-Adresse.' });
-      } catch {
+      } catch (error) {
+        logger.error('useProjectDMXPatchplan', 'Failed to reset instance config', error);
         toast({ title: 'Fehler', variant: 'destructive' });
       }
     },

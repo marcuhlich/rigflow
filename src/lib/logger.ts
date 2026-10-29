@@ -26,8 +26,26 @@ const addToHistory = (entry: LogEntry) => {
   }
 };
 
+/** JSON.stringify that never throws (circular structures, BigInt, ...) - logging must not crash callers. */
+const safeStringify = (data: unknown): string => {
+  try {
+    const seen = new WeakSet<object>();
+    return JSON.stringify(data, (_key, value) => {
+      if (typeof value === 'bigint') return value.toString();
+      if (value instanceof Error) return { name: value.name, message: value.message };
+      if (value && typeof value === 'object') {
+        if (seen.has(value)) return '[Circular]';
+        seen.add(value);
+      }
+      return value;
+    }) ?? String(data);
+  } catch {
+    return String(data);
+  }
+};
+
 const formatLog = (component: string, message: string, data?: unknown) => {
-  const dataStr = data ? ` | ${JSON.stringify(data)}` : '';
+  const dataStr = data !== undefined && data !== null && data !== '' ? ` | ${safeStringify(data)}` : '';
   return `[${component}] ${message}${dataStr}`;
 };
 
@@ -66,7 +84,12 @@ export const logger = {
    * Error-Level Logs (mit Stack-Trace)
    */
   error: (component: string, message: string, error?: unknown, data?: unknown) => {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    // Supabase PostgrestError is a plain object with `message` - don't log it as "[object Object]"
+    const errorMessage = error instanceof Error
+      ? error.message
+      : error && typeof error === 'object' && 'message' in error
+        ? String((error as { message: unknown }).message)
+        : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
     
     const logData: Record<string, unknown> = { 
@@ -126,23 +149,29 @@ export const logger = {
   },
 
   /**
-   * Cleae log history
+   * Clear log history
    */
   clearHistory: () => {
     logHistory.length = 0;
   },
 };
 
-// Globale Error Handler
-window.addEventListener('error', (event) => {
-  logger.error('GlobalErrorHandler', 'Uncaught Error', event.error, {
-    filename: event.filename,
-    lineno: event.lineno,
-  });
-});
+// Globale Error Handler (registered once, even if the module is re-evaluated by HMR)
+const GLOBAL_HANDLERS_FLAG = '__rigflowLoggerHandlers__';
+const globalScope = window as Window & { [GLOBAL_HANDLERS_FLAG]?: boolean };
+if (!globalScope[GLOBAL_HANDLERS_FLAG]) {
+  globalScope[GLOBAL_HANDLERS_FLAG] = true;
 
-window.addEventListener('unhandledrejection', (event) => {
-  logger.error('GlobalErrorHandler', 'Unhandled Promise Rejection', event.reason);
-});
+  window.addEventListener('error', (event) => {
+    logger.error('GlobalErrorHandler', 'Uncaught Error', event.error, {
+      filename: event.filename,
+      lineno: event.lineno,
+    });
+  });
+
+  window.addEventListener('unhandledrejection', (event) => {
+    logger.error('GlobalErrorHandler', 'Unhandled Promise Rejection', event.reason);
+  });
+}
 
 export default logger;

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { logger } from '@/lib/logger';
 
 export type FieldType = 'text' | 'number' | 'select' | 'boolean' | 'date';
 
@@ -62,139 +63,116 @@ const DEFAULT_ATTRIBUTE_FIELDS: Record<string, AttributeFieldDef[]> = {
   ],
 };
 
+/**
+ * Semantics: every default field is enabled unless the user explicitly disabled it
+ * (a category_attributes row with enabled = false).
+ */
 export function useAttributeFields() {
   const { user } = useAuth();
-  const [categoryAttributeMap, setCategoryAttributeMap] = useState<Record<string, string[]>>({});
+  const userId = user?.id;
+  // category_id → explicitly disabled attribute keys
+  const [disabledMap, setDisabledMap] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
 
-  // ─── Fetch enabled attributes for each category ─────────────────────────────
+  // ─── Fetch attribute settings for each category ─────────────────────────────
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
+      setDisabledMap({});
       setLoading(false);
       return;
     }
+    let active = true;
 
     const fetchAttributeSettings = async () => {
       try {
         const { data, error } = await supabase
           .from('category_attributes')
           .select('category_id, attribute_key, enabled')
-          .eq('user_id', user.id)
-          .eq('enabled', true);
+          .eq('user_id', userId)
+          .eq('enabled', false);
 
         if (error) throw error;
 
-        // Build map: category_id → enabled attribute keys
         const map: Record<string, string[]> = {};
-        if (data) {
-          data.forEach(row => {
-            if (!map[row.category_id]) map[row.category_id] = [];
-            map[row.category_id].push(row.attribute_key);
-          });
-        }
-        setCategoryAttributeMap(map);
+        (data ?? []).forEach(row => {
+          if (!map[row.category_id]) map[row.category_id] = [];
+          map[row.category_id].push(row.attribute_key);
+        });
+        if (active) setDisabledMap(map);
       } catch (error) {
-        console.error('Error fetching attribute settings:', error);
+        logger.error('useAttributeFields', 'Error fetching attribute settings', error);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
     fetchAttributeSettings();
-  }, [user]);
-
-  // ─── Get fields for a specific category ──────────────────────────────────────
-  const getFieldsForCategory = (categoryId: string): AttributeFieldDef[] => {
-    const defaults = DEFAULT_ATTRIBUTE_FIELDS[categoryId] || [];
-    
-    // If no custom settings exist, return all defaults
-    const enabledKeys = categoryAttributeMap[categoryId];
-    if (!enabledKeys || enabledKeys.length === 0) {
-      return defaults;
-    }
-
-    // Filter defaults to only show enabled fields
-    return defaults.filter(field => enabledKeys.includes(field.key));
-  };
+    return () => { active = false; };
+  }, [userId]);
 
   // ─── Get all available fields for a category (enabled + disabled) ────────────
-  const getAllFieldsForCategory = (categoryId: string): AttributeFieldDef[] => {
+  const getAllFieldsForCategory = useCallback((categoryId: string): AttributeFieldDef[] => {
     return DEFAULT_ATTRIBUTE_FIELDS[categoryId] || [];
-  };
+  }, []);
+
+  // ─── Get fields for a specific category (only enabled ones) ──────────────────
+  const getFieldsForCategory = useCallback((categoryId: string): AttributeFieldDef[] => {
+    const defaults = DEFAULT_ATTRIBUTE_FIELDS[categoryId] || [];
+    const disabled = disabledMap[categoryId];
+    if (!disabled || disabled.length === 0) return defaults;
+    return defaults.filter(field => !disabled.includes(field.key));
+  }, [disabledMap]);
 
   // ─── Get enabled status for all attributes in a category ────────────────────
-  const getEnabledAttributesForCategory = async (categoryId: string): Promise<Set<string>> => {
-    if (!user) return new Set();
+  const getEnabledAttributesForCategory = useCallback(async (categoryId: string): Promise<Set<string>> => {
+    const allKeys = (DEFAULT_ATTRIBUTE_FIELDS[categoryId] || []).map(f => f.key);
+    if (!userId) return new Set(allKeys);
 
-    try {
-      const { data, error } = await supabase
-        .from('category_attributes')
-        .select('attribute_key, enabled')
-        .eq('user_id', user.id)
-        .eq('category_id', categoryId);
+    const { data, error } = await supabase
+      .from('category_attributes')
+      .select('attribute_key, enabled')
+      .eq('user_id', userId)
+      .eq('category_id', categoryId);
 
-      if (error) throw error;
-
-      // If no data exists, all are enabled by default
-      if (!data || data.length === 0) {
-        const allFields = getAllFieldsForCategory(categoryId);
-        return new Set(allFields.map(f => f.key));
-      }
-
-      // Build set of enabled attributes
-      const enabledSet = new Set<string>();
-      data.forEach(row => {
-        if (row.enabled) {
-          enabledSet.add(row.attribute_key);
-        }
-      });
-
-      return enabledSet;
-    } catch (error) {
-      console.error('Error fetching enabled attributes:', error);
+    if (error) {
+      logger.error('useAttributeFields', 'Error fetching enabled attributes', error);
       return new Set();
     }
-  };
+
+    const disabled = new Set((data ?? []).filter(row => !row.enabled).map(row => row.attribute_key));
+    return new Set(allKeys.filter(key => !disabled.has(key)));
+  }, [userId]);
 
   // ─── Toggle attribute for a category ─────────────────────────────────────────
-  const toggleCategoryAttribute = async (categoryId: string, attributeKey: string, enabled: boolean) => {
-    if (!user) return;
+  const toggleCategoryAttribute = useCallback(async (categoryId: string, attributeKey: string, enabled: boolean) => {
+    if (!userId) return;
 
-    try {
-      // Always use upsert to handle both create and update
-      const { error } = await supabase
-        .from('category_attributes')
-        .upsert({
-          user_id: user.id,
-          category_id: categoryId,
-          attribute_key: attributeKey,
-          enabled: enabled,
-        }, {
-          onConflict: 'user_id,category_id,attribute_key'
-        });
+    // Always use upsert to handle both create and update
+    const { error } = await supabase
+      .from('category_attributes')
+      .upsert({
+        user_id: userId,
+        category_id: categoryId,
+        attribute_key: attributeKey,
+        enabled,
+      }, {
+        onConflict: 'user_id,category_id,attribute_key'
+      });
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
-      }
-
-      // Update local state
-      const newMap = { ...categoryAttributeMap };
-      if (!newMap[categoryId]) newMap[categoryId] = [];
-      
-      if (enabled) {
-        if (!newMap[categoryId].includes(attributeKey)) {
-          newMap[categoryId].push(attributeKey);
-        }
-      } else {
-        newMap[categoryId] = newMap[categoryId].filter(k => k !== attributeKey);
-      }
-      setCategoryAttributeMap(newMap);
-    } catch (error) {
-      console.error('Error toggling attribute:', error);
+    if (error) {
+      logger.error('useAttributeFields', 'Error toggling attribute', error);
       throw error;
     }
-  };
+
+    // Update local state immutably
+    setDisabledMap(prev => {
+      const current = prev[categoryId] ?? [];
+      const next = enabled
+        ? current.filter(k => k !== attributeKey)
+        : current.includes(attributeKey) ? current : [...current, attributeKey];
+      return { ...prev, [categoryId]: next };
+    });
+  }, [userId]);
 
   return {
     getFieldsForCategory,

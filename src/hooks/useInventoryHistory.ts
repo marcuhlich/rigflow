@@ -47,11 +47,31 @@ export function useInventoryHistory() {
     return action;
   }, [updateFlags]);
 
+  /**
+   * Re-creating an item (e.g. redo of "add" / undo of "delete") gives it a new id.
+   * Call this with the old and new id so later undo/redo steps target the right row.
+   */
+  const remapItemId = useCallback((oldId: string, newId: string) => {
+    if (!oldId || !newId || oldId === newId) return;
+    const remapItem = (item: InventoryItem) => (item.id === oldId ? { ...item, id: newId } : item);
+    const remap = (action: HistoryAction): HistoryAction => {
+      switch (action.type) {
+        case 'add':
+        case 'delete':
+          return { ...action, item: remapItem(action.item) };
+        case 'update':
+          return { ...action, oldItem: remapItem(action.oldItem), newItem: remapItem(action.newItem) };
+      }
+    };
+    undoStack.current = undoStack.current.map(remap);
+    redoStack.current = redoStack.current.map(remap);
+  }, []);
+
   const clear = useCallback(() => {
     undoStack.current = [];
     redoStack.current = [];
     updateFlags();
   }, [updateFlags]);
 
-  return { pushAction, undo, redo, canUndo, canRedo, clear };
+  return { pushAction, undo, redo, canUndo, canRedo, clear, remapItemId };
 }

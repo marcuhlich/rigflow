@@ -1,6 +1,16 @@
 import { InventoryItem } from '@/types/inventory';
 import { PatchplanRow } from '@/lib/dmxPatchplan';
 
+/** Escape user content before interpolating it into print HTML (prevents markup/script injection). */
+export function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 const printStyles = `
   @page {
     size: A4 landscape;
@@ -123,14 +133,14 @@ export function printInventory(items: InventoryItem[]): void {
 
   const rows = items.map(item => `
     <tr>
-      <td><strong>${item.name}</strong></td>
-      <td>${item.category}</td>
+      <td><strong>${escapeHtml(item.name)}</strong></td>
+      <td>${escapeHtml(item.category)}</td>
       <td style="text-align: center;">${item.quantity}</td>
-      <td><span class="status-badge ${getStatusClass(item.condition)}">${getStatusLabel(item.condition)}</span></td>
-      <td>${item.location}</td>
-      <td>${item.unit_price ? `${item.unit_price.toFixed(2)} €` : '-'}</td>
-      <td>${item.lent_to || '-'}</td>
-      <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.notes || '-'}</td>
+      <td><span class="status-badge ${getStatusClass(item.condition)}">${escapeHtml(getStatusLabel(item.condition))}</span></td>
+      <td>${escapeHtml(item.location)}</td>
+      <td>${item.unit_price ? `${Number(item.unit_price).toFixed(2)} €` : '-'}</td>
+      <td>${escapeHtml(item.lent_to || '-')}</td>
+      <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(item.notes || '-')}</td>
     </tr>
   `).join('');
 
@@ -215,13 +225,13 @@ export function printPatchplan(rows: PatchplanRow[], conflicts: { row1: Patchpla
         .sort((a, b) => a.startAddress - b.startAddress)
         .map(row => `
           <tr class="${conflictIds.has(row.id) ? 'conflict-warning' : ''}">
-            <td><strong>${row.itemName}</strong></td>
+            <td><strong>${escapeHtml(row.itemName)}</strong></td>
             <td>#${row.instanceNumber}</td>
             <td><span class="dmx-address">${row.startAddress}</span></td>
             <td><span class="dmx-address">${row.endAddress}</span></td>
             <td style="text-align: center;">${row.channels}</td>
-            <td>${row.location}</td>
-            <td><span class="status-badge ${getStatusClass(row.condition)}">${getStatusLabel(row.condition)}</span></td>
+            <td>${escapeHtml(row.location)}</td>
+            <td><span class="status-badge ${getStatusClass(row.condition)}">${escapeHtml(getStatusLabel(row.condition))}</span></td>
           </tr>
         `).join('');
 
@@ -292,18 +302,21 @@ export function printPatchplan(rows: PatchplanRow[], conflicts: { row1: Patchpla
 
 function openPrintWindow(html: string): void {
   const printWindow = window.open('', '_blank');
-  if (printWindow) {
-    printWindow.document.write(html);
-    printWindow.document.close();
-    
-    // Wait for content to load, then print
-    printWindow.onload = () => {
-      printWindow.print();
-    };
-    
-    // Fallback for browsers that don't fire onload
-    setTimeout(() => {
-      printWindow.print();
-    }, 500);
-  }
+  if (!printWindow) return;
+
+  printWindow.document.write(html);
+  printWindow.document.close();
+
+  // Print exactly once: onload and the fallback timer used to both fire -> two print dialogs
+  let printed = false;
+  const print = () => {
+    if (printed || printWindow.closed) return;
+    printed = true;
+    printWindow.focus();
+    printWindow.print();
+  };
+
+  printWindow.onload = print;
+  // Fallback for browsers that don't fire onload for document.write content
+  setTimeout(print, 500);
 }

@@ -5,6 +5,7 @@
 import { logger } from './logger';
 import { encodeQRPayload } from './qrPayload';
 import { InventoryItem } from '@/types/inventory';
+import { escapeHtml } from './printUtils';
 
 export async function generateQRCodeDataUrl(
   itemIdOrData: string | InventoryItem,
@@ -24,7 +25,7 @@ export async function generateQRCodeDataUrl(
     // Nutze api.qrserver.com für QR-Code Generierung
     // Dieser Service benötigt keine Installation
     let data: string;
-    
+
     if (typeof itemIdOrData === 'string') {
       data = itemIdOrData;
     } else if (options?.usePayload) {
@@ -40,7 +41,7 @@ export async function generateQRCodeDataUrl(
 
     return url;
   } catch (error) {
-    logger.error('Error generating QR code:', error);
+    logger.error('qrCode', 'Error generating QR code', error);
     throw new Error('QR-Code konnte nicht generiert werden');
   }
 }
@@ -57,26 +58,25 @@ export async function generateQRCodeCanvas(
   try {
     // Externe Lösung: Lade das QR-Bild und zeichne es auf den Canvas
     const dataUrl = await generateQRCodeDataUrl(itemId);
-    
+
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas context nicht verfügbar');
 
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    
-    img.onload = () => {
-      canvas.width = 300;
-      canvas.height = 300;
-      ctx.drawImage(img, 0, 0, 300, 300);
-    };
-
-    img.onerror = () => {
-      throw new Error('QR-Code Bild konnte nicht geladen werden');
-    };
-
-    img.src = dataUrl;
+    // Resolve only once the image is drawn; errors reject (a throw inside onerror was uncatchable)
+    await new Promise<void>((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        canvas.width = 300;
+        canvas.height = 300;
+        ctx.drawImage(img, 0, 0, 300, 300);
+        resolve();
+      };
+      img.onerror = () => reject(new Error('QR-Code Bild konnte nicht geladen werden'));
+      img.src = dataUrl;
+    });
   } catch (error) {
-    logger.error('Error generating QR code on canvas:', error);
+    logger.error('qrCode', 'Error generating QR code on canvas', error);
     throw error;
   }
 }
@@ -90,14 +90,33 @@ export async function downloadQRCode(
 ): Promise<void> {
   try {
     const dataUrl = await generateQRCodeDataUrl(itemId);
+    const fileName = `QR-Code-${itemName.replace(/[\\/:*?"<>|]/g, '')}-${itemId}.png`;
+    // The `download` attribute is ignored for cross-origin URLs -> fetch the image as a blob first
+    let href = dataUrl;
+    let objectUrl: string | null = null;
+    try {
+      const response = await fetch(dataUrl);
+      if (response.ok) {
+        objectUrl = URL.createObjectURL(await response.blob());
+        href = objectUrl;
+      }
+    } catch (fetchError) {
+      logger.warn('qrCode', 'QR image fetch failed, falling back to direct link', fetchError);
+    }
     const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = `QR-Code-${itemName}-${itemId}.png`;
+    link.href = href;
+    link.download = fileName;
+    link.rel = 'noopener';
+    if (!objectUrl) link.target = '_blank';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    if (objectUrl) {
+      const url = objectUrl;
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
   } catch (error) {
-    logger.error('Error downloading QR code:', error);
+    logger.error('qrCode', 'Error downloading QR code', error);
     throw error;
   }
 }
@@ -122,7 +141,7 @@ export async function printQRCode(
       <!DOCTYPE html>
       <html>
         <head>
-          <title>QR-Code: ${itemName}</title>
+          <title>QR-Code: ${escapeHtml(itemName)}</title>
           <style>
             body {
               font-family: Arial, sans-serif;
@@ -172,20 +191,20 @@ export async function printQRCode(
         </head>
         <body>
           <div class="container">
-            <h2>${itemName}</h2>
+            <h2>${escapeHtml(itemName)}</h2>
             <div class="qr-code">
-              <img src="${dataUrl}" alt="QR-Code for ${itemName}" />
+              <img src="${escapeHtml(dataUrl)}" alt="QR-Code for ${escapeHtml(itemName)}" />
             </div>
             <p style="margin: 10px 0; color: #666; font-size: 12px;">
-              ID: ${itemId}
+              ID: ${escapeHtml(itemId)}
             </p>
             ${
               itemDetails
                 ? `
               <div class="details">
-                ${itemDetails.category ? `<p><strong>Kategorie:</strong> ${itemDetails.category}</p>` : ''}
-                ${itemDetails.quantity ? `<p><strong>Menge:</strong> ${itemDetails.quantity}</p>` : ''}
-                ${itemDetails.location ? `<p><strong>Standort:</strong> ${itemDetails.location}</p>` : ''}
+                ${itemDetails.category ? `<p><strong>Kategorie:</strong> ${escapeHtml(itemDetails.category)}</p>` : ''}
+                ${itemDetails.quantity ? `<p><strong>Menge:</strong> ${escapeHtml(itemDetails.quantity)}</p>` : ''}
+                ${itemDetails.location ? `<p><strong>Standort:</strong> ${escapeHtml(itemDetails.location)}</p>` : ''}
               </div>
             `
                 : ''
@@ -205,7 +224,7 @@ export async function printQRCode(
     printWindow.document.write(html);
     printWindow.document.close();
   } catch (error) {
-    logger.error('Error printing QR code:', error);
+    logger.error('qrCode', 'Error printing QR code', error);
     throw error;
   }
 }
@@ -245,7 +264,7 @@ export async function generateBatchQRCodes(
         dataUrl,
       });
     } catch (error) {
-      logger.error(`Error generating QR code for ${item.name}:`, error);
+      logger.error('qrCode', 'Error generating QR code for item', error, { itemId: item.id });
     }
   }
 
@@ -280,7 +299,7 @@ export async function generateBatchPrintHTML(
           }
           .grid {
             display: grid;
-            grid-template-columns: repeat(${gridCols}, 1fr);
+            grid-template-columns: repeat(${Math.max(1, Math.floor(gridCols) || 4)}, 1fr);
             gap: 10px;
             margin-bottom: 20px;
           }
@@ -330,9 +349,9 @@ export async function generateBatchPrintHTML(
               .map(
                 item => `
               <div class="qr-item">
-                <img src="${item.dataUrl}" alt="QR-Code for ${item.name}" />
-                <div class="qr-item-name">${item.name}</div>
-                <div class="qr-item-id">${item.id}</div>
+                <img src="${escapeHtml(item.dataUrl)}" alt="QR-Code for ${escapeHtml(item.name)}" />
+                <div class="qr-item-name">${escapeHtml(item.name)}</div>
+                <div class="qr-item-id">${escapeHtml(item.id)}</div>
               </div>
             `
               )

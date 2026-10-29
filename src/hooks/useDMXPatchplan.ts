@@ -1,8 +1,12 @@
-import { useMemo, useCallback, useState, useEffect } from 'react';
+import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { useInventory } from './useInventory';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
+import i18n from '@/i18n';
+
+const t = i18n.t.bind(i18n);
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 import {
   PatchplanRow,
   DMXConflict,
@@ -14,21 +18,37 @@ import {
 } from '@/lib/dmxPatchplan';
 
 export function useDMXPatchplan() {
-  const { allItems, updateItem } = useInventory();
+  const { allItems, updateItem, loading: inventoryLoading } = useInventory();
   const { user } = useAuth();
+  const userId = user?.id;
   const { toast } = useToast();
   const [instanceConfigs, setInstanceConfigs] = useState<DMXInstanceConfig[]>([]);
+  const [configsLoading, setConfigsLoading] = useState(true);
 
   // Fetch per-instance configs
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
   const fetchInstanceConfigs = useCallback(async () => {
-    if (!user) { setInstanceConfigs([]); return; }
-    const { data, error } = await supabase
-      .from('dmx_instances')
-      .select('*');
-    if (!error && data) {
-      setInstanceConfigs(data as DMXInstanceConfig[]);
+    if (!userId) {
+      if (mountedRef.current) { setInstanceConfigs([]); setConfigsLoading(false); }
+      return;
     }
-  }, [user]);
+    try {
+      const { data, error } = await supabase
+        .from('dmx_instances')
+        .select('*');
+      if (error) throw error;
+      if (mountedRef.current) setInstanceConfigs((data ?? []) as DMXInstanceConfig[]);
+    } catch (error) {
+      logger.error('useDMXPatchplan', 'Failed to load DMX instance configs', error);
+    } finally {
+      if (mountedRef.current) setConfigsLoading(false);
+    }
+  }, [userId]);
 
   useEffect(() => { fetchInstanceConfigs(); }, [fetchInstanceConfigs]);
 
@@ -61,20 +81,20 @@ export function useDMXPatchplan() {
     async (itemId: string, instanceNumber: number, newStartAddress: number, newUniverse: number) => {
       const item = allItems.find(i => i.id === itemId);
       if (!item || !item.dmx_channels) {
-        toast({ title: 'Fehler', description: 'Gerät nicht gefunden', variant: 'destructive' });
+        toast({ title: t('dmx.toast.error', { defaultValue: 'Fehler' }), description: t('dmx.toast.device_not_found', { defaultValue: 'Gerät nicht gefunden' }), variant: 'destructive' });
         return;
       }
 
       if (newStartAddress < 1 || newStartAddress > 512) {
-        toast({ title: 'Fehler', description: 'Ungültige DMX-Adresse (1-512)', variant: 'destructive' });
+        toast({ title: t('dmx.toast.error', { defaultValue: 'Fehler' }), description: t('dmx.toast.invalid_address', { defaultValue: 'Ungültige DMX-Adresse (1-512)' }), variant: 'destructive' });
         return;
       }
 
       const endAddress = newStartAddress + item.dmx_channels - 1;
       if (endAddress > 512) {
         toast({
-          title: 'Fehler',
-          description: `Benötigt ${item.dmx_channels} Kanäle. Nicht genug Platz ab Adresse ${newStartAddress}.`,
+          title: t('dmx.toast.error', { defaultValue: 'Fehler' }),
+          description: t('dmx.toast.not_enough_space_from', { defaultValue: 'Benötigt {{channels}} Kanäle. Nicht genug Platz ab Adresse {{address}}.', channels: item.dmx_channels, address: newStartAddress }),
           variant: 'destructive',
         });
         return;
@@ -98,11 +118,12 @@ export function useDMXPatchplan() {
 
         await fetchInstanceConfigs();
         toast({
-          title: 'Gespeichert',
-          description: `Instanz ${instanceNumber}: Adresse ${newStartAddress}–${endAddress}, Universe ${newUniverse}`,
+          title: t('dmx.toast.saved', { defaultValue: 'Gespeichert' }),
+          description: t('dmx.toast.instance_saved', { defaultValue: 'Instanz {{instance}}: Adresse {{start}}–{{end}}, Universe {{universe}}', instance: instanceNumber, start: newStartAddress, end: endAddress, universe: newUniverse }),
         });
       } catch (error) {
-        toast({ title: 'Fehler', description: 'Konnte nicht gespeichert werden.', variant: 'destructive' });
+        logger.error('useDMXPatchplan', 'Failed to save instance DMX config', error);
+        toast({ title: t('dmx.toast.error', { defaultValue: 'Fehler' }), description: t('dmx.toast.save_failed', { defaultValue: 'Konnte nicht gespeichert werden.' }), variant: 'destructive' });
       }
     },
     [allItems, fetchInstanceConfigs, toast]
@@ -121,9 +142,10 @@ export function useDMXPatchplan() {
           .eq('instance_number', instanceNumber);
         if (error) throw error;
         await fetchInstanceConfigs();
-        toast({ title: 'Zurückgesetzt', description: `Instanz ${instanceNumber} nutzt wieder Standard-Adressen.` });
-      } catch {
-        toast({ title: 'Fehler', variant: 'destructive' });
+        toast({ title: t('dmx.toast.reset', { defaultValue: 'Zurückgesetzt' }), description: t('dmx.toast.instance_reset', { defaultValue: 'Instanz {{instance}} nutzt wieder Standard-Adressen.', instance: instanceNumber }) });
+      } catch (error) {
+        logger.error('useDMXPatchplan', 'Failed to reset instance DMX config', error);
+        toast({ title: t('dmx.toast.error', { defaultValue: 'Fehler' }), description: t('dmx.toast.reset_failed', { defaultValue: 'Konnte nicht zurückgesetzt werden.' }), variant: 'destructive' });
       }
     },
     [fetchInstanceConfigs, toast]
@@ -136,9 +158,10 @@ export function useDMXPatchplan() {
       if (!item) return;
       try {
         await updateItem(itemId, { ...item, dmx_start_address: newStartAddress });
-        toast({ title: 'Erfolg', description: `Basis-Adresse aktualisiert: ${newStartAddress}` });
-      } catch {
-        toast({ title: 'Fehler', variant: 'destructive' });
+        toast({ title: t('dmx.toast.success', { defaultValue: 'Erfolg' }), description: t('dmx.toast.base_address_updated', { defaultValue: 'Basis-Adresse aktualisiert: {{address}}', address: newStartAddress }) });
+      } catch (error) {
+        // updateItem already showed an error toast
+        logger.error('useDMXPatchplan', 'Failed to update base DMX address', error);
       }
     },
     [allItems, updateItem, toast]
@@ -150,9 +173,10 @@ export function useDMXPatchplan() {
       if (!item) return;
       try {
         await updateItem(itemId, { ...item, dmx_universe: newUniverse });
-        toast({ title: 'Erfolg', description: `Universe aktualisiert: ${newUniverse}` });
-      } catch {
-        toast({ title: 'Fehler', variant: 'destructive' });
+        toast({ title: t('dmx.toast.success', { defaultValue: 'Erfolg' }), description: t('dmx.toast.universe_updated', { defaultValue: 'Universe aktualisiert: {{universe}}', universe: newUniverse }) });
+      } catch (error) {
+        // updateItem already showed an error toast
+        logger.error('useDMXPatchplan', 'Failed to update DMX universe', error);
       }
     },
     [allItems, updateItem, toast]
@@ -164,7 +188,7 @@ export function useDMXPatchplan() {
       if (!item || !item.dmx_channels) return;
       const nextCh = findNextAvailableChannel(patchplan, universe, item.dmx_channels);
       if (nextCh === -1) {
-        toast({ title: 'Fehler', description: `Nicht genug Platz in Universe ${universe}`, variant: 'destructive' });
+        toast({ title: t('dmx.toast.error', { defaultValue: 'Fehler' }), description: t('dmx.toast.universe_full', { defaultValue: 'Nicht genug Platz in Universe {{universe}}', universe }), variant: 'destructive' });
         return;
       }
       await updateItemDMXAddress(itemId, nextCh);
@@ -183,6 +207,8 @@ export function useDMXPatchplan() {
   );
 
   return {
+    /** true while inventory items or per-instance configs are still loading */
+    loading: inventoryLoading || configsLoading,
     patchplan,
     conflicts,
     universeUsage,

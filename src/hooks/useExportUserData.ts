@@ -2,6 +2,36 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { logger } from "@/lib/logger";
+
+/** Storage key used by supabase-js: sb-<project-ref>-auth-token */
+function readStoredToken(supabaseUrl: string): string | null {
+  try {
+    const projectRef = new URL(supabaseUrl).hostname.split(".")[0];
+    const stored = localStorage.getItem(`sb-${projectRef}-auth-token`);
+    return stored ? (JSON.parse(stored)?.access_token ?? null) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * getSession() can hang in some PWA states – race it against a short timeout
+ * and fall back to the token persisted in localStorage.
+ */
+async function getAccessToken(supabaseUrl: string): Promise<string | null> {
+  try {
+    const result = await Promise.race([
+      supabase.auth.getSession(),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), 3000)),
+    ]);
+    const token = result?.data.session?.access_token;
+    if (token) return token;
+  } catch (error) {
+    logger.warn("useExportUserData", "getSession failed, falling back to stored token", error);
+  }
+  return readStoredToken(supabaseUrl);
+}
 
 export function useExportUserData() {
   const [isExporting, setIsExporting] = useState(false);
@@ -10,15 +40,11 @@ export function useExportUserData() {
   const exportData = async () => {
     setIsExporting(true);
     try {
-      // Token direkt aus localStorage – umgeht den getSession()-Bug
-      const storageKey = "sb-ntatlzrkxbrarejhwozt-auth-token";
-      const stored = localStorage.getItem(storageKey);
-      const token = stored ? JSON.parse(stored)?.access_token : null;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
+      const token = await getAccessToken(supabaseUrl);
       if (!token) throw new Error("Nicht angemeldet");
-
-      const supabaseUrl = (supabase as any).supabaseUrl as string;
-      const supabaseKey = (supabase as any).supabaseKey as string;
 
       const response = await fetch(
         `${supabaseUrl}/functions/v1/export-user-data`,
@@ -48,10 +74,12 @@ export function useExportUserData() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      // Revoke later – revoking synchronously can abort the download in Safari/WebViews
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
 
       toast({ title: "Export erfolgreich", description: "Deine Daten wurden als JSON heruntergeladen." });
     } catch (err: unknown) {
+      logger.error("useExportUserData", "Export failed", err);
       const message = err instanceof Error ? err.message : "Unbekannter Fehler";
       toast({ title: "Export fehlgeschlagen", description: message, variant: "destructive" });
     } finally {

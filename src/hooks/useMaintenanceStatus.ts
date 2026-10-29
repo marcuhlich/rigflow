@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 
 const GLOBAL_DEFAULT_INTERVAL = 180;
 
@@ -24,12 +25,14 @@ export function useMaintenanceStatus(
   });
 
   useEffect(() => {
-    if (!itemId) return;
+    if (!itemId) {
+      setStatus({ overdue: false, warning: false, loading: false });
+      return;
+    }
     let cancelled = false;
 
     async function check() {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data } = await (supabase as any)
+      const { data, error } = await supabase
         .from('maintenance_records')
         .select('performed_at')
         .eq('item_id', itemId)
@@ -38,6 +41,12 @@ export function useMaintenanceStatus(
         .maybeSingle();
 
       if (cancelled) return;
+      if (error) {
+        // Don't flag the item as overdue just because the request failed
+        logger.error('useMaintenanceStatus', 'Failed to load last maintenance', error, { itemId });
+        setStatus({ overdue: false, warning: false, loading: false });
+        return;
+      }
 
       const interval = intervalDays ?? GLOBAL_DEFAULT_INTERVAL;
       const days     = data ? differenceInDays(new Date(), parseISO(data.performed_at)) : null;

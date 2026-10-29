@@ -1,5 +1,6 @@
 // src/hooks/useLatestRelease.ts
 import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
 
 export interface ReleaseInfo {
   version: string;
@@ -29,12 +30,14 @@ export function useLatestRelease(): UseLatestReleaseResult {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     async function fetchLatestRelease() {
       try {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(SUPABASE_API_URL);
+        const response = await fetch(SUPABASE_API_URL, { signal: controller.signal });
         if (!response.ok) {
           throw new Error(`Fehler beim Abrufen der Release-Daten (${response.status})`);
         }
@@ -44,6 +47,7 @@ export function useLatestRelease(): UseLatestReleaseResult {
         if (data.error) {
           throw new Error(data.error);
         }
+        if (controller.signal.aborted) return;
 
         setRelease({
           version: data.version,
@@ -53,14 +57,16 @@ export function useLatestRelease(): UseLatestReleaseResult {
           releaseUrl: data.releaseUrl,
         });
       } catch (err) {
-        console.error("Failed to fetch latest release:", err);
+        if (controller.signal.aborted) return;
+        logger.error("useLatestRelease", "Failed to fetch latest release", err);
         setError(err instanceof Error ? err.message : "Fehler beim Abrufen der Release-Daten");
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
 
     fetchLatestRelease();
+    return () => controller.abort();
   }, []);
 
   return { release, loading, error };

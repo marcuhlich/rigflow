@@ -85,6 +85,7 @@ export interface InventoryItem {
   units_per_case?: number | null;
   dimensions_cm?: { length?: number; width?: number; height?: number; } | null;
   image_url?: string | null;
+  maintenance_interval_days?: number | null;
   attributes?: ItemAttributes | null;
   tags: string[];
   created_at: string;

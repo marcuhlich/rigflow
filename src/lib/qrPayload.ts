@@ -33,16 +33,15 @@ export function encodeQRPayload(item: InventoryItem): string {
     q: item.quantity,
     dmx: item.dmx_start_address ? {
       addr: item.dmx_start_address,
-      uni: item.dmx_universe,
-      ch: item.dmx_channels,
+      uni: item.dmx_universe ?? undefined,
+      ch: item.dmx_channels ?? undefined,
     } : undefined,
   };
 
   // Entferne undefined Felder
-  Object.keys(payload).forEach(
-    key => payload[key as keyof QRPayload] === undefined && 
-    delete payload[key as keyof QRPayload]
-  );
+  (Object.keys(payload) as (keyof QRPayload)[]).forEach(key => {
+    if (payload[key] === undefined) delete payload[key];
+  });
 
   return JSON.stringify(payload);
 }
@@ -53,8 +52,12 @@ export function encodeQRPayload(item: InventoryItem): string {
 export function decodeQRPayload(content: string): QRPayload | { id: string } {
   try {
     // Versuche als JSON zu parsen (neue Format)
-    if (content.startsWith('{')) {
-      return JSON.parse(content);
+    const trimmed = content.trim();
+    if (trimmed.startsWith('{')) {
+      const parsed: unknown = JSON.parse(trimmed);
+      // Malformed JSON objects without an id fall back to the raw content
+      if (isValidQRPayload(parsed)) return parsed;
+      return { id: trimmed };
     }
     // Fallback: Alte Format (nur UUID)
     return { id: content.trim() };
@@ -74,8 +77,8 @@ export function extractItemId(payload: QRPayload | { id: string }): string {
 /**
  * Validiert einen QR-Payload
  */
-export function isValidQRPayload(payload: any): payload is QRPayload | { id: string } {
-  return payload && typeof payload === 'object' && 'id' in payload;
+export function isValidQRPayload(payload: unknown): payload is QRPayload | { id: string } {
+  return !!payload && typeof payload === 'object' && typeof (payload as { id?: unknown }).id === 'string';
 }
 
 /**

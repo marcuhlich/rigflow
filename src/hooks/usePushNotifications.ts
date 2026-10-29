@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { logger } from '@/lib/logger';
 import { isNative } from '@/services/platform';
 import {
@@ -22,89 +22,78 @@ interface NotificationAction {
   title: string;
 }
 
+const isWebNotificationSupported = () =>
+  typeof window !== 'undefined' && 'serviceWorker' in navigator && 'Notification' in window;
+
+/** Notification.permission without throwing on platforms that lack the API (e.g. iOS Safari outside a PWA). */
+const getWebPermission = (): NotificationPermission =>
+  typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default';
+
+/** serviceWorker.ready never resolves when no SW is registered – don't hang forever. */
+async function getReadyRegistration(timeoutMs = 5000): Promise<ServiceWorkerRegistration | null> {
+  if (!('serviceWorker' in navigator)) return null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), timeoutMs); }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export function usePushNotifications() {
-  const [isSupported, setIsSupported] = useState(false);
-  const [permission, setPermission] = useState<NotificationPermission>('default');
+  const [isSupported, setIsSupported] = useState(() => isNative() || isWebNotificationSupported());
+  const [permission, setPermission] = useState<NotificationPermission>(() =>
+    isNative() ? 'default' : getWebPermission()
+  );
   const [error, setError] = useState<string | null>(null);
+
+  // Refs so the (stable) callbacks below always see current values
+  const permissionRef = useRef(permission);
+  permissionRef.current = permission;
+  const isSupportedRef = useRef(isSupported);
+  isSupportedRef.current = isSupported;
+
+  const mountedRef = useRef(true);
+  const welcomeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const updatePermission = useCallback((value: NotificationPermission) => {
+    permissionRef.current = value;
+    if (mountedRef.current) setPermission(value);
+  }, []);
+
+  const reportError = useCallback((message: string) => {
+    if (mountedRef.current) setError(message);
+  }, []);
 
   // ── Init ──────────────────────────────────────────────────────────────────
   useEffect(() => {
+    mountedRef.current = true;
+
     if (isNative()) {
       // Native: LocalNotifications immer verfügbar
       setIsSupported(true);
-      checkNativeNotificationPermission().then(setPermission);
-      return;
+      checkNativeNotificationPermission().then(updatePermission);
+    } else {
+      // Web/PWA: Service Worker + Notification API
+      const supported = isWebNotificationSupported();
+      setIsSupported(supported);
+      if (supported) updatePermission(Notification.permission);
     }
 
-    // Web/PWA: Service Worker + Notification API
-    const supported = 'serviceWorker' in navigator && 'Notification' in window;
-    setIsSupported(supported);
-    if (supported) {
-      setPermission(Notification.permission);
-    }
-  }, []);
-
-  // ── requestPermission ─────────────────────────────────────────────────────
-  const requestPermission = async (): Promise<boolean> => {
-    // ── Native ──
-    if (isNative()) {
-      try {
-        const result = await requestNativeNotificationPermission();
-        setPermission(result);
-        if (result === 'granted') {
-          setTimeout(() => {
-            showNativeNotification({
-              title: 'RigFlow',
-              body: 'Benachrichtigungen sind aktiviert! 🎉',
-              tag: 'welcome',
-            });
-          }, 500);
-        }
-        return result === 'granted';
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : 'Fehler beim Anfordern der Permission';
-        setError(message);
-        logger.error('usePushNotifications', 'Native permission error', err);
-        return false;
-      }
-    }
-
-    // ── Web ──
-    if (!isSupported) {
-      const msg = 'Push-Benachrichtigungen werden nicht unterstützt';
-      setError(msg);
-      logger.warn('usePushNotifications', msg);
-      return false;
-    }
-
-    try {
-      const result = await Notification.requestPermission();
-      setPermission(result);
-      if (result === 'granted') {
-        setTimeout(() => {
-          sendNotification({
-            title: 'RigFlow',
-            body: 'Benachrichtigungen sind aktiviert! 🎉',
-            tag: 'welcome',
-          });
-        }, 500);
-      }
-      return result === 'granted';
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Fehler beim Anfordern der Permission';
-      setError(message);
-      logger.error('usePushNotifications', 'Web permission error', err);
-      return false;
-    }
-  };
+    return () => {
+      mountedRef.current = false;
+      if (welcomeTimerRef.current) clearTimeout(welcomeTimerRef.current);
+    };
+  }, [updatePermission]);
 
   // ── sendNotification ──────────────────────────────────────────────────────
-  const sendNotification = async (options: PushNotificationOptions): Promise<void> => {
+  const sendNotification = useCallback(async (options: PushNotificationOptions): Promise<void> => {
     // ── Native ──
     if (isNative()) {
-      if (permission !== 'granted') {
+      if (permissionRef.current !== 'granted') {
         logger.warn('usePushNotifications', 'Native: permission not granted');
         return;
       }
@@ -118,15 +107,15 @@ export function usePushNotifications() {
       } catch (err) {
         const message =
           err instanceof Error ? err.message : 'Fehler beim Senden der Notification';
-        setError(message);
+        reportError(message);
         logger.error('usePushNotifications', 'Native send error', err);
       }
       return;
     }
 
     // ── Web ──
-    const currentPermission = Notification.permission;
-    if (!isSupported || currentPermission !== 'granted') {
+    const currentPermission = getWebPermission();
+    if (!isWebNotificationSupported() || currentPermission !== 'granted') {
       logger.warn('usePushNotifications', 'Web: notifications not available', {
         currentPermission,
       });
@@ -142,8 +131,8 @@ export function usePushNotifications() {
         requireInteraction: options.requireInteraction || false,
       };
 
-      if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.ready;
+      const registration = await getReadyRegistration();
+      if (registration) {
         await registration.showNotification(options.title, notificationOptions);
       } else {
         new Notification(options.title, notificationOptions);
@@ -151,14 +140,80 @@ export function usePushNotifications() {
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Fehler beim Senden der Notification';
-      setError(message);
+      reportError(message);
       logger.error('usePushNotifications', 'Web send error', err);
     }
-  };
+  }, [reportError]);
+
+  const scheduleWelcome = useCallback((show: () => unknown) => {
+    if (welcomeTimerRef.current) clearTimeout(welcomeTimerRef.current);
+    welcomeTimerRef.current = setTimeout(() => {
+      welcomeTimerRef.current = null;
+      Promise.resolve(show()).catch(err =>
+        logger.warn('usePushNotifications', 'Welcome notification failed', err)
+      );
+    }, 500);
+  }, []);
+
+  // ── requestPermission ─────────────────────────────────────────────────────
+  const requestPermission = useCallback(async (): Promise<boolean> => {
+    // ── Native ──
+    if (isNative()) {
+      try {
+        const result = await requestNativeNotificationPermission();
+        updatePermission(result);
+        if (result === 'granted') {
+          scheduleWelcome(() =>
+            showNativeNotification({
+              title: 'RigFlow',
+              body: 'Benachrichtigungen sind aktiviert! 🎉',
+              tag: 'welcome',
+            })
+          );
+        }
+        return result === 'granted';
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Fehler beim Anfordern der Permission';
+        reportError(message);
+        logger.error('usePushNotifications', 'Native permission error', err);
+        return false;
+      }
+    }
+
+    // ── Web ──
+    if (!isSupportedRef.current || !isWebNotificationSupported()) {
+      const msg = 'Push-Benachrichtigungen werden nicht unterstützt';
+      reportError(msg);
+      logger.warn('usePushNotifications', msg);
+      return false;
+    }
+
+    try {
+      const result = await Notification.requestPermission();
+      updatePermission(result);
+      if (result === 'granted') {
+        scheduleWelcome(() =>
+          sendNotification({
+            title: 'RigFlow',
+            body: 'Benachrichtigungen sind aktiviert! 🎉',
+            tag: 'welcome',
+          })
+        );
+      }
+      return result === 'granted';
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Fehler beim Anfordern der Permission';
+      reportError(message);
+      logger.error('usePushNotifications', 'Web permission error', err);
+      return false;
+    }
+  }, [updatePermission, reportError, scheduleWelcome, sendNotification]);
 
   // ── notifyError ───────────────────────────────────────────────────────────
-  const notifyError = async (title: string, message: string): Promise<void> => {
-    const currentPermission = isNative() ? permission : Notification.permission;
+  const notifyError = useCallback(async (title: string, message: string): Promise<void> => {
+    const currentPermission = isNative() ? permissionRef.current : getWebPermission();
     if (currentPermission !== 'granted') return;
 
     await sendNotification({
@@ -167,7 +222,7 @@ export function usePushNotifications() {
       tag: 'error',
       requireInteraction: true,
     });
-  };
+  }, [sendNotification]);
 
   // ── SW Message Listener (Web only) ────────────────────────────────────────
   useEffect(() => {
@@ -183,9 +238,9 @@ export function usePushNotifications() {
     return () => navigator.serviceWorker.removeEventListener('message', handleMessage);
   }, []);
 
-  const isBackgroundMode = (): boolean => !document.hasFocus();
+  const isBackgroundMode = useCallback((): boolean => !document.hasFocus(), []);
 
-  return {
+  return useMemo(() => ({
     isSupported,
     permission,
     error,
@@ -193,5 +248,5 @@ export function usePushNotifications() {
     requestPermission,
     sendNotification,
     notifyError,
-  };
+  }), [isSupported, permission, error, isBackgroundMode, requestPermission, sendNotification, notifyError]);
 }

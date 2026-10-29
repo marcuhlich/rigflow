@@ -11,11 +11,12 @@ export interface DeviceInfo {
 function detectOS(userAgent: string): OS {
   const ua = userAgent.toLowerCase();
   
+  // Order matters: iOS UAs contain "like Mac OS X" and Android UAs contain "Linux"
+  if (ua.includes("iphone") || ua.includes("ipad") || ua.includes("ipod")) return "ios";
+  if (ua.includes("android")) return "android";
   if (ua.includes("windows")) return "windows";
   if (ua.includes("mac") || ua.includes("macos") || ua.includes("macintosh")) return "macos";
-  if (ua.includes("linux") && !ua.includes("android")) return "linux";
-  if (ua.includes("android")) return "android";
-  if (ua.includes("iphone") || ua.includes("ipad") || ua.includes("ipod")) return "ios";
+  if (ua.includes("linux")) return "linux";
   
   return "unknown";
 }

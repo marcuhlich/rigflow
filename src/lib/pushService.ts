@@ -12,32 +12,66 @@ const DEFAULT_CONFIG: PushServiceConfig = {
   notificationTimeout: 5000,
 };
 
+/** Message posted by the service worker */
+export interface ServiceWorkerMessage {
+  type?: string;
+  [key: string]: unknown;
+}
+
+/** How long to wait for `serviceWorker.ready` (never resolves when no SW is registered, e.g. dev/native). */
+const SW_READY_TIMEOUT_MS = 10_000;
+
+const hasNotificationApi = () => typeof window !== 'undefined' && 'Notification' in window;
+
 export class PushService {
   private static config: PushServiceConfig = DEFAULT_CONFIG;
   private static swRegistration: ServiceWorkerRegistration | null = null;
+  private static initPromise: Promise<boolean> | null = null;
 
   /**
-   * Initialize push service — nutzt den von vite-plugin-pwa generierten SW
+   * Initialize push service — nutzt den von vite-plugin-pwa generierten SW.
+   * Idempotent: repeated calls share the same initialization.
    */
-  static async initialize(config: Partial<PushServiceConfig> = {}): Promise<boolean> {
+  static initialize(config: Partial<PushServiceConfig> = {}): Promise<boolean> {
     this.config = { ...DEFAULT_CONFIG, ...config };
+    if (this.initPromise) return this.initPromise;
 
-    if (!('serviceWorker' in navigator)) {
+    this.initPromise = this.doInitialize().then(ok => {
+      // Allow a later retry if it didn't work (e.g. SW registered afterwards)
+      if (!ok) this.initPromise = null;
+      return ok;
+    });
+    return this.initPromise;
+  }
+
+  private static async doInitialize(): Promise<boolean> {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
       logger.warn('PushService', 'Service Workers not supported');
       return false;
     }
 
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       // NICHT selbst registrieren — vite-plugin-pwa macht das automatisch.
-      // Wir warten einfach bis der SW bereit ist.
-      this.swRegistration = await navigator.serviceWorker.ready;
+      // Wir warten bis der SW bereit ist – aber nicht ewig.
+      const registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), SW_READY_TIMEOUT_MS); }),
+      ]);
+      if (!registration) {
+        logger.warn('PushService', 'Service Worker not ready (timeout)');
+        return false;
+      }
+      this.swRegistration = registration;
       logger.info('PushService', 'Service Worker ready', {
-        scope: this.swRegistration.scope,
+        scope: registration.scope,
       });
       return true;
     } catch (error) {
       logger.error('PushService', 'Service Worker not ready', error);
       return false;
+    } finally {
+      if (timer) clearTimeout(timer);
     }
   }
 
@@ -45,7 +79,7 @@ export class PushService {
    * Request notification permission
    */
   static async requestNotificationPermission(): Promise<NotificationPermission> {
-    if (!('Notification' in window)) {
+    if (!hasNotificationApi()) {
       logger.warn('PushService', 'Notifications not supported');
       return 'denied';
     }
@@ -70,7 +104,7 @@ export class PushService {
   static isNotificationAvailable(): boolean {
     return (
       this.config.enableNotifications &&
-      'Notification' in window &&
+      hasNotificationApi() &&
       Notification.permission === 'granted' &&
       this.swRegistration !== null
     );
@@ -85,7 +119,7 @@ export class PushService {
   ): Promise<void> {
     if (!this.isNotificationAvailable()) {
       logger.warn('PushService', 'Notifications not available', {
-        permission: Notification.permission,
+        permission: hasNotificationApi() ? Notification.permission : 'unsupported',
         swReady: !!this.swRegistration,
       });
       return;
@@ -109,9 +143,12 @@ export class PushService {
     if (!this.swRegistration) return false;
 
     try {
-      if ('sync' in this.swRegistration) {
-        await (this.swRegistration as any).sync.register(tag);
-        logger.info('PushService', 'Background sync registered:', tag);
+      const registration = this.swRegistration as ServiceWorkerRegistration & {
+        sync?: { register: (tag: string) => Promise<void> };
+      };
+      if (registration.sync) {
+        await registration.sync.register(tag);
+        logger.info('PushService', 'Background sync registered', { tag });
         return true;
       }
     } catch (error) {
@@ -124,7 +161,7 @@ export class PushService {
   /**
    * Send message to service worker
    */
-  static async broadcastMessage(message: any): Promise<void> {
+  static async broadcastMessage(message: unknown): Promise<void> {
     if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return;
 
     try {
@@ -137,10 +174,19 @@ export class PushService {
   /**
    * Listen for messages from service worker
    */
-  static onMessage(callback: (message: any) => void): () => void {
-    if (!('serviceWorker' in navigator)) return () => {};
+  static onMessage(callback: (message: ServiceWorkerMessage) => void): () => void {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return () => {};
 
-    const handler = (event: MessageEvent) => callback(event.data);
+    const handler = (event: MessageEvent) => {
+      const data: unknown = event.data;
+      // Ignore non-object messages (e.g. from third-party SW code)
+      if (!data || typeof data !== 'object') return;
+      try {
+        callback(data as ServiceWorkerMessage);
+      } catch (error) {
+        logger.error('PushService', 'SW message handler failed', error);
+      }
+    };
     navigator.serviceWorker.addEventListener('message', handler);
     return () => navigator.serviceWorker.removeEventListener('message', handler);
   }
@@ -149,6 +195,7 @@ export class PushService {
    * Clear all cached data
    */
   static async clearCache(): Promise<void> {
+    if (typeof caches === 'undefined') return;
     try {
       const cacheNames = await caches.keys();
       await Promise.all(cacheNames.map((name) => caches.delete(name)));

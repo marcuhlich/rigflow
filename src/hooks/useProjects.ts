@@ -1,11 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+import { logger } from '@/lib/logger';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Project, ProjectStatus } from '@/types/project';
 import { offlineQueue } from '@/lib/offlineQueue';
 
+/** Legacy (not user-scoped) cache key – only read as a migration fallback. */
 const PROJECTS_CACHE_KEY = 'projects';
+const projectsCacheKey = (userId: string) => `${PROJECTS_CACHE_KEY}_${userId}`;
+
+type ProjectUpdate = Database['public']['Tables']['projects']['Update'];
+
+function readProjectsCache(userId: string): Project[] | null {
+  const own = offlineQueue.getCache<Project[]>(projectsCacheKey(userId));
+  if (own) return own;
+  const legacy = offlineQueue.getCache<Project[]>(PROJECTS_CACHE_KEY);
+  if (legacy && legacy.every(p => p.user_id === userId)) return legacy;
+  return null;
+}
 
 export const STATUS_ORDER: ProjectStatus[] = [
   'draft', 'planned', 'packed', 'transit', 'live', 'returning', 'archived',
@@ -21,22 +35,36 @@ export function isWarningJump(from: ProjectStatus, to: ProjectStatus): boolean {
 export function useProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState<Error | null>(null);
   const { user }  = useAuth();
   const { toast } = useToast();
 
+  const userId = user?.id;
+
+  // Guards against out-of-order responses and state updates after unmount
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
   const fetchProjects = useCallback(async () => {
-    if (!user) { setProjects([]); setLoading(false); return; }
+    const requestId = ++requestIdRef.current;
+    const isCurrent = () => mountedRef.current && requestId === requestIdRef.current;
+
+    if (!userId) { if (isCurrent()) { setProjects([]); setLoading(false); } return; }
 
     // Cache sofort zeigen
-    const cached = offlineQueue.getCache<Project[]>(PROJECTS_CACHE_KEY);
-    if (cached && cached.length > 0) {
+    const cached = readProjectsCache(userId);
+    if (cached && cached.length > 0 && isCurrent()) {
       setProjects(cached);
       setLoading(false);
     }
 
     // Offline → Cache nutzen, kein Toast
     if (!navigator.onLine) {
-      if (!cached) { setProjects([]); setLoading(false); }
+      if (isCurrent()) { if (!cached) setProjects([]); setLoading(false); }
       return;
     }
 
@@ -48,12 +76,14 @@ export function useProjects() {
         .order('is_favorite', { ascending: false })
         .order('created_at',  { ascending: false });
       if (error) throw error;
-      const typed = (data ?? []) as unknown as Project[];
-      setProjects(typed);
-      offlineQueue.setCache(PROJECTS_CACHE_KEY, typed);
-    } catch (err: any) {
-      const isNetworkError = err?.message?.includes('Failed to fetch');
-      if (!isNetworkError) {
+      const typed = (data ?? []) as Project[];
+      offlineQueue.setCache(projectsCacheKey(userId), typed);
+      if (isCurrent()) { setProjects(typed); setError(null); }
+    } catch (err) {
+      if (isCurrent()) setError(err instanceof Error ? err : new Error(String(err)));
+      logger.error('useProjects', 'Failed to load projects', err);
+      const isNetworkError = err instanceof Error && err.message.includes('Failed to fetch');
+      if (!isNetworkError && isCurrent()) {
         toast({
           title: 'Fehler',
           description: 'Projekte konnten nicht geladen werden.',
@@ -61,9 +91,15 @@ export function useProjects() {
         });
       }
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
-  }, [user, toast]);
+  }, [userId, toast]);
+
+  const fail = (action: string, error: unknown): never => {
+    logger.error('useProjects', action, error);
+    toast({ title: 'Fehler', variant: 'destructive' });
+    throw error;
+  };
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
@@ -78,46 +114,62 @@ export function useProjects() {
     if (!user) return;
     const { data: project, error } = await supabase
       .from('projects')
-      .insert({ ...data, user_id: user.id, status: 'draft' } as any)
+      .insert({ ...data, name: data.name, user_id: user.id, status: 'draft' })
       .select()
       .single();
-    if (error) { toast({ title: 'Fehler', variant: 'destructive' }); throw error; }
+    if (error) fail('Create project failed', error);
     await fetchProjects();
-    return project as unknown as Project;
+    return project as Project;
   };
 
   const updateProject = async (
     id: string,
     updates: Partial<Omit<Project, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'deleted_at'>>,
   ) => {
-    const { error } = await supabase.from('projects').update(updates as any).eq('id', id);
-    if (error) { toast({ title: 'Fehler', variant: 'destructive' }); throw error; }
+    const { error } = await supabase.from('projects').update(updates as ProjectUpdate).eq('id', id);
+    if (error) fail('Update project failed', error);
     await fetchProjects();
   };
 
   const updateStatus = async (id: string, status: ProjectStatus) => {
-    const { error } = await supabase.from('projects').update({ status } as any).eq('id', id);
-    if (error) { toast({ title: 'Fehler', variant: 'destructive' }); throw error; }
+    const { error } = await supabase.from('projects').update({ status }).eq('id', id);
+    if (error) fail('Update project status failed', error);
     await fetchProjects();
   };
 
   const deleteProject = async (id: string) => {
     const { error } = await supabase
       .from('projects')
-      .update({ deleted_at: new Date().toISOString() } as any)
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', id);
-    if (error) { toast({ title: 'Fehler', variant: 'destructive' }); throw error; }
+    if (error) fail('Delete project failed', error);
     await fetchProjects();
   };
 
+  // Latest list, updated synchronously on optimistic changes (rapid toggles must not read a stale copy)
+  const projectsRef = useRef(projects);
+  useEffect(() => { projectsRef.current = projects; }, [projects]);
+
+  const setFavoriteLocally = (id: string, isFavorite: boolean) => {
+    projectsRef.current = projectsRef.current.map(x => x.id === id ? { ...x, is_favorite: isFavorite } : x);
+    setProjects(projectsRef.current);
+  };
+
   const toggleFavorite = async (id: string) => {
-    const p = projects.find(x => x.id === id);
+    const p = projectsRef.current.find(x => x.id === id);
     if (!p) return;
-    await updateProject(id, { is_favorite: !p.is_favorite });
+    const next = !p.is_favorite;
+    setFavoriteLocally(id, next);
+    try {
+      await updateProject(id, { is_favorite: next });
+    } catch (err) {
+      setFavoriteLocally(id, p.is_favorite);
+      throw err;
+    }
   };
 
   return {
-    projects, loading,
+    projects, loading, error,
     createProject, updateProject, updateStatus, deleteProject, toggleFavorite,
     refetch: fetchProjects,
   };

@@ -14,6 +14,7 @@ export async function pickImage(): Promise<{ objectUrl: string; file: File } | n
 
   // webPath in echtes File-Objekt umwandeln für Supabase-Upload
   const response = await fetch(picked.webPath);
+  if (!response.ok) throw new Error(`Bild konnte nicht gelesen werden (${response.status})`);
   const blob = await response.blob();
   const ext = picked.format ?? 'jpeg';
   const file = new File([blob], `upload.${ext}`, {

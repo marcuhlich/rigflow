@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Device } from '@capacitor/device';
 import { changeLanguage } from '../i18n';
+import { logger } from '@/lib/logger';
 
 export const useLanguageDetection = () => {
   useEffect(() => {
@@ -16,6 +17,8 @@ export const useLanguageDetection = () => {
     Device.getLanguageCode().then(({ value }) => {
       const lang = value?.toLowerCase().startsWith('de') ? 'de' : 'en';
       changeLanguage(lang);
-    }).catch(() => {});
+    }).catch((error) => {
+      logger.warn('useLanguageDetection', 'Could not read device language', error);
+    });
   }, []);
 };

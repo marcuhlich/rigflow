@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { logger } from '@/lib/logger';
 
 export interface RecentItem {
   id: string;
@@ -19,9 +20,10 @@ export function useRecentItems() {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
-        setRecentItems(JSON.parse(stored));
+        const parsed: unknown = JSON.parse(stored);
+        if (Array.isArray(parsed)) setRecentItems(parsed as RecentItem[]);
       } catch (error) {
-        console.error('Failed to parse recent items:', error);
+        logger.warn('useRecentItems', 'Failed to parse recent items', error);
       }
     }
   }, []);
@@ -36,8 +38,12 @@ export function useRecentItems() {
         0,
         MAX_ITEMS
       );
-      // In LocalStorage speichern
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      // In LocalStorage speichern (Quota-/Privacy-Mode-Fehler nicht crashen lassen)
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      } catch (error) {
+        logger.warn('useRecentItems', 'Could not persist recent items', error);
+      }
       return updated;
     });
   }, []);

@@ -1,4 +1,5 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
+import { logger } from "@/lib/logger";
 
 interface Options {
   onRefresh: () => Promise<void> | void;
@@ -12,6 +13,11 @@ export function usePullToRefresh({ onRefresh, threshold = 72, disabled = false }
   const startY = useRef(0);
   const pulling = useRef(false);
   const distRef = useRef(0);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const setIndicator = useCallback((dist: number) => {
     distRef.current = dist;
@@ -64,8 +70,11 @@ export function usePullToRefresh({ onRefresh, threshold = 72, disabled = false }
       setIsRefreshing(true);
       try {
         await onRefresh();
+      } catch (error) {
+        // The refresh handler reports its own errors; never leave the indicator stuck
+        logger.warn("usePullToRefresh", "onRefresh failed", error);
       } finally {
-        setIsRefreshing(false);
+        if (mountedRef.current) setIsRefreshing(false);
         reset();
       }
     } else {

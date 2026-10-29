@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -27,8 +28,14 @@ export function isAppInstalled(): boolean {
   if (ua.includes('Electron')) return true;
   
   // Custom window properties (falls Electron Config setzt)
-  if ((window as any).isElectron || (window as any).__electron__ || (window as any).__ELECTRON__) return true;
-  if (typeof (window as any).electronAPI !== 'undefined') return true;
+  const w = window as Window & {
+    isElectron?: unknown;
+    __electron__?: unknown;
+    __ELECTRON__?: unknown;
+    electronAPI?: unknown;
+  };
+  if (w.isElectron || w.__electron__ || w.__ELECTRON__) return true;
+  if (typeof w.electronAPI !== 'undefined') return true;
   
   return false;
 }
@@ -65,11 +72,18 @@ export function useInstallPrompt() {
 
   const install = async () => {
     if (!deferredPrompt) return false;
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") setIsInstalled(true);
-    setDeferredPrompt(null);
-    return outcome === "accepted";
+    try {
+      await deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") setIsInstalled(true);
+      return outcome === "accepted";
+    } catch (error) {
+      // prompt() may only be called once per event – the event is unusable afterwards
+      logger.warn("useInstallPrompt", "Install prompt failed", error);
+      return false;
+    } finally {
+      setDeferredPrompt(null);
+    }
   };
 
   return {

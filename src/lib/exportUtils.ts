@@ -3,6 +3,24 @@ import { PatchplanRow } from '@/lib/dmxPatchplan';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+/**
+ * Escapes a field for semicolon-separated CSV: fields containing the separator, quotes or
+ * line breaks are quoted and embedded quotes doubled (RFC 4180).
+ */
+function csvField(value: string | number | null | undefined): string {
+  const str = value === null || value === undefined ? '' : String(value);
+  return /[";\r\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+}
+
+const toCsv = (rows: (string | number | null | undefined)[][]) =>
+  rows.map(r => r.map(csvField).join(';')).join('\n');
+
+/** Local date as YYYY-MM-DD for file names */
+const fileDate = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 // CSV Export for Inventory
 export function exportInventoryAsCSV(items: InventoryItem[]): string {
   const headers = [
@@ -26,7 +44,7 @@ export function exportInventoryAsCSV(items: InventoryItem[]): string {
     item.quantity.toString(),
     item.condition,
     item.location,
-    item.unit_price?.toString() || '',
+    item.unit_price?.toString() ?? '',
     item.lent_to || '',
     item.lent_until || '',
     item.dmx_universe?.toString() || '',
@@ -55,7 +73,7 @@ export function exportInventoryAsPDF(items: InventoryItem[]): void {
     item.quantity.toString(),
     item.condition,
     item.location,
-    item.unit_price ? `${item.unit_price.toFixed(2)} €` : '-',
+    item.unit_price ? `${Number(item.unit_price).toFixed(2)} €` : '-',
     item.notes?.substring(0, 30) || '-',
   ]);
 
@@ -67,7 +85,7 @@ export function exportInventoryAsPDF(items: InventoryItem[]): void {
     headStyles: { fillColor: [59, 130, 246] },
   });
 
-  doc.save(`inventar-${new Date().toISOString().split('T')[0]}.pdf`);
+  doc.save(`inventar-${fileDate()}.pdf`);
 }
 
 // CSV Export for Patchplan (reusing existing function pattern)
@@ -127,12 +145,13 @@ export function exportPatchplanAsPDF(rows: PatchplanRow[]): void {
     headStyles: { fillColor: [59, 130, 246] },
   });
 
-  doc.save(`dmx-patchplan-${new Date().toISOString().split('T')[0]}.pdf`);
+  doc.save(`dmx-patchplan-${fileDate()}.pdf`);
 }
 
 // Helper to download CSV
 export function downloadCSV(content: string, filename: string): void {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  // BOM so Excel detects UTF-8 (umlauts) – otherwise "Kanäle" shows as "KanÃ¤le"
+  const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
   link.setAttribute('href', url);
@@ -141,6 +160,8 @@ export function downloadCSV(content: string, filename: string): void {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  // Free the blob once the download has started
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 // Event Set Packing List PDF
@@ -153,8 +174,10 @@ export function exportEventSetPDF(set: { name: string; description?: string | nu
   let y = 28;
   doc.setFontSize(10);
   if (set.description) {
-    doc.text(set.description, 14, y);
-    y += 6;
+    // Wrap long text instead of running off the page
+    const lines = doc.splitTextToSize(set.description, 180);
+    doc.text(lines, 14, y);
+    y += 6 * lines.length;
   }
   if (set.event_date_start) {
     const dateStr = set.event_date_start + (set.event_date_end ? ` – ${set.event_date_end}` : '');
@@ -162,8 +185,9 @@ export function exportEventSetPDF(set: { name: string; description?: string | nu
     y += 6;
   }
   if (set.notes) {
-    doc.text(`Notizen: ${set.notes}`, 14, y);
-    y += 6;
+    const lines = doc.splitTextToSize(`Notizen: ${set.notes}`, 180);
+    doc.text(lines, 14, y);
+    y += 6 * lines.length;
   }
   y += 4;
 
@@ -186,5 +210,7 @@ export function exportEventSetPDF(set: { name: string; description?: string | nu
     headStyles: { fillColor: [60, 60, 60] },
   });
 
-  doc.save(`packliste-${set.name.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.pdf`);
+  // Strip characters that are invalid in file names on Windows/macOS
+  const safeName = set.name.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
+  doc.save(`packliste-${safeName}-${fileDate()}.pdf`);
 }

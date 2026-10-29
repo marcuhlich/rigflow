@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/lib/logger';
@@ -19,11 +19,23 @@ export function useAuditLog() {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const userId = user?.id;
   const { toast } = useToast();
-  const fetchLogs = async () => {
-    if (!user) {
-      setLogs([]);
-      setLoading(false);
+
+  // Guards against out-of-order responses and state updates after unmount
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  const fetchLogs = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
+    const isCurrent = () => mountedRef.current && requestId === requestIdRef.current;
+
+    if (!userId) {
+      if (isCurrent()) { setLogs([]); setLoading(false); }
       return;
     }
 
@@ -35,24 +47,25 @@ export function useAuditLog() {
         .limit(100);
 
       if (error) throw error;
-      setLogs(data as AuditLogEntry[]);
-      } catch (err: any) {
-        const isNetworkError = err?.message?.includes('Failed to fetch');
-        if (!isNetworkError) {
-          toast({
-            title: 'Fehler',
-            description: 'Projekte konnten nicht geladen werden.',
-            variant: 'destructive',
-          });
-        }
+      if (isCurrent()) setLogs((data ?? []) as AuditLogEntry[]);
+    } catch (err) {
+      logger.error('AuditLog', 'Failed to load audit log', err);
+      const isNetworkError = err instanceof Error && err.message.includes('Failed to fetch');
+      if (!isNetworkError && isCurrent()) {
+        toast({
+          title: 'Fehler',
+          description: 'Aktivitätsprotokoll konnte nicht geladen werden.',
+          variant: 'destructive',
+        });
+      }
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
-  };
+  }, [userId, toast]);
 
   useEffect(() => {
     fetchLogs();
-  }, [user]);
+  }, [fetchLogs]);
 
   const logAction = async (
     action: 'create' | 'update' | 'delete' | 'batch_update' | 'batch_delete',
@@ -62,17 +75,14 @@ export function useAuditLog() {
   ) => {
     if (!user) return;
 
-    try {
-      await supabase.from('audit_log').insert([{
-        user_id: user.id,
-        item_id: itemId,
-        action,
-        item_name: itemName,
-        changes: (changes || null) as Json,
-      }]);
-    } catch (error) {
-      logger.error('AuditLog', 'Error logging action', error);
-    }
+    const { error } = await supabase.from('audit_log').insert([{
+      user_id: user.id,
+      item_id: itemId,
+      action,
+      item_name: itemName,
+      changes: (changes || null) as Json,
+    }]);
+    if (error) logger.error('AuditLog', 'Error logging action', error);
   };
 
   return {

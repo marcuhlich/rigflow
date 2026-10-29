@@ -1,0 +1,254 @@
+{
+  "inventory.tags_save_failed": {
+    "de": "Tags konnten nicht gespeichert werden.",
+    "en": "Tags could not be saved."
+  },
+  "lending.item_status_update_failed": {
+    "de": "Der Status des Artikels konnte nicht aktualisiert werden.",
+    "en": "The item's status could not be updated."
+  },
+  "dmx.toast.error": {
+    "de": "Fehler",
+    "en": "Error"
+  },
+  "dmx.toast.device_not_found": {
+    "de": "Gerät nicht gefunden",
+    "en": "Device not found"
+  },
+  "dmx.toast.invalid_address": {
+    "de": "Ungültige DMX-Adresse (1-512)",
+    "en": "Invalid DMX address (1-512)"
+  },
+  "dmx.toast.not_enough_space_from": {
+    "de": "Benötigt {{channels}} Kanäle. Nicht genug Platz ab Adresse {{address}}.",
+    "en": "Needs {{channels}} channels. Not enough space from address {{address}}."
+  },
+  "dmx.toast.saved": {
+    "de": "Gespeichert",
+    "en": "Saved"
+  },
+  "dmx.toast.instance_saved": {
+    "de": "Instanz {{instance}}: Adresse {{start}}–{{end}}, Universe {{universe}}",
+    "en": "Instance {{instance}}: address {{start}}–{{end}}, universe {{universe}}"
+  },
+  "dmx.toast.save_failed": {
+    "de": "Konnte nicht gespeichert werden.",
+    "en": "Could not be saved."
+  },
+  "dmx.toast.reset": {
+    "de": "Zurückgesetzt",
+    "en": "Reset"
+  },
+  "dmx.toast.instance_reset": {
+    "de": "Instanz {{instance}} nutzt wieder Standard-Adressen.",
+    "en": "Instance {{instance}} uses the default addresses again."
+  },
+  "dmx.toast.reset_failed": {
+    "de": "Konnte nicht zurückgesetzt werden.",
+    "en": "Could not be reset."
+  },
+  "dmx.toast.success": {
+    "de": "Erfolg",
+    "en": "Success"
+  },
+  "dmx.toast.base_address_updated": {
+    "de": "Basis-Adresse aktualisiert: {{address}}",
+    "en": "Base address updated: {{address}}"
+  },
+  "dmx.toast.universe_updated": {
+    "de": "Universe aktualisiert: {{universe}}",
+    "en": "Universe updated: {{universe}}"
+  },
+  "dmx.toast.universe_full": {
+    "de": "Nicht genug Platz in Universe {{universe}}",
+    "en": "Not enough space in universe {{universe}}"
+  },
+  "lending.load_failed": {
+    "de": "Verleihhistorie konnte nicht geladen werden.",
+    "en": "Loan history could not be loaded."
+  },
+  "inventory.toast.error": {
+    "de": "Fehler",
+    "en": "Error"
+  },
+  "inventory.toast.load_failed_title": {
+    "de": "Fehler beim Laden",
+    "en": "Loading failed"
+  },
+  "inventory.toast.load_failed": {
+    "de": "Items konnten nicht geladen werden.",
+    "en": "Items could not be loaded."
+  },
+  "inventory.toast.offline_saved": {
+    "de": "Offline gespeichert",
+    "en": "Saved offline"
+  },
+  "inventory.toast.offline_item_queued": {
+    "de": "Item wird synchronisiert, wenn du wieder online bist.",
+    "en": "The item will be synced when you are back online."
+  },
+  "inventory.toast.add_failed": {
+    "de": "Item konnte nicht hinzugefügt werden.",
+    "en": "Item could not be added."
+  },
+  "inventory.toast.offline_changes_queued": {
+    "de": "Änderungen werden synchronisiert, wenn du wieder online bist.",
+    "en": "Changes will be synced when you are back online."
+  },
+  "inventory.toast.update_failed": {
+    "de": "Item konnte nicht aktualisiert werden.",
+    "en": "Item could not be updated."
+  },
+  "inventory.toast.delete_failed": {
+    "de": "Item konnte nicht gelöscht werden.",
+    "en": "Item could not be deleted."
+  },
+  "inventory.toast.restore_failed": {
+    "de": "Item konnte nicht wiederhergestellt werden.",
+    "en": "Item could not be restored."
+  },
+  "inventory.toast.permanent_delete_failed": {
+    "de": "Item konnte nicht endgültig gelöscht werden.",
+    "en": "Item could not be permanently deleted."
+  },
+  "inventory.toast.empty_trash_failed": {
+    "de": "Papierkorb konnte nicht geleert werden.",
+    "en": "Trash could not be emptied."
+  },
+  "inventory.toast.batch_update_success": {
+    "de": "Batch-Update erfolgreich",
+    "en": "Batch update successful"
+  },
+  "inventory.toast.batch_update_failed": {
+    "de": "Batch-Update fehlgeschlagen.",
+    "en": "Batch update failed."
+  },
+  "inventory.toast.moved_to_trash": {
+    "de": "In Papierkorb verschoben",
+    "en": "Moved to trash"
+  },
+  "inventory.toast.moved_to_trash_count": {
+    "de": "{{count}} Item(s) in den Papierkorb verschoben.",
+    "en": "{{count}} item(s) moved to the trash."
+  },
+  "inventory.toast.batch_delete_failed": {
+    "de": "Batch-Löschen fehlgeschlagen.",
+    "en": "Batch delete failed."
+  },
+  "inventory.toast.offline": {
+    "de": "Offline",
+    "en": "Offline"
+  },
+  "inventory.toast.offline_no_refresh": {
+    "de": "Daten können offline nicht neu geladen werden.",
+    "en": "Data cannot be reloaded while offline."
+  },
+  "inventory.toast.reload_failed_title": {
+    "de": "Fehler beim Neuladen",
+    "en": "Reload failed"
+  },
+  "inventory.toast.reload_failed": {
+    "de": "Items konnten nicht neu geladen werden.",
+    "en": "Items could not be reloaded."
+  },
+  "inventory.toast.batch_updated_count": {
+    "de": "{{count}} Item(s) aktualisiert.",
+    "en": "{{count}} item(s) updated."
+  },
+  "inventory.toast.batch_moved_count": {
+    "de": "{{count}} Item(s) verschoben.",
+    "en": "{{count}} item(s) moved."
+  },
+  "validation.dmx_address_nan": {
+    "de": "DMX-Adresse muss eine Zahl sein",
+    "en": "DMX address must be a number"
+  },
+  "validation.dmx_address_min": {
+    "de": "DMX-Adresse muss mindestens 1 sein",
+    "en": "DMX address must be at least 1"
+  },
+  "validation.dmx_address_max": {
+    "de": "DMX-Adresse darf maximal 512 sein",
+    "en": "DMX address must be at most 512"
+  },
+  "validation.range_start": {
+    "de": "Start: {{error}}",
+    "en": "Start: {{error}}"
+  },
+  "validation.range_end": {
+    "de": "Ende: {{error}}",
+    "en": "End: {{error}}"
+  },
+  "validation.range_order": {
+    "de": "End-Adresse muss größer oder gleich Start-Adresse sein",
+    "en": "End address must be greater than or equal to the start address"
+  },
+  "validation.range_too_large": {
+    "de": "Range zu groß: {{range}} Kanäle (max 512)",
+    "en": "Range too large: {{range}} channels (max 512)"
+  },
+  "validation.channels_nan": {
+    "de": "Kanäle müssen eine Zahl sein",
+    "en": "Channels must be a number"
+  },
+  "validation.channels_min": {
+    "de": "Kanäle müssen mindestens 1 sein",
+    "en": "Channels must be at least 1"
+  },
+  "validation.channels_max": {
+    "de": "Kanäle dürfen maximal 512 sein",
+    "en": "Channels must be at most 512"
+  },
+  "validation.quantity_nan": {
+    "de": "Menge muss eine Zahl sein",
+    "en": "Quantity must be a number"
+  },
+  "validation.quantity_min": {
+    "de": "Menge muss mindestens 1 sein",
+    "en": "Quantity must be at least 1"
+  },
+  "validation.quantity_max": {
+    "de": "Menge darf maximal 9999 sein",
+    "en": "Quantity must be at most 9999"
+  },
+  "validation.required": {
+    "de": "Dieses Feld ist erforderlich",
+    "en": "This field is required"
+  },
+  "validation.min_length": {
+    "de": "Mindestens {{min}} Zeichen erforderlich",
+    "en": "At least {{min}} characters required"
+  },
+  "validation.max_length": {
+    "de": "Maximal {{max}} Zeichen erlaubt",
+    "en": "At most {{max}} characters allowed"
+  },
+  "validation.email_required": {
+    "de": "Email-Adresse erforderlich",
+    "en": "Email address required"
+  },
+  "validation.email_invalid": {
+    "de": "Ungültige Email-Adresse",
+    "en": "Invalid email address"
+  },
+  "validation.uuid_required": {
+    "de": "UUID erforderlich",
+    "en": "UUID required"
+  },
+  "validation.uuid_invalid": {
+    "de": "Ungültiges UUID-Format",
+    "en": "Invalid UUID format"
+  },
+  "validation.universe_nan": {
+    "de": "Universe muss eine Zahl sein",
+    "en": "Universe must be a number"
+  },
+  "validation.universe_min": {
+    "de": "Universe muss mindestens 1 sein",
+    "en": "Universe must be at least 1"
+  },
+  "validation.universe_max": {
+    "de": "Universe darf maximal 500 sein",
+    "en": "Universe must be at most 500"
+  }
+}

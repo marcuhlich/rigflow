@@ -2,6 +2,9 @@
  * Input-Validierungs-Utilities
  * Zentralisierte Validierungslogik für alle Formulare
  */
+import i18n from '@/i18n';
+
+const t = (key: string, options: Record<string, unknown>) => i18n.t(key, options) as string;
 
 export const validators = {
   /**
@@ -11,13 +14,13 @@ export const validators = {
     const num = typeof value === 'string' ? parseInt(value, 10) : value;
     
     if (isNaN(num)) {
-      return { valid: false, error: 'DMX-Adresse muss eine Zahl sein' };
+      return { valid: false, error: t('validation.dmx_address_nan', { defaultValue: 'DMX-Adresse muss eine Zahl sein' }) };
     }
     if (num < 1) {
-      return { valid: false, error: 'DMX-Adresse muss mindestens 1 sein' };
+      return { valid: false, error: t('validation.dmx_address_min', { defaultValue: 'DMX-Adresse muss mindestens 1 sein' }) };
     }
     if (num > 512) {
-      return { valid: false, error: 'DMX-Adresse darf maximal 512 sein' };
+      return { valid: false, error: t('validation.dmx_address_max', { defaultValue: 'DMX-Adresse darf maximal 512 sein' }) };
     }
     return { valid: true };
   },
@@ -34,18 +37,18 @@ export const validators = {
 
     const startValid = validators.dmxAddress(startNum);
     if (!startValid.valid) {
-      return { valid: false, error: `Start: ${startValid.error}` };
+      return { valid: false, error: t('validation.range_start', { defaultValue: 'Start: {{error}}', error: startValid.error }) };
     }
 
     const endValid = validators.dmxAddress(endNum);
     if (!endValid.valid) {
-      return { valid: false, error: `End: ${endValid.error}` };
+      return { valid: false, error: t('validation.range_end', { defaultValue: 'Ende: {{error}}', error: endValid.error }) };
     }
 
     if (endNum < startNum) {
       return { 
         valid: false, 
-        error: 'End-Adresse muss größer oder gleich Start-Adresse sein' 
+        error: t('validation.range_order', { defaultValue: 'End-Adresse muss größer oder gleich Start-Adresse sein' }) 
       };
     }
 
@@ -53,7 +56,7 @@ export const validators = {
     if (range > 512) {
       return { 
         valid: false, 
-        error: `Range zu groß: ${range} Kanäle (max 512)` 
+        error: t('validation.range_too_large', { defaultValue: 'Range zu groß: {{range}} Kanäle (max 512)', range }) 
       };
     }
 
@@ -67,13 +70,13 @@ export const validators = {
     const num = typeof value === 'string' ? parseInt(value, 10) : value;
     
     if (isNaN(num)) {
-      return { valid: false, error: 'Kanäle müssen eine Zahl sein' };
+      return { valid: false, error: t('validation.channels_nan', { defaultValue: 'Kanäle müssen eine Zahl sein' }) };
     }
     if (num < 1) {
-      return { valid: false, error: 'Kanäle müssen mindestens 1 sein' };
+      return { valid: false, error: t('validation.channels_min', { defaultValue: 'Kanäle müssen mindestens 1 sein' }) };
     }
     if (num > 512) {
-      return { valid: false, error: 'Kanäle dürfen maximal 512 sein' };
+      return { valid: false, error: t('validation.channels_max', { defaultValue: 'Kanäle dürfen maximal 512 sein' }) };
     }
     return { valid: true };
   },
@@ -85,13 +88,13 @@ export const validators = {
     const num = typeof value === 'string' ? parseInt(value, 10) : value;
     
     if (isNaN(num)) {
-      return { valid: false, error: 'Menge muss eine Zahl sein' };
+      return { valid: false, error: t('validation.quantity_nan', { defaultValue: 'Menge muss eine Zahl sein' }) };
     }
     if (num < 1) {
-      return { valid: false, error: 'Menge muss mindestens 1 sein' };
+      return { valid: false, error: t('validation.quantity_min', { defaultValue: 'Menge muss mindestens 1 sein' }) };
     }
     if (num > 9999) {
-      return { valid: false, error: 'Menge darf maximal 9999 sein' };
+      return { valid: false, error: t('validation.quantity_max', { defaultValue: 'Menge darf maximal 9999 sein' }) };
     }
     return { valid: true };
   },
@@ -101,13 +104,13 @@ export const validators = {
    */
   text: (value: string, minLength = 1, maxLength = 255): { valid: boolean; error?: string } => {
     if (!value || value.trim().length === 0) {
-      return { valid: false, error: 'Dieses Feld ist erforderlich' };
+      return { valid: false, error: t('validation.required', { defaultValue: 'Dieses Feld ist erforderlich' }) };
     }
     if (value.length < minLength) {
-      return { valid: false, error: `Mindestens ${minLength} Zeichen erforderlich` };
+      return { valid: false, error: t('validation.min_length', { defaultValue: 'Mindestens {{min}} Zeichen erforderlich', min: minLength }) };
     }
     if (value.length > maxLength) {
-      return { valid: false, error: `Maximal ${maxLength} Zeichen erlaubt` };
+      return { valid: false, error: t('validation.max_length', { defaultValue: 'Maximal {{max}} Zeichen erlaubt', max: maxLength }) };
     }
     return { valid: true };
   },
@@ -119,10 +122,10 @@ export const validators = {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     
     if (!value || value.trim().length === 0) {
-      return { valid: false, error: 'Email-Adresse erforderlich' };
+      return { valid: false, error: t('validation.email_required', { defaultValue: 'Email-Adresse erforderlich' }) };
     }
     if (!emailRegex.test(value)) {
-      return { valid: false, error: 'Ungültige Email-Adresse' };
+      return { valid: false, error: t('validation.email_invalid', { defaultValue: 'Ungültige Email-Adresse' }) };
     }
     return { valid: true };
   },
@@ -134,10 +137,10 @@ export const validators = {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     
     if (!value) {
-      return { valid: false, error: 'UUID erforderlich' };
+      return { valid: false, error: t('validation.uuid_required', { defaultValue: 'UUID erforderlich' }) };
     }
     if (!uuidRegex.test(value)) {
-      return { valid: false, error: 'Ungültige UUID-Format' };
+      return { valid: false, error: t('validation.uuid_invalid', { defaultValue: 'Ungültiges UUID-Format' }) };
     }
     return { valid: true };
   },
@@ -149,13 +152,13 @@ export const validators = {
     const num = typeof value === 'string' ? parseInt(value, 10) : value;
     
     if (isNaN(num)) {
-      return { valid: false, error: 'Universe muss eine Zahl sein' };
+      return { valid: false, error: t('validation.universe_nan', { defaultValue: 'Universe muss eine Zahl sein' }) };
     }
     if (num < 1) {
-      return { valid: false, error: 'Universe muss mindestens 1 sein' };
+      return { valid: false, error: t('validation.universe_min', { defaultValue: 'Universe muss mindestens 1 sein' }) };
     }
     if (num > 500) {
-      return { valid: false, error: 'Universe darf maximal 500 sein' };
+      return { valid: false, error: t('validation.universe_max', { defaultValue: 'Universe darf maximal 500 sein' }) };
     }
     return { valid: true };
   },
