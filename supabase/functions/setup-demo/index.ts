@@ -3,12 +3,23 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-setup-secret",
 };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // This function wipes and recreates the demo account with admin rights, so it
+  // must not be callable by anyone. Set SETUP_DEMO_SECRET as a function secret
+  // and send it in the "x-setup-secret" header.
+  const expectedSecret = Deno.env.get("SETUP_DEMO_SECRET");
+  if (!expectedSecret || req.headers.get("x-setup-secret") !== expectedSecret) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
