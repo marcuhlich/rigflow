@@ -1,41 +1,76 @@
-import { LucideIcon } from "lucide-react";
+import { ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+
+export type StatTone = "neutral" | "success" | "warning" | "info" | "destructive";
+
+const DOT: Record<StatTone, string> = {
+  neutral: "bg-muted-foreground/50",
+  success: "bg-success",
+  warning: "bg-warning",
+  info: "bg-info",
+  destructive: "bg-destructive",
+};
 
 interface StatCardProps {
   title: string;
-  value: number;
-  icon: LucideIcon;
-  variant?: 'default' | 'primary' | 'success' | 'warning' | 'destructive';
+  value: number | string;
+  /** Status colour, shown as a small dot next to the label. */
+  tone?: StatTone;
+  /** Emphasise the number in the tone colour (e.g. defects > 0). */
+  emphasize?: boolean;
+  /** Secondary line under the number. */
+  hint?: ReactNode;
+  /** Makes the whole tile a link. */
+  to?: string;
+  className?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, variant = 'default' }: StatCardProps) {
-  const iconColors = {
-    default: 'text-muted-foreground',
-    primary: 'text-primary',
-    success: 'text-success',
-    warning: 'text-warning',
-    destructive: 'text-destructive',
-  };
+const VALUE_TEXT: Record<StatTone, string> = {
+  neutral: "text-foreground",
+  success: "text-success",
+  warning: "text-warning",
+  info: "text-info",
+  destructive: "text-destructive",
+};
 
-  const bgColors = {
-    default: 'bg-muted/30',
-    primary: 'bg-primary/10',
-    success: 'bg-success/10',
-    warning: 'bg-warning/10',
-    destructive: 'bg-destructive/10',
-  };
-
-  return (
-    <div className="glass-card p-3 sm:p-5 hover:shadow-md transition-shadow duration-200">
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">{title}</p>
-          <p className="text-xl sm:text-3xl font-bold mt-0.5 sm:mt-1">{value}</p>
-        </div>
-        <div className={cn("p-2 sm:p-3 rounded-lg flex-shrink-0", bgColors[variant])}>
-          <Icon className={cn("h-4 w-4 sm:h-6 sm:w-6", iconColors[variant])} />
-        </div>
+/**
+ * KPI tile: small label, large tabular number. Designed to sit in a
+ * bordered grid (see dashboard/KpiRow) but works standalone inside `.surface`.
+ */
+export function StatCard({ title, value, tone = "neutral", emphasize = false, hint, to, className }: StatCardProps) {
+  const body = (
+    <>
+      <div className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
+        <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", DOT[tone])} aria-hidden />
+        <span className="truncate">{title}</span>
       </div>
-    </div>
+      <div
+        className={cn(
+          "mt-1.5 font-mono text-2xl font-semibold leading-none tabular-nums tracking-tight sm:text-[28px]",
+          emphasize ? VALUE_TEXT[tone] : "text-foreground"
+        )}
+      >
+        {value}
+      </div>
+      {hint && <div className="mt-1.5 truncate text-[12px] text-muted-foreground">{hint}</div>}
+    </>
   );
+
+  const base = cn("block min-w-0 px-4 py-3.5", className);
+
+  if (to) {
+    return (
+      <Link
+        to={to}
+        className={cn(
+          base,
+          "transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        )}
+      >
+        {body}
+      </Link>
+    );
+  }
+  return <div className={base}>{body}</div>;
 }

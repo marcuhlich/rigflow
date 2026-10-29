@@ -1,877 +1,117 @@
-import { useMemo, useState, useEffect, useRef, useCallback } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ScanRevealOverlay } from '@/components/ScanRevealOverlay';
-import {
-  Package, CheckCircle, ArrowRightLeft, AlertTriangle, Zap, Clock, Activity,
-  ArrowRight, TrendingUp, CalendarDays, Star, MapPin, DollarSign,
-  RotateCcw, ScanLine, Trash, QrCode, FolderKanban, ChevronRight,
-} from "lucide-react";
-import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-} from "recharts";
-import { StatCard } from "@/components/StatCard";
+import { useTranslation } from "react-i18next";
+import { Package, ScanLine } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyPanel } from "@/components/QueryState";
+import { PullToRefreshWrapper } from "@/components/PullToRefreshWrapper";
+import { KpiRow } from "@/components/dashboard/KpiRow";
+import { AttentionPanel } from "@/components/dashboard/AttentionPanel";
+import { UpcomingProjects } from "@/components/dashboard/UpcomingProjects";
+import { RecentActivity } from "@/components/dashboard/RecentActivity";
+import { InventoryBreakdown } from "@/components/dashboard/InventoryBreakdown";
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { useMaintenanceDue } from "@/components/dashboard/useMaintenanceDue";
 import { useInventory } from "@/hooks/useInventory";
 import { useProjects } from "@/hooks/useProjects";
-import { useAuth } from "@/hooks/useAuth";
 import { useLendingHistory } from "@/hooks/useLendingHistory";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { format } from "date-fns";
-import { de, enUS } from "date-fns/locale";
-import { useNavigate } from "react-router-dom";
-import { PullToRefreshWrapper } from "@/components/PullToRefreshWrapper";
-import { hapticFeedback, hapticStop } from '@/lib/utils';
-import { isNative } from '@/services/platform';
-import { useTranslation } from 'react-i18next';
-import "@/styles/dashboard.css";
+import { isNative } from "@/services/platform";
 
-// ─── Smooth Tooltip ──────────────────────────────────────────────────────────
-const useSmoothTooltipPosition = (coordinate: any) => {
-  const [smoothPos, setSmoothPos] = useState({ x: coordinate?.x || 0, y: coordinate?.y || 0 });
-  const targetPosRef = useRef({ x: coordinate?.x || 0, y: coordinate?.y || 0 });
-  const animationFrameRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!coordinate) return;
-    targetPosRef.current = { x: coordinate.x, y: coordinate.y };
-    const animate = () => {
-      setSmoothPos((prev) => {
-        const target = targetPosRef.current;
-        const dx = target.x - prev.x;
-        const dy = target.y - prev.y;
-        if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return target;
-        return { x: prev.x + dx * 0.2, y: prev.y + dy * 0.2 };
-      });
-      animationFrameRef.current = requestAnimationFrame(animate);
-    };
-    animationFrameRef.current = requestAnimationFrame(animate);
-    return () => { if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current); };
-  }, [coordinate]);
-
-  return smoothPos;
-};
-
-const PieTooltip = (props: any) => {
-  const { active, payload, coordinate } = props;
-  const smoothPos = useSmoothTooltipPosition(active && payload?.length ? coordinate : null);
-  const isDark = typeof window !== "undefined" && document.documentElement.classList.contains("dark");
-  const textColor = isDark ? "#ffffff" : "#1f2937";
-
-  if (active && payload && payload.length) {
-    return (
-      <div style={{
-        position: "fixed", left: `${smoothPos.x + 10}px`, top: `${smoothPos.y - 10}px`,
-        pointerEvents: "none", zIndex: 1000, backgroundColor: "hsl(var(--popover))",
-        border: "1px solid hsl(var(--border))", borderRadius: "8px", padding: "8px 12px",
-        fontSize: "12px", color: textColor, boxShadow: "0 2px 8px rgba(0,0,0,0.15)", willChange: "transform",
-      }}>
-        <p style={{ color: textColor, margin: "0 0 4px 0" }}><strong>{payload[0].name}</strong></p>
-        {/* "Stück" bleibt im Tooltip – hier nutzen wir den bereits übersetzten Namen aus pieData */}
-        <p style={{ color: textColor, margin: "0" }}>{payload[0].value}</p>
-      </div>
-    );
-  }
-  return null;
-};
-
-const BarLabel = (props: any) => {
-  const { x, y, width, height, value } = props;
-  return (
-    <text x={x + width + 4} y={y + height / 2} fill="hsl(var(--foreground))"
-      fontSize={10} fontWeight="600" textAnchor="start" dominantBaseline="middle">{value}</text>
-  );
-};
-
-const BarTooltip = (props: any) => {
-  const { active, payload } = props;
-  const isDark = typeof window !== "undefined" && document.documentElement.classList.contains("dark");
-  const textColor = isDark ? "#ffffff" : "#1f2937";
-
-  if (active && payload && payload.length) {
-    return (
-      <div style={{
-        backgroundColor: "hsl(var(--popover))", border: "1px solid hsl(var(--border))",
-        borderRadius: "8px", padding: "8px 12px", fontSize: "12px", color: textColor,
-      }}>
-        <p style={{ color: textColor, margin: "0" }}>{payload[0].value}</p>
-      </div>
-    );
-  }
-  return null;
-};
-
-const AnimatedActiveBar = (props: any) => {
-  const { fill, x, y, width, height } = props;
-  return (
-    <g>
-      <rect x={x} y={y} width={width} height={height} fill={fill} rx="4" ry="4" opacity="0.25"
-        style={{ animation: "fadeIn 0.2s ease-out forwards" }} />
-      <rect x={x} y={y} width={width} height={height} fill={fill} rx="4" ry="4" />
-    </g>
-  );
-};
-
-// ─── Mobile: Hero Donut + Bento ──────────────────────────────────────────────
-interface MobileBentoStatsProps {
-  stats: any;
-  totalValue: number;
-  activeLoansCount: number;
+function isStandaloneApp() {
+  return isNative() || (typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches);
 }
 
-const MobileBentoStats = ({ stats, totalValue, activeLoansCount }: MobileBentoStatsProps) => {
-  const { t } = useTranslation();
-  const [pressedCard, setPressedCard] = useState<string | null>(null);
-
-  const press = (id: string) => {
-    setPressedCard(id);
-    hapticFeedback(8);
-    setTimeout(() => setPressedCard(null), 150);
-  };
-
-  const cardScale = (id: string): React.CSSProperties => ({
-    transform: pressedCard === id ? "scale(0.97)" : "scale(1)",
-    transition: "transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1)",
-  });
-
-  const available = stats.available || 0;
-  const availPct  = stats.total > 0 ? Math.round((available / stats.total) * 100) : 0;
-
-  const donutData = [
-    { name: t('dashboard.status.available'), value: stats.available || 0, color: "hsl(var(--success))" },
-    { name: t('dashboard.status.in_use'),    value: stats.inUse || 0,     color: "hsl(var(--primary))" },
-    { name: t('dashboard.status.lent'),      value: stats.lent || 0,      color: "hsl(var(--warning))" },
-    { name: t('dashboard.status.defect'),    value: stats.defect || 0,    color: "hsl(var(--destructive))" },
-  ].filter(d => d.value > 0);
-
-  const tiles = [
-    { id: "avail", label: t('dashboard.stat.available'), value: stats.available,                color: "#22c55e", icon: <CheckCircle className="h-3.5 w-3.5" />,    to: "/inventory?filter=verfügbar" },
-    { id: "lent",  label: t('dashboard.stat.lent'),      value: activeLoansCount || stats.lent, color: "#f97316", icon: <ArrowRightLeft className="h-3.5 w-3.5" />, to: "/lending" },
-    { id: "use",   label: t('dashboard.stat.in_use'),    value: stats.inUse,                    color: "hsl(var(--primary))", icon: <Zap className="h-3.5 w-3.5" />, to: "/projects" },
-    { id: "def",   label: t('dashboard.stat.defect'),    value: stats.defect,                   color: "#ef4444", icon: <AlertTriangle className="h-3.5 w-3.5" />,  to: "/inventory?filter=defekt" },
-  ];
-
-  return (
-    <section className="mobile-bento-grid">
-      <Link
-        to="/inventory"
-        className="mobile-hero-card"
-        style={cardScale("hero")}
-        onPointerDown={() => press("hero")}
-      >
-        <div className="mobile-hero-mesh" />
-        <div style={{ position: "relative", zIndex: 10, padding: "14px", height: "100%", display: "flex", flexDirection: "column" }}>
-          <p style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--mob-hero-label)", margin: "0 0 6px 0" }}>
-            {t('dashboard.where_is_my_stuff')}
-          </p>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-            <div style={{ width: "120px", height: "120px" }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={donutData.length > 0 ? donutData : [{ name: "", value: 1, color: "rgba(255,255,255,0.08)" }]}
-                    cx="50%" cy="50%"
-                    innerRadius={36} outerRadius={52}
-                    paddingAngle={donutData.length > 1 ? 3 : 0}
-                    dataKey="value" strokeWidth={0}
-                    startAngle={90} endAngle={-270}
-                  >
-                    {(donutData.length > 0 ? donutData : [{ color: "rgba(255,255,255,0.08)" }]).map((entry: any, i: number) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", pointerEvents: "none" }}>
-              <p style={{ fontSize: "22px", fontWeight: 800, color: "var(--mob-hero-pct)", lineHeight: 1, margin: 0 }}>{availPct}%</p>
-              <p style={{ fontSize: "9px", color: "var(--mob-hero-pct-sub)", margin: "2px 0 0 0" }}>{t('dashboard.free')}</p>
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "6px" }}>
-            {donutData.map(d => (
-              <div key={d.name} style={{ display: "flex", alignItems: "center", gap: "3px" }}>
-                <div style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: d.color, flexShrink: 0 }} />
-                <span style={{ fontSize: "9px", color: "var(--mob-hero-legend)" }}>{d.name}</span>
-                <span style={{ fontSize: "9px", color: "var(--mob-hero-legend-val)", fontWeight: 700 }}>{d.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Link>
-
-      <div className="mobile-secondary-grid">
-        {tiles.map((s) => (
-          <Link
-            key={s.id}
-            to={s.to}
-            className="mobile-stat-tile"
-            style={{ ...cardScale(s.id), "--tile-accent": s.color } as React.CSSProperties}
-            onPointerDown={() => press(s.id)}
-          >
-            <span className="mobile-tile-icon" style={{ color: s.color }}>{s.icon}</span>
-            <span className="mobile-tile-value">{s.value}</span>
-            <span className="mobile-tile-label">{s.label}</span>
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-};
-
-// ─── Mobile: Swipeable Lent Item ─────────────────────────────────────────────
-interface SwipeLentItemProps {
-  item: any;
-  onReturn?: (id: string) => void;
-  onRemind?: (id: string) => void;
-}
-
-const SwipeLentItem = ({ item, onReturn, onRemind }: SwipeLentItemProps) => {
-  const { t } = useTranslation();
-  const ACTION_WIDTH = 140;
-  const THRESHOLD    = 72;
-
-  const [offsetX,  setOffsetX]  = useState(0);
-  const [revealed, setRevealed] = useState(false);
-  const [dragging, setDragging] = useState(false);
-  const startX    = useRef(0);
-  const startOff  = useRef(0);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    startX.current   = e.touches[0].clientX;
-    startOff.current = offsetX;
-    setDragging(true);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    const dx   = e.touches[0].clientX - startX.current;
-    const next = Math.min(0, Math.max(startOff.current + dx, -ACTION_WIDTH));
-    setOffsetX(next);
-  };
-
-  const handleTouchEnd = () => {
-    setDragging(false);
-    if (offsetX < -THRESHOLD) {
-      setOffsetX(-ACTION_WIDTH);
-      setRevealed(true);
-      hapticFeedback([6, 40, 12]);
-    } else {
-      setOffsetX(0);
-      setRevealed(false);
-      hapticFeedback(6);
-    }
-  };
-
-  const close = () => { setOffsetX(0); setRevealed(false); };
-
-  const now           = new Date();
-  const soonThreshold = item.lent_until
-    ? new Date(item.lent_until).getTime() - now.getTime() < 3 * 86_400_000
-    : false;
-  const urgencyColor = item.isOverdue ? "#ef4444" : soonThreshold ? "#f97316" : "#22c55e";
-  const urgencyPulse = item.isOverdue || soonThreshold;
-
-  return (
-    <div style={{ position: "relative", overflow: "hidden", borderRadius: "12px", marginBottom: "8px" }}>
-      <div
-        style={{
-          display: "flex",
-          width: `calc(100% + ${ACTION_WIDTH}px)`,
-          transform: `translateX(${offsetX}px)`,
-          transition: dragging ? "none" : "transform 0.28s cubic-bezier(0.34, 1.2, 0.64, 1)",
-          willChange: "transform",
-        }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        <div style={{ flex: `0 0 calc(100% - ${ACTION_WIDTH}px)`, minWidth: 0 }}>
-          <Link
-            to={`/inventory/${item.id}`}
-            onClick={(e) => { if (revealed) e.preventDefault(); }}
-            style={{
-              display: "block",
-              background: "var(--mob-card-bg)",
-              border: "1px solid var(--mob-card-border)",
-              backdropFilter: "blur(10px)",
-              WebkitBackdropFilter: "blur(10px)",
-              borderRadius: "12px",
-              textDecoration: "none",
-              overflow: "hidden",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 12px 10px" }}>
-              <div style={{
-                width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0,
-                backgroundColor: urgencyColor,
-                boxShadow: urgencyPulse ? `0 0 8px ${urgencyColor}` : "none",
-              }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: "13px", fontWeight: 600, margin: 0, color: "var(--mob-card-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {item.name}
-                </p>
-                <p style={{ fontSize: "11px", color: "var(--mob-card-subtext)", margin: "2px 0 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {t('dashboard.lent_to', { name: item.lent_to || '–' })}
-                  {item.lent_until && ` · ${t('dashboard.due_until', { date: format(new Date(item.lent_until), "dd.MM.yy") })}`}
-                </p>
-              </div>
-              {item.isOverdue && (
-                <span style={{
-                  fontSize: "10px", fontWeight: 700, borderRadius: "20px", padding: "2px 8px", flexShrink: 0,
-                  background: "rgba(239,68,68,0.18)", color: "#f87171",
-                  border: "1px solid rgba(239,68,68,0.35)",
-                  animation: "glowPill 2s ease-in-out infinite",
-                }}>
-                  {t('dashboard.overdue')}
-                </span>
-              )}
-            </div>
-            <div style={{
-              height: "2.5px", width: "100%", backgroundColor: urgencyColor,
-              borderRadius: "0 0 12px 12px",
-              ...(urgencyPulse ? { animation: "pulseBar 2s ease-in-out infinite" } : {}),
-            }} />
-          </Link>
-        </div>
-
-        <button
-          style={{
-            flex: `0 0 ${ACTION_WIDTH / 2}px`, border: "none", cursor: "pointer", marginLeft: "6px",
-            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "4px",
-            background: "hsl(var(--primary))", color: "#fff", fontSize: "10px", fontWeight: 700,
-            borderRadius: "12px 0 0 12px",
-          }}
-          onClick={() => { close(); onReturn?.(item.id); }}
-        >
-          <RotateCcw style={{ width: "16px", height: "16px" }} />
-          {t('dashboard.swipe_return')}
-        </button>
-        <button
-          style={{
-            flex: `0 0 ${ACTION_WIDTH / 2}px`, border: "none", cursor: "pointer",
-            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "4px",
-            background: "#f97316", color: "#fff", fontSize: "10px", fontWeight: 700,
-            borderRadius: "0 12px 12px 0",
-          }}
-          onClick={() => { close(); onRemind?.(item.id); }}
-        >
-          <Trash style={{ width: "16px", height: "16px" }} />
-          {t('dashboard.swipe_delete')}
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// ─── Main Dashboard ───────────────────────────────────────────────────────────
+/** Operations overview: KPIs, things that need attention, upcoming projects, activity. */
 export default function Dashboard() {
-  const { t, i18n } = useTranslation();
-  const dateLocale = i18n.language.startsWith('de') ? de : enUS;
-
-  const { allItems, stats, loading, refetch } = useInventory();
-  const handleRefresh = useCallback(async () => { await refetch(); }, [refetch]);
-  const { projects } = useProjects();
-  const { user } = useAuth();
-  const { activeLoans, completedLoans, markReturned, deleteRecord } = useLendingHistory();
-  const [chartsVisible, setChartsVisible] = useState(false);
-  const PIE_ACTIVE_INDEX = -1;
+  const { t } = useTranslation();
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
-  const isStandalone = isNative() || window.matchMedia("(display-mode: standalone)").matches;
 
-  useEffect(() => {
-    const timer = setTimeout(() => setChartsVisible(true), 100);
-    return () => clearTimeout(timer);
-  }, []);
+  const { allItems, stats, loading, refetch: refetchInventory } = useInventory();
+  const { projects, loading: projectsLoading, refetch: refetchProjects } = useProjects();
+  const { activeLoans, completedLoans, markReturned, refetch: refetchLoans } = useLendingHistory();
+  const maintenance = useMaintenanceDue(allItems);
+  const { refetch: refetchMaintenance } = maintenance;
 
-  const pieData = useMemo(() => [
-    { name: t('dashboard.status.available'), value: stats.available, color: "hsl(var(--success))" },
-    { name: t('dashboard.status.lent'),      value: stats.lent,       color: "hsl(var(--warning))" },
-    { name: t('dashboard.status.in_use'),    value: stats.inUse,      color: "hsl(var(--primary))" },
-    { name: t('dashboard.status.defect'),    value: stats.defect,     color: "hsl(var(--destructive))" },
-  ].filter((d) => d.value > 0), [stats, t]);
+  const defectItems = useMemo(() => allItems.filter((i) => i.condition === "defekt"), [allItems]);
+  const totalValue = useMemo(
+    () => allItems.reduce((sum, item) => sum + (item.unit_price ?? 0) * item.quantity, 0),
+    [allItems]
+  );
 
-  const categoryData = useMemo(() => {
-    const counts: Record<string, number> = {};
-    allItems.forEach((item) => { counts[item.category] = (counts[item.category] || 0) + item.quantity; });
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name, value }));
-  }, [allItems]);
+  const handleRefresh = useCallback(async () => {
+    await Promise.allSettled([refetchInventory(), refetchProjects(), refetchLoans(), refetchMaintenance()]);
+  }, [refetchInventory, refetchProjects, refetchLoans, refetchMaintenance]);
 
-  const totalValue = useMemo(() =>
-    allItems.reduce((sum, item) => sum + (item.unit_price || 0) * item.quantity, 0),
-  [allItems]);
+  const handleReturn = useCallback(
+    async (loanId: string) => {
+      await markReturned(loanId);
+      await refetchInventory();
+    },
+    [markReturned, refetchInventory]
+  );
 
-  const locationData = useMemo(() => {
-    const counts: Record<string, number> = {};
-    allItems.forEach((item) => {
-      const loc = item.location || t('common.unknown', 'Unbekannt');
-      counts[loc] = (counts[loc] || 0) + item.quantity;
-    });
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
-  }, [allItems, t]);
+  const header = (
+    <PageHeader
+      title={t("dashboard.title")}
+      description={t("dashboard.subtitle")}
+      actions={
+        <Button asChild>
+          <Link to="/scanner">
+            <ScanLine />
+            {t("nav.scanner")}
+          </Link>
+        </Button>
+      }
+    />
+  );
 
-  const upcomingProjects = useMemo(() => {
-    const now = new Date();
-    const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    return projects
-      .filter(p =>
-        p.event_date_start &&
-        new Date(p.event_date_start) >= now &&
-        new Date(p.event_date_start) <= in30 &&
-        p.status !== 'archived'
-      )
-      .sort((a, b) =>
-        new Date(a.event_date_start!).getTime() - new Date(b.event_date_start!).getTime()
-      )
-      .slice(0, 5);
-  }, [projects]);
-
-  const lentItems = useMemo(() => {
-    const now = new Date();
-    return activeLoans
-      .map((loan) => ({
-        id: loan.id,
-        itemId: loan.item_id,
-        name: loan.item_name,
-        lent_to: loan.lent_to,
-        lent_until: loan.due_date,
-        updated_at: loan.created_at,
-        isOverdue: loan.due_date ? new Date(loan.due_date) < now : false,
-      }))
-      .sort((a, b) => {
-        if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
-        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-      })
-      .slice(0, 5);
-  }, [activeLoans]);
-
-  const defectItems = useMemo(() => allItems.filter((i) => i.condition === "defekt").slice(0, 5), [allItems]);
-
-  const recentActivities = useMemo(() => {
-    const activities: { id: string; message: string; time: string; type: "lent" | "returned" | "defect" }[] = [];
-    activeLoans.forEach((r) => {
-      activities.push({
-        id: r.id,
-        message: t('dashboard.activity.lent_to', { item: r.item_name, person: r.lent_to }),
-        time: r.created_at,
-        type: "lent",
-      });
-    });
-    completedLoans.slice(0, 5).forEach((r) => {
-      activities.push({
-        id: r.id,
-        message: t('dashboard.activity.returned_from', { item: r.item_name, person: r.lent_to }),
-        time: r.returned_at!,
-        type: "returned",
-      });
-    });
-    allItems.forEach((item) => {
-      if (item.condition === "defekt")
-        activities.push({
-          id: item.id,
-          message: t('dashboard.activity.marked_defect', { item: item.name }),
-          time: item.updated_at,
-          type: "defect",
-        });
-    });
-    return activities
-      .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
-      .slice(0, 8);
-  }, [allItems, activeLoans, completedLoans, t]);
-
-  // Project status label + variant maps
-  const STATUS_LABEL: Record<string, string> = {
-    draft:     t('dashboard.project_status.draft'),
-    planned:   t('dashboard.project_status.planned'),
-    packed:    t('dashboard.project_status.packed'),
-    transit:   t('dashboard.project_status.transit'),
-    live:      t('dashboard.project_status.live'),
-    returning: t('dashboard.project_status.returning'),
-  };
-  const STATUS_VARIANT: Record<string, 'secondary' | 'default' | 'destructive'> = {
-    draft: 'secondary', planned: 'secondary', packed: 'default',
-    transit: 'default', live: 'default', returning: 'secondary',
-  };
-
-  if (loading) {
+  if (loading && allItems.length === 0) {
     return (
-      <div className="space-y-6">
-        <section className="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
-          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 sm:h-20 w-full" />)}
-        </section>
-        <div className="grid lg:grid-cols-2 gap-4">
-          <Skeleton className="h-[280px] w-full rounded-lg" />
-          <Skeleton className="h-[280px] w-full rounded-lg" />
-        </div>
-      </div>
+      <>
+        {header}
+        <DashboardSkeleton />
+      </>
     );
   }
 
   return (
-    <PullToRefreshWrapper onRefresh={handleRefresh} disabled={!isMobile || !isStandalone}>
-      <div className="space-y-5 sm:space-y-8 mt-4 pb-24">
-        <ScanRevealOverlay />
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight">{t('dashboard.title')}</h2>
-          <p className="text-muted-foreground text-xs sm:text-sm mt-1">{t('dashboard.subtitle')}</p>
-        </div>
+    <PullToRefreshWrapper onRefresh={handleRefresh} disabled={!isMobile || !isStandaloneApp()}>
+      {header}
 
-        {/* ══ 1. BENTO STATS ══════════════════════════════════════════════════════ */}
-        <MobileBentoStats stats={stats} totalValue={totalValue} activeLoansCount={activeLoans.length} />
+      {allItems.length === 0 ? (
+        <EmptyPanel
+          icon={Package}
+          title={t("dashboard.empty.title")}
+          description={t("dashboard.empty.description")}
+          action={
+            <Button variant="outline" asChild>
+              <Link to="/inventory">{t("dmx_patchplan.empty_cta")}</Link>
+            </Button>
+          }
+        />
+      ) : (
+        <div className="space-y-4">
+          <KpiRow stats={stats} totalValue={totalValue} />
 
-        <section className="desktop-only grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-          <StatCard title={t('dashboard.stat.total')}      value={stats.total}                      icon={Package}       variant="default"     />
-          <StatCard title={t('dashboard.stat.available')}  value={stats.available}                  icon={CheckCircle}   variant="success"     />
-          <StatCard title={t('dashboard.stat.lent')}       value={activeLoans.length || stats.lent} icon={ArrowRightLeft} variant="warning"    />
-          <StatCard title={t('dashboard.stat.in_use')}     value={stats.inUse}                      icon={Zap}           variant="primary"     />
-          <StatCard title={t('dashboard.stat.defect')}     value={stats.defect}                     icon={AlertTriangle} variant="destructive" />
-          <div className="glass-card p-3 sm:p-5 hover:shadow-md transition-shadow duration-200">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">{t('dashboard.stat.total_value')}</p>
-                <p className="text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1">
-                  {totalValue > 0
-                    ? `${totalValue.toLocaleString(i18n.language === 'de' ? 'de-DE' : 'en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €`
-                    : "–"}
-                </p>
-              </div>
-              <div className="p-2 sm:p-3 rounded-lg bg-primary/10 flex-shrink-0">
-                <DollarSign className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ══ Schnellaktionen ══════════════════════════════════════════════════════ */}
-        <div className="grid gap-3">
-          <button
-            onClick={() => navigate("/scanner")}
-            className="flex items-center gap-3 p-4 rounded-xl bg-primary/10 border border-primary/30 hover:bg-primary/15 active:scale-[0.98] transition-all text-left"
-          >
-            <div className="p-2.5 rounded-lg bg-primary/20 shrink-0 relative flex items-center justify-center">
-              <ScanLine className="h-5 w-5 text-primary" />
-              <QrCode className="h-3.5 w-3.5 text-primary absolute opacity-80" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-sm">{t('nav.scanner')}</p>
-              <p className="text-xs text-muted-foreground truncate">{t('dashboard.quick_actions.scanner_desc')}</p>
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-          </button>
-        </div>
-
-        {/* ══ 2. MOBILE: Defekte Artikel ══════════════════════════════════════════ */}
-        {defectItems.length > 0 && (
-          <div className="mobile-only">
-            <div className="mobile-section-header">
-              <AlertTriangle className="h-3.5 w-3.5" style={{ color: "var(--mob-section-color)" }} />
-              <span className="mobile-section-title">{t('dashboard.defect_section', { count: stats.defect })}</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {defectItems.map((item) => (
-                <Link key={item.id} to={`/inventory/${item.id}`} style={{
-                  display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px",
-                  background: "rgba(239,68,68,.07)", border: "1px solid rgba(239,68,68,.18)",
-                  borderRadius: "12px", textDecoration: "none",
-                  backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-                }}>
-                  <div style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#ef4444", flexShrink: 0, boxShadow: "0 0 6px #ef4444" }} />
-                  <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--mob-card-text)", margin: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {item.name}
-                  </p>
-                  <span style={{ fontSize: "10px", color: "var(--mob-card-subtext)", flexShrink: 0 }}>{item.category}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ══ 3. Anstehende Projekte + Quick Links ═══════════════════════════════ */}
-        <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
-          <Card className="border-border/50">
-            <CardContent className="p-4 sm:p-5">
-              <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
-                <CalendarDays className="h-4 w-4 text-primary" />
-                {t('dashboard.upcoming_projects.title')}
-              </h3>
-              {upcomingProjects.length > 0 ? (
-                <div className="space-y-2">
-                  {upcomingProjects.map((p) => (
-                    <Link
-                      key={p.id}
-                      to={`/projects/${p.id}`}
-                      className="flex items-center justify-between p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 active:scale-[0.98] transition-all"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          {p.is_favorite && <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 shrink-0" />}
-                          <p className="text-xs sm:text-sm font-medium truncate">{p.name}</p>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">
-                          {format(new Date(p.event_date_start!), 'dd. MMM yyyy', { locale: dateLocale })}
-                          {p.event_date_end && p.event_date_end !== p.event_date_start &&
-                            ` – ${format(new Date(p.event_date_end), 'dd. MMM', { locale: dateLocale })}`}
-                          {p.location && ` · ${p.location}`}
-                        </p>
-                      </div>
-                      <Badge variant={STATUS_VARIANT[p.status] ?? 'secondary'} className="text-[10px] shrink-0 ml-2">
-                        {STATUS_LABEL[p.status] ?? p.status}
-                      </Badge>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2 py-6 text-center">
-                  <CalendarDays className="h-8 w-8 text-muted-foreground/30" />
-                  <p className="text-xs text-muted-foreground">{t('dashboard.upcoming_projects.empty')}</p>
-                </div>
-              )}
-              <Link to="/projects" className="flex items-center gap-1 mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                {t('dashboard.upcoming_projects.all_link')} <ArrowRight className="h-3 w-3" />
-              </Link>
-            </CardContent>
-          </Card>
-
-          <div className="space-y-3">
-            <Link
-              to="/projects"
-              className="flex items-center justify-between p-3 sm:p-4 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 active:scale-[0.98] transition-all group"
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
-                  <FolderKanban className="h-4 w-4 text-primary" />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-xs sm:text-sm truncate">{t('nav.projects')}</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {t('dashboard.projects_card.active_count', {
-                      count: projects.filter(p => p.status !== ('archived' as any)).length
-                    })}
-                  </p>
-                </div>
-              </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
-            </Link>
-
-            {lentItems.length > 0 && (
-              <Card className="desktop-only border-warning/30">
-                <CardContent className="p-4">
-                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                    <ArrowRightLeft className="h-4 w-4 text-warning" />
-                    {t('dashboard.lent_card.title')}
-                  </h3>
-                  <div className="space-y-1.5">
-                    {lentItems.map((item) => (
-                      <Link key={item.id} to={`/inventory/${item.id}`}
-                        className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/20 active:scale-[0.98] transition-all">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium truncate">{item.name}</p>
-                          <p className="text-[11px] text-muted-foreground truncate">
-                            {t('dashboard.lent_to', { name: item.lent_to || '–' })}
-                            {item.lent_until && ` · ${t('dashboard.due_until', { date: format(new Date(item.lent_until), 'dd.MM.yy') })}`}
-                          </p>
-                        </div>
-                        {item.isOverdue && (
-                          <Badge variant="destructive" className="text-[10px] shrink-0 ml-2">
-                            {t('dashboard.overdue')}
-                          </Badge>
-                        )}
-                      </Link>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {defectItems.length > 0 && (
-              <Card className="desktop-only border-destructive/30">
-                <CardContent className="p-4">
-                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-destructive" />
-                    {t('dashboard.defect_card.title', { count: stats.defect })}
-                  </h3>
-                  <div className="space-y-1.5">
-                    {defectItems.map((item) => (
-                      <Link key={item.id} to={`/inventory/${item.id}`}
-                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/20 active:scale-[0.98] transition-all">
-                        <p className="text-xs font-medium truncate">{item.name}</p>
-                        <span className="text-[11px] text-muted-foreground shrink-0">{item.category}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-
-        {/* ══ 4. MOBILE: Swipeable Lent Items ════════════════════════════════════ */}
-        {lentItems.length > 0 && (
-          <div className="mobile-only">
-            <div className="mobile-section-header">
-              <ArrowRightLeft className="h-3.5 w-3.5" style={{ color: "var(--mob-section-color)" }} />
-              <span className="mobile-section-title">{t('dashboard.lent_section')}</span>
-            </div>
-            {lentItems.map((item) => (
-              <SwipeLentItem
-                key={item.id}
-                item={item}
-                onReturn={async (id) => { await markReturned(id); refetch(); }}
-                onRemind={async (id) => { await deleteRecord(id); hapticFeedback([10, 50, 10]); }}
+          <div className="grid items-start gap-4 lg:grid-cols-3">
+            <div className="min-w-0 lg:col-span-2">
+              <AttentionPanel
+                activeLoans={activeLoans}
+                defectItems={defectItems}
+                maintenance={maintenance}
+                onReturn={handleReturn}
               />
-            ))}
-            <Link to="/lending" className="flex items-center gap-1 mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-              {t('dashboard.all_loans')} <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
-        )}
-
-        {/* ══ 5. Charts & Aktivitäten ═════════════════════════════════════════════ */}
-        <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
-          <div className="glass-card p-4 sm:p-6" style={{ display: isMobile ? 'none' : 'block' }}>
-            <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
-              <Activity className="h-4 w-4 text-primary" />
-              {t('dashboard.charts.status_distribution')}
-            </h3>
-            {pieData.length > 0 ? (
-              chartsVisible && (
-                <div className="h-[220px] sm:h-[260px] animate-in fade-in duration-1000">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={pieData} cx="50%" cy="50%"
-                        innerRadius={isMobile ? 30 : 55} outerRadius={isMobile ? 60 : 90}
-                        paddingAngle={2} dataKey="value" strokeWidth={0} activeIndex={PIE_ACTIVE_INDEX}>
-                        {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                      </Pie>
-                      <Tooltip content={<PieTooltip />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="flex flex-wrap justify-center gap-2 sm:gap-4 -mt-2">
-                    {pieData.map((d) => (
-                      <div key={d.name} className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs">
-                        <div className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full" style={{ backgroundColor: d.color }} />
-                        <span className="text-muted-foreground truncate">{d.name}</span>
-                        <span className="font-medium shrink-0">{d.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )
-            ) : (
-              <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                <Activity className="h-8 w-8 opacity-20" />
-                <span className="text-sm">{t('dashboard.charts.no_data')}</span>
-              </div>
-            )}
-          </div>
-
-          <div className="glass-card p-4 sm:p-6">
-            <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              {t('dashboard.charts.by_category')}
-            </h3>
-            {categoryData.length > 0 ? (
-              chartsVisible && (
-                <div className="h-[240px] sm:h-[260px] animate-in fade-in duration-1000">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={categoryData} layout="vertical"
-                      margin={{ left: isMobile ? 55 : 80, right: isMobile ? 12 : 16, top: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-                      <XAxis type="number" tick={{ fontSize: isMobile ? 10 : 11, fill: "hsl(var(--muted-foreground))" }} />
-                      <YAxis dataKey="name" type="category" width={isMobile ? 55 : 80}
-                        tick={{ fontSize: isMobile ? 9 : 11, fill: "hsl(var(--muted-foreground))" }} />
-                      <Tooltip content={<BarTooltip />} cursor={{ fill: "rgba(59,130,246,0.1)" }} />
-                      <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]}
-                        activeBar={<AnimatedActiveBar />} label={<BarLabel />} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )
-            ) : (
-              <div className="h-[260px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                <TrendingUp className="h-8 w-8 opacity-20" />
-                <span className="text-sm">{t('dashboard.charts.no_categories')}</span>
-              </div>
-            )}
+            </div>
+            <UpcomingProjects projects={projects} loading={projectsLoading} />
+            <div className="min-w-0 lg:col-span-2">
+              <RecentActivity activeLoans={activeLoans} completedLoans={completedLoans} items={allItems} />
+            </div>
+            <InventoryBreakdown items={allItems} />
           </div>
         </div>
-
-        <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
-          <div className="glass-card p-4 sm:p-6" hidden={isMobile}>
-            <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-primary" />
-              {t('dashboard.charts.locations')}
-            </h3>
-            {locationData.length > 0 ? (
-              <div className="space-y-2">
-                {locationData.map(([loc, count]) => {
-                  const pct = stats.total > 0 ? (count / stats.total) * 100 : 0;
-                  return (
-                    <div key={loc} className="space-y-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="truncate font-medium">{loc}</span>
-                        <span className="text-muted-foreground shrink-0 ml-2">
-                          {t('dashboard.charts.piece_count', { count })}
-                        </span>
-                      </div>
-                      <div className="h-2 rounded-full bg-muted/40 overflow-hidden">
-                        <div className="h-full rounded-full bg-primary/70 transition-all duration-700" style={{ width: `${Math.max(pct, 2)}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="h-[160px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                <MapPin className="h-8 w-8 opacity-20" />
-                <span className="text-sm">{t('dashboard.charts.no_locations')}</span>
-              </div>
-            )}
-          </div>
-
-          <div className="glass-card p-4 sm:p-6">
-            <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2">
-              <Clock className="h-4 w-4 text-primary" />
-              {t('dashboard.charts.recent_activity')}
-            </h3>
-            {recentActivities.length > 0 ? (
-              <div className="space-y-2">
-                {recentActivities.map((activity, index) => (
-                  <div
-                    key={activity.id + activity.time}
-                    className="activity-item flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors"
-                    style={{ animationDelay: `${index * 60}ms` }}
-                  >
-                    <div className={`p-1.5 rounded-full flex-shrink-0 ${
-                      activity.type === "lent"     ? "bg-warning/20 text-warning"
-                      : activity.type === "returned" ? "bg-primary/20 text-primary"
-                      : "bg-destructive/20 text-destructive"
-                    }`}>
-                      {activity.type === "lent"     ? <ArrowRightLeft className="h-3 w-3" />
-                       : activity.type === "returned" ? <CheckCircle className="h-3 w-3" />
-                       : <AlertTriangle className="h-3 w-3" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">{activity.message}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {format(new Date(activity.time), "dd. MMM yyyy, HH:mm", { locale: dateLocale })}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="h-[160px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                <Clock className="h-8 w-8 opacity-20" />
-                <span className="text-sm">{t('dashboard.charts.no_activity')}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      )}
     </PullToRefreshWrapper>
   );
 }

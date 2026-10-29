@@ -1,18 +1,19 @@
-import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { InventoryItem, DMX_CATEGORIES } from '@/types/inventory';
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { AlertTriangle } from "lucide-react";
+import { InventoryItem, DMX_CATEGORIES } from "@/types/inventory";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, Sliders } from 'lucide-react';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { DMX_UNIVERSE_SIZE, formatPatch } from "@/components/dmx/dmxFormat";
 
 interface DMXConfigDialogProps {
   isOpen: boolean;
@@ -29,6 +30,16 @@ export interface DMXConfig {
   dmx_channels: number;
 }
 
+/** Raw input values; parsed on render so the user can clear a field while typing. */
+interface Draft {
+  universe: string;
+  start: string;
+  channels: string;
+}
+
+const toInt = (v: string) => (/^\d+$/.test(v.trim()) ? parseInt(v, 10) : NaN);
+
+/** Base DMX patch (universe, start address, footprint) of an inventory item. */
 export function DMXConfigDialog({
   isOpen,
   item,
@@ -38,190 +49,132 @@ export function DMXConfigDialog({
   hasConflict = false,
 }: DMXConfigDialogProps) {
   const { t } = useTranslation();
+  const [draft, setDraft] = useState<Draft>({ universe: "1", start: "1", channels: "16" });
 
-  const [config, setConfig] = useState<DMXConfig>({
-    dmx_universe: 1,
-    dmx_start_address: 1,
-    dmx_channels: 16,
-  });
-
-  const isDMXCategory = item && DMX_CATEGORIES.includes(item.category);
+  const isDMXCategory = !!item && DMX_CATEGORIES.includes(item.category);
 
   useEffect(() => {
     if (item && isOpen) {
-      setConfig({
-        dmx_universe: item.dmx_universe || 1,
-        dmx_start_address: item.dmx_start_address || 1,
-        dmx_channels: item.dmx_channels || 16,
+      setDraft({
+        universe: String(item.dmx_universe || 1),
+        start: String(item.dmx_start_address || 1),
+        channels: String(item.dmx_channels || 16),
       });
     }
   }, [item, isOpen]);
 
-  const handleSave = async () => {
-    if (!item) return;
-
-    if (
-      config.dmx_universe < 1 ||
-      config.dmx_start_address < 1 ||
-      config.dmx_start_address > 512 ||
-      config.dmx_channels < 1
-    ) {
-      alert(t('dmx.invalid_values'));
-      return;
-    }
-
-    const endAddress = config.dmx_start_address + config.dmx_channels * item.quantity - 1;
-    if (endAddress > 512) {
-      alert(
-        t('dmx.too_many_channels_alert', {
-          needed: config.dmx_channels * item.quantity,
-          available: 512 - config.dmx_start_address + 1,
-        })
-      );
-      return;
-    }
-
-    await onSave(item, config);
-  };
-
   if (!item || !isDMXCategory) return null;
 
-  const endAddress = config.dmx_start_address + config.dmx_channels * item.quantity - 1;
-  const totalChannelsNeeded = config.dmx_channels * item.quantity;
+  const universe = toInt(draft.universe);
+  const start = toInt(draft.start);
+  const channels = toInt(draft.channels);
+  const totalChannels = channels * item.quantity;
+  const endAddress = start + totalChannels - 1;
+  const available = DMX_UNIVERSE_SIZE - start + 1;
+
+  const invalid =
+    !(universe >= 1) || !(start >= 1 && start <= DMX_UNIVERSE_SIZE) || !(channels >= 1);
+  const overflow = !invalid && endAddress > DMX_UNIVERSE_SIZE;
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (invalid || overflow) return;
+    await onSave(item, { dmx_universe: universe, dmx_start_address: start, dmx_channels: channels });
+  };
+
+  const set = (key: keyof Draft) => (e: ChangeEvent<HTMLInputElement>) =>
+    setDraft((d) => ({ ...d, [key]: e.target.value }));
 
   return (
-    <Dialog open={isOpen && isDMXCategory} onOpenChange={onClose}>
-      <DialogContent className="glass-card border-border/50 w-[95vw] sm:max-w-[400px] animate-scale-in">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Sliders className="h-5 w-5 text-primary" />
-            {t('dmx.title')}
-          </DialogTitle>
-          <DialogDescription>
-            {item.name} ({item.quantity}x)
-          </DialogDescription>
-        </DialogHeader>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !loading && onClose()}>
+      <DialogContent className="w-[95vw] sm:max-w-[420px]">
+        <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
+          <DialogHeader>
+            <DialogTitle>{t("dmx.title")}</DialogTitle>
+            <DialogDescription>
+              {item.name} <span className="font-mono tabular-nums">· {item.quantity}×</span>
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Konflikt-Warnung */}
           {hasConflict && (
-            <Alert variant="destructive" className="border-destructive/50">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="ml-2 text-sm">
-                {t('dmx.conflict_warning')}
-              </AlertDescription>
-            </Alert>
+            <p className="flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/[0.06] px-3 py-2 text-[13px] text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              {t("dmx.conflict_warning")}
+            </p>
           )}
 
-          {/* Universum */}
-          <div className="space-y-2">
-            <Label htmlFor="dmx_universe">{t('dmx.universe_label')}</Label>
-            <Input
-              id="dmx_universe"
-              type="number"
-              min="1"
-              value={config.dmx_universe}
-              onChange={e =>
-                setConfig({ ...config, dmx_universe: Math.max(1, parseInt(e.target.value) || 1) })
-              }
-              disabled={loading}
-            />
-            <p className="text-xs text-muted-foreground">{t('dmx.universe_hint')}</p>
-          </div>
-
-          {/* Start-Adresse */}
-          <div className="space-y-2">
-            <Label htmlFor="dmx_start_address">{t('dmx.start_address_label')}</Label>
-            <Input
-              id="dmx_start_address"
-              type="number"
-              min="1"
-              max="512"
-              value={config.dmx_start_address}
-              onChange={e =>
-                setConfig({
-                  ...config,
-                  dmx_start_address: Math.max(1, Math.min(512, parseInt(e.target.value) || 1)),
-                })
-              }
-              disabled={loading}
-            />
-            <p className="text-xs text-muted-foreground">{t('dmx.start_address_hint')}</p>
-          </div>
-
-          {/* Kanäle pro Gerät */}
-          <div className="space-y-2">
-            <Label htmlFor="dmx_channels">{t('dmx.channels_label')}</Label>
-            <Input
-              id="dmx_channels"
-              type="number"
-              min="1"
-              value={config.dmx_channels}
-              onChange={e =>
-                setConfig({ ...config, dmx_channels: Math.max(1, parseInt(e.target.value) || 1) })
-              }
-              disabled={loading}
-            />
-            <p className="text-xs text-muted-foreground">{t('dmx.channels_hint')}</p>
-          </div>
-
-          {/* Zusammenfassung */}
-          <div className="p-3 bg-muted/40 rounded-lg border border-border/50 space-y-2">
-            <div className="text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{t('dmx.summary.instances')}</span>
-                <span className="font-medium">{item.quantity}x</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{t('dmx.summary.channels_per_instance')}</span>
-                <span className="font-mono">{config.dmx_channels}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{t('dmx.summary.address_range')}</span>
-                <span className="font-mono font-bold">
-                  {config.dmx_start_address}–{Math.min(endAddress, 512)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{t('dmx.summary.total_channels')}</span>
-                <span
-                  className={
-                    totalChannelsNeeded > 512 - config.dmx_start_address + 1
-                      ? 'text-destructive font-medium'
-                      : 'font-mono'
-                  }
-                >
-                  {totalChannelsNeeded}
-                </span>
-              </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="dmx_universe">{t("dmx_timeline.edit_dialog.universe")}</Label>
+              <Input
+                id="dmx_universe"
+                inputMode="numeric"
+                className="font-mono tabular-nums"
+                value={draft.universe}
+                onChange={set("universe")}
+                disabled={loading}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dmx_start_address">{t("dmx_timeline.edit_dialog.start_address")}</Label>
+              <Input
+                id="dmx_start_address"
+                inputMode="numeric"
+                className="font-mono tabular-nums"
+                value={draft.start}
+                onChange={set("start")}
+                disabled={loading}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dmx_channels">{t("dmx_table.col.channels")}</Label>
+              <Input
+                id="dmx_channels"
+                inputMode="numeric"
+                className="font-mono tabular-nums"
+                value={draft.channels}
+                onChange={set("channels")}
+                disabled={loading}
+              />
             </div>
           </div>
+          <p className="-mt-2 text-[12px] text-muted-foreground">
+            {t("dmx.start_address_hint")} · {t("dmx.channels_hint")}
+          </p>
 
-          {/* Warnung zu viele Kanäle */}
-          {endAddress > 512 && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="ml-2 text-sm">
-                {t('dmx.too_many_channels_inline', {
-                  available: 512 - config.dmx_start_address + 1,
-                })}
-              </AlertDescription>
-            </Alert>
+          <dl className="divide-y divide-border rounded-md border border-border bg-surface-sunken text-[13px]">
+            {[
+              [t("dmx.summary.instances"), `${item.quantity}×`],
+              [t("dmx.summary.channels_per_instance"), invalid ? "–" : String(channels)],
+              [
+                t("dmx.summary.address_range"),
+                invalid ? "–" : `${formatPatch(universe, start)}–${formatPatch(universe, Math.min(endAddress, DMX_UNIVERSE_SIZE))}`,
+              ],
+              [t("dmx.summary.total_channels"), invalid ? "–" : String(totalChannels)],
+            ].map(([label, value], i) => (
+              <div key={i} className="flex items-center justify-between px-3 py-1.5">
+                <dt className="text-muted-foreground">{label}</dt>
+                <dd className={i === 3 && overflow ? "font-mono font-medium text-destructive" : "font-mono tabular-nums"}>
+                  {value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+
+          {invalid && <p className="text-[13px] text-destructive">{t("dmx.invalid_values")}</p>}
+          {overflow && (
+            <p className="text-[13px] text-destructive">{t("dmx.too_many_channels_inline", { available })}</p>
           )}
-        </div>
 
-        <div className="flex gap-3 pt-2">
-          <Button variant="ghost" onClick={onClose} className="flex-1" disabled={loading}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            onClick={handleSave}
-            className="flex-1"
-            disabled={loading || endAddress > 512}
-          >
-            {loading ? t('common.saving') : t('common.save')}
-          </Button>
-        </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" disabled={loading || invalid || overflow}>
+              {loading ? t("common.saving") : t("common.save")}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

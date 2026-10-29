@@ -1,0 +1,50 @@
+{
+  "dashboard.attention.title": {
+    "de": "Braucht Aufmerksamkeit",
+    "en": "Needs attention"
+  },
+  "dashboard.attention.empty_title": {
+    "de": "Alles im grünen Bereich",
+    "en": "All clear"
+  },
+  "dashboard.attention.empty_desc": {
+    "de": "Keine fälligen Rückgaben, defekten Artikel oder anstehenden Wartungen.",
+    "en": "No returns due, defective items or upcoming maintenance."
+  },
+  "dashboard.attention.group_returns": {
+    "de": "Rückgaben fällig",
+    "en": "Returns due"
+  },
+  "dashboard.attention.group_maintenance": {
+    "de": "Wartung fällig",
+    "en": "Maintenance due"
+  },
+  "dashboard.attention.never_maintained": {
+    "de": "Nie gewartet",
+    "en": "Never serviced"
+  },
+  "dashboard.attention.maintenance_due_on": {
+    "de": "Fällig am {{date}}",
+    "en": "Due {{date}}"
+  },
+  "dashboard.attention.more": {
+    "de": "+{{count}} weitere anzeigen",
+    "en": "Show {{count}} more"
+  },
+  "dashboard.breakdown.title": {
+    "de": "Bestand",
+    "en": "Stock"
+  },
+  "dashboard.breakdown.unassigned": {
+    "de": "Ohne Angabe",
+    "en": "Not set"
+  },
+  "dashboard.empty.title": {
+    "de": "Noch kein Equipment erfasst",
+    "en": "No equipment yet"
+  },
+  "dashboard.empty.description": {
+    "de": "Lege deine ersten Artikel im Inventar an. Danach siehst du hier Bestand, Verleih und anstehende Projekte auf einen Blick.",
+    "en": "Add your first items to the inventory. You'll then see stock, loans and upcoming projects here at a glance."
+  }
+}

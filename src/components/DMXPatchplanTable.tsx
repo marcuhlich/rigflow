@@ -1,36 +1,30 @@
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { PatchplanRow, DMXConflict } from '@/lib/dmxPatchplan';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { StatusBadge } from '@/components/StatusBadge';
-import { AlertTriangle, Edit2, Check, X, Copy } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
-import { logger } from '@/lib/logger';
+import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { DMXConflict, PatchplanRow } from "@/lib/dmxPatchplan";
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EmptyPanel } from "@/components/QueryState";
+import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { logger } from "@/lib/logger";
+import { DMXAddressDialog } from "@/components/dmx/DMXAddressDialog";
+import { PatchList } from "@/components/dmx/PatchList";
+import { PatchTableRow } from "@/components/dmx/PatchTableRow";
+import { buildConflictIndex } from "@/components/dmx/dmxFormat";
 
 interface DMXPatchplanTableProps {
   rows: PatchplanRow[];
   conflicts: DMXConflict[];
+  /** Undefined = read-only. */
   onInstanceChange?: (itemId: string, instanceNumber: number, newAddress: number, newUniverse: number) => Promise<void>;
   onAutoAssign?: (itemId: string, universe: number) => Promise<void>;
+  /** Disables editing while data is (re)loading. */
   loading?: boolean;
 }
 
-interface EditState {
-  rowId: string | null;
-  type: 'address' | 'universe';
-  value: string;
-}
-
+/**
+ * Console-style patch table: universe, address range and footprint in mono,
+ * conflicting instances marked in destructive. Small screens get a tap-to-edit list.
+ */
 export function DMXPatchplanTable({
   rows,
   conflicts,
@@ -39,252 +33,89 @@ export function DMXPatchplanTable({
   loading = false,
 }: DMXPatchplanTableProps) {
   const { t } = useTranslation();
-  const [editState, setEditState] = useState<EditState | null>(null);
-  const [editingRow, setEditingRow] = useState<PatchplanRow | null>(null);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
+  const [editingRow, setEditingRow] = useState<PatchplanRow | null>(null);
 
-  const hasConflict = (row: PatchplanRow): boolean => {
-    return conflicts.some(
-      c => c.row1.itemId === row.itemId || c.row2.itemId === row.itemId
-    );
-  };
+  const conflictIndex = useMemo(() => buildConflictIndex(conflicts), [conflicts]);
 
-  const getConflictMessage = (row: PatchplanRow): string => {
-    const conflict = conflicts.find(
-      c =>
-        (c.row1.itemId === row.itemId && c.row1.instanceNumber === row.instanceNumber) ||
-        (c.row2.itemId === row.itemId && c.row2.instanceNumber === row.instanceNumber)
-    );
-    if (!conflict) return '';
+  const showError = useCallback(
+    (message: string) => toast({ title: t("common.error"), description: message, variant: "destructive" }),
+    [t, toast]
+  );
 
-    const otherRow = conflict.row1.itemId === row.itemId ? conflict.row2 : conflict.row1;
-    return t('dmx_table.conflict_message', {
-      name: otherRow.itemName,
-      start: otherRow.startAddress,
-      end: otherRow.endAddress,
-    });
-  };
-
-  const handleStartEdit = (row: PatchplanRow, type: 'address' | 'universe') => {
-    setEditState({
-      rowId: row.id,
-      type,
-      value: type === 'address' ? row.startAddress.toString() : row.universe.toString(),
-    });
-    setEditingRow(row);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editState || !editingRow || !onInstanceChange) return;
-
-    try {
-      const value = parseInt(editState.value);
-      if (isNaN(value)) {
-        toast({ title: t('common.error'), description: t('dmx_table.error.invalid_input'), variant: 'destructive' });
-        return;
+  const copyRange = useCallback(
+    async (row: PatchplanRow) => {
+      const text = `${row.startAddress}-${row.endAddress}`;
+      try {
+        if (!navigator.clipboard) throw new Error("Clipboard API unavailable");
+        await navigator.clipboard.writeText(text);
+        toast({ description: t("dmx_table.copied") });
+      } catch (err) {
+        logger.error("DMXPatchplanTable", "Copy failed", err);
+        showError(t("common.unknown_error"));
       }
+    },
+    [showError, t, toast]
+  );
 
-      if (editState.type === 'address') {
-        if (value < 1 || value > 512) {
-          toast({ title: t('common.error'), description: t('dmx_table.error.address_range'), variant: 'destructive' });
-          return;
-        }
-        await onInstanceChange(editingRow.itemId, editingRow.instanceNumber, value, editingRow.universe);
-      } else {
-        if (value < 1) {
-          toast({ title: t('common.error'), description: t('dmx_table.error.universe_min'), variant: 'destructive' });
-          return;
-        }
-        await onInstanceChange(editingRow.itemId, editingRow.instanceNumber, editingRow.startAddress, value);
-      }
+  if (rows.length === 0) {
+    return <EmptyPanel title={t("dmx_table.empty")} />;
+  }
 
-      setEditState(null);
-      setEditingRow(null);
-    } catch (error) {
-      logger.error('Error saving edit:', error);
-      toast({ title: t('common.error'), description: t('dmx_table.error.save_failed'), variant: 'destructive' });
-    }
-  };
-
-  const handleCancel = () => {
-    setEditState(null);
-    setEditingRow(null);
-  };
+  if (isMobile) {
+    return (
+      <>
+        <PatchList
+          rows={rows}
+          conflictIndex={conflictIndex}
+          onEdit={onInstanceChange && !loading ? setEditingRow : undefined}
+        />
+        <DMXAddressDialog
+          row={editingRow}
+          conflictsWith={editingRow ? conflictIndex.get(editingRow.id) : undefined}
+          onClose={() => setEditingRow(null)}
+          onSave={async (row, address, universe) => {
+            await onInstanceChange?.(row.itemId, row.instanceNumber, address, universe);
+          }}
+        />
+      </>
+    );
+  }
 
   return (
-    <div className="glass-card overflow-hidden">
+    <div className="surface overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow className="border-border/50 hover:bg-transparent">
-            <TableHead>{t('dmx_table.col.device')}</TableHead>
-            <TableHead className="text-center">{t('dmx_table.col.instance')}</TableHead>
-            <TableHead className="text-center">{t('dmx_table.col.universe')}</TableHead>
-            <TableHead className="text-center">{t('dmx_table.col.start_address')}</TableHead>
-            <TableHead className="text-center">{t('dmx_table.col.end_address')}</TableHead>
-            <TableHead className="text-center">{t('dmx_table.col.channels')}</TableHead>
-            <TableHead>{t('fields.location')}</TableHead>
-            <TableHead>{t('dmx_table.col.status')}</TableHead>
-            <TableHead className="text-right">{t('dmx_table.col.actions')}</TableHead>
+          <TableRow>
+            <TableHead className="w-16">{t("dmx_table.col.universe")}</TableHead>
+            <TableHead className="w-24">{t("dmx_table.col.start_address")}</TableHead>
+            <TableHead className="w-20">{t("dmx_table.col.end_address")}</TableHead>
+            <TableHead className="w-16 text-right">{t("dmx_table.col.channels")}</TableHead>
+            <TableHead>{t("dmx_table.col.device")}</TableHead>
+            <TableHead className="w-16">{t("dmx_table.col.instance")}</TableHead>
+            <TableHead>{t("fields.location")}</TableHead>
+            <TableHead className="w-28">{t("dmx_table.col.status")}</TableHead>
+            <TableHead className="w-20 text-right">
+              <span className="sr-only">{t("dmx_table.col.actions")}</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map(row => {
-            const conflict = hasConflict(row);
-            const isEditing = editingRow?.id === row.id;
-
-            return (
-              <TableRow
-                key={row.id}
-                className={cn(
-                  'border-border/30 transition-colors',
-                  conflict && 'bg-destructive/10'
-                )}
-              >
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    {conflict && (
-                      <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
-                    )}
-                    <div>
-                      <div>{row.itemName}</div>
-                      {conflict && (
-                        <div className="text-xs text-destructive mt-1">
-                          {getConflictMessage(row)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </TableCell>
-
-                <TableCell className="text-center text-sm">
-                  {row.instanceNumber}/{row.totalInstances}
-                </TableCell>
-
-                <TableCell className="text-center">
-                  {editState?.rowId === row.id && editState.type === 'universe' ? (
-                    <div className="flex items-center gap-1 justify-center">
-                      <Input
-                        type="number"
-                        min="1"
-                        value={editState.value}
-                        onChange={e =>
-                          setEditState({ ...editState, value: e.target.value })
-                        }
-                        className="w-16 h-8 text-center"
-                        disabled={loading}
-                        autoFocus
-                      />
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleSaveEdit} disabled={loading}>
-                        <Check className="h-4 w-4 text-green-600" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleCancel} disabled={loading}>
-                        <X className="h-4 w-4 text-red-600" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center gap-1">
-                      <span className="font-mono">{row.universe}</span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100"
-                        onClick={() => handleStartEdit(row, 'universe')}
-                        disabled={loading}
-                      >
-                        <Edit2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
-                </TableCell>
-
-                <TableCell className="text-center font-mono">
-                  {editState?.rowId === row.id && editState.type === 'address' ? (
-                    <div className="flex items-center gap-1 justify-center">
-                      <Input
-                        type="number"
-                        min="1"
-                        max="512"
-                        value={editState.value}
-                        onChange={e =>
-                          setEditState({ ...editState, value: e.target.value })
-                        }
-                        className="w-20 h-8 text-center"
-                        disabled={loading}
-                        autoFocus
-                      />
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleSaveEdit} disabled={loading}>
-                        <Check className="h-4 w-4 text-green-600" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleCancel} disabled={loading}>
-                        <X className="h-4 w-4 text-red-600" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center gap-1 group">
-                      <span>{row.startAddress}</span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100"
-                        onClick={() => handleStartEdit(row, 'address')}
-                        disabled={loading}
-                      >
-                        <Edit2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
-                </TableCell>
-
-                <TableCell className="text-center font-mono text-muted-foreground">
-                  {row.endAddress}
-                </TableCell>
-
-                <TableCell className="text-center">
-                  {t('dmx_table.channels_value', { count: row.channels })}
-                </TableCell>
-
-                <TableCell className="text-muted-foreground text-sm">{row.location}</TableCell>
-
-                <TableCell>
-                  <StatusBadge condition={row.condition as any} />
-                </TableCell>
-
-                <TableCell className="text-right">
-                  <div className="flex gap-1 justify-end">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 w-8 p-0"
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${row.startAddress}-${row.endAddress}`);
-                        toast({ description: t('dmx_table.copied') });
-                      }}
-                      title={t('dmx_table.copy_title')}
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onAutoAssign?.(row.itemId, row.universe)}
-                      disabled={loading || isEditing}
-                      title={t('dmx_table.auto_assign_title')}
-                    >
-                      {t('dmx_table.auto_assign_label')}
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            );
-          })}
+          {rows.map((row) => (
+            <PatchTableRow
+              key={row.id}
+              row={row}
+              conflictsWith={conflictIndex.get(row.id)}
+              disabled={loading}
+              onInstanceChange={onInstanceChange}
+              onAutoAssign={onAutoAssign}
+              onCopy={(r) => void copyRange(r)}
+              onError={showError}
+            />
+          ))}
         </TableBody>
       </Table>
-
-      {rows.length === 0 && (
-        <div className="p-8 text-center text-muted-foreground">
-          {t('dmx_table.empty')}
-        </div>
-      )}
     </div>
   );
 }
