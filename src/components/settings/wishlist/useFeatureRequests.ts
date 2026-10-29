@@ -97,20 +97,11 @@ export function useFeatureRequests(userId: string | undefined) {
           .delete()
           .match({ request_id: req.id, user_id: userId });
         if (error) throw error;
-        const { error: countError } = await supabase
-          .from("feature_requests")
-          .update({ votes: Math.max(0, req.votes - 1) })
-          .eq("id", req.id);
-        if (countError) throw countError;
       } else {
         const { error } = await supabase.from("feature_votes").insert({ request_id: req.id, user_id: userId });
         if (error) throw error;
-        const { error: countError } = await supabase
-          .from("feature_requests")
-          .update({ votes: req.votes + 1 })
-          .eq("id", req.id);
-        if (countError) throw countError;
       }
+      // feature_requests.votes is kept in sync by a database trigger
     } catch {
       resync("wishlist.vote_error");
     } finally {

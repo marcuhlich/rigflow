@@ -94,7 +94,9 @@ Never put a service role key into `.env`.
 ### Supabase
 
 1. Create a project and link the CLI: `npx supabase link --project-ref <ref>`.
-2. Apply the database migrations: `npx supabase db push`.
+2. Apply the database schema: `npx supabase db push`. This runs the baseline
+   (`supabase/migrations/20261029115900_baseline_schema.sql`, a full schema dump)
+   and every migration after it.
 3. Deploy the edge functions: `npx supabase functions deploy`.
 4. Set function secrets (`npx supabase secrets set NAME=value`):
 
@@ -106,10 +108,8 @@ Never put a service role key into `.env`.
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are
 provided to edge functions automatically.
 
-> **Note:** the migrations in `supabase/migrations` don't yet cover the whole
-> schema (several tables such as `projects`, `packages` and
-> `maintenance_records` were created in the dashboard). A complete baseline
-> migration is planned. Until then, self-hosting needs manual schema setup.
+New schema changes go into a new file in `supabase/migrations/`. The old,
+incomplete migrations are kept in `supabase/migrations_archive/` for reference only.
 
 After schema changes, regenerate the types:
 
