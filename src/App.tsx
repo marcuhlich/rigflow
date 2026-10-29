@@ -391,28 +391,29 @@ function NativeOnboardingGate() {
 
 const App = () => (
   <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <ConsentGuard>
-        <AuthProvider>
-          <UndoRedoProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
+    {/* Router ganz außen: auch Consent-Banner & Provider dürfen Links/Navigation nutzen */}
+    <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <ConsentGuard>
+          <AuthProvider>
+            <UndoRedoProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
                 <NativeOnboardingGate />
                 <BackButtonHandler />
                 <AppInitializer />
                 <OverdueReminderInit />
                 <CommandPalette />
                 <AppRoutes />
-              </BrowserRouter>
-              <SpeedInsights />
-              <Analytics />
-            </TooltipProvider>
-          </UndoRedoProvider>
-        </AuthProvider>
-      </ConsentGuard>
-    </QueryClientProvider>
+                <SpeedInsights />
+                <Analytics />
+              </TooltipProvider>
+            </UndoRedoProvider>
+          </AuthProvider>
+        </ConsentGuard>
+      </QueryClientProvider>
+    </BrowserRouter>
   </ErrorBoundary>
 );
 
