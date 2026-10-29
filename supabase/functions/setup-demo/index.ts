@@ -57,7 +57,6 @@ Deno.serve(async (req) => {
       );
       await supabaseAdmin.from("lending_history").delete().eq("user_id", userId);
       await supabaseAdmin.from("inventory_items").delete().eq("user_id", userId);
-      await supabaseAdmin.from("user_categories").delete().eq("user_id", userId);
       await supabaseAdmin.from("profiles").delete().eq("user_id", userId);
     } else {
       // Create demo user
@@ -78,42 +77,32 @@ Deno.serve(async (req) => {
       display_name: "Demo Benutzer",
     }, { onConflict: "user_id" });
 
-    // Seed categories
-    const categories = [
-      { user_id: userId, name: "Kabel", is_dmx_capable: false, sort_order: 0 },
-      { user_id: userId, name: "Lautsprecher", is_dmx_capable: false, sort_order: 1 },
-      { user_id: userId, name: "Lichttechnik", is_dmx_capable: true, sort_order: 2 },
-      { user_id: userId, name: "Mikrofone", is_dmx_capable: false, sort_order: 3 },
-      { user_id: userId, name: "Zubehör", is_dmx_capable: false, sort_order: 4 },
-      { user_id: userId, name: "Effektgeräte", is_dmx_capable: true, sort_order: 5 },
-      { user_id: userId, name: "Mischpulte", is_dmx_capable: false, sort_order: 6 },
-    ];
-    await supabaseAdmin.from("user_categories").insert(categories);
+    // Categories are global (public.categories); items reference them by id.
 
     // Seed inventory items
     const items = [
-      { user_id: userId, name: "XLR-Kabel 10m", category: "Kabel", quantity: 20, condition: "verfügbar" as const, location: "Lager A - Regal 1", notes: "Neutrik-Stecker, schwarz", accessories: null, unit_price: 12.50 },
-      { user_id: userId, name: "XLR-Kabel 5m", category: "Kabel", quantity: 15, condition: "verfügbar" as const, location: "Lager A - Regal 1", notes: "Neutrik-Stecker, schwarz", unit_price: 8.90 },
-      { user_id: userId, name: "Powercon-Kabel 3m", category: "Kabel", quantity: 10, condition: "verfügbar" as const, location: "Lager A - Regal 2", unit_price: 15.00 },
-      { user_id: userId, name: "CAT6 Ethercon 20m", category: "Kabel", quantity: 6, condition: "verfügbar" as const, location: "Lager A - Regal 2", unit_price: 25.00 },
-      { user_id: userId, name: "DMX-Kabel 10m", category: "Kabel", quantity: 12, condition: "verfügbar" as const, location: "Lager A - Regal 3", unit_price: 14.00 },
-      { user_id: userId, name: "QSC K12.2", category: "Lautsprecher", quantity: 4, condition: "verfügbar" as const, location: "Lager B - Boden", notes: "Aktive 12\" Topteile", unit_price: 899.00 },
-      { user_id: userId, name: "QSC KS118", category: "Lautsprecher", quantity: 2, condition: "verfügbar" as const, location: "Lager B - Boden", notes: "18\" Aktiv-Subwoofer", unit_price: 1499.00 },
-      { user_id: userId, name: "JBL EON715", category: "Lautsprecher", quantity: 2, condition: "verliehen" as const, location: "Extern", lent_to: "Musikverein Harmonie", lent_until: "2026-03-20", unit_price: 649.00 },
-      { user_id: userId, name: "Stairville MH-x200 Pro Spot", category: "Lichttechnik", quantity: 4, condition: "verfügbar" as const, location: "Lager C - Regal 1", notes: "Moving Head Spot, 200W LED", dmx_channels: 16, dmx_universe: 1, unit_price: 549.00 },
-      { user_id: userId, name: "Cameo FLAT PAR CAN RGB 10", category: "Lichttechnik", quantity: 8, condition: "verfügbar" as const, location: "Lager C - Regal 2", notes: "LED PAR, 144x10mm RGB", dmx_channels: 6, dmx_universe: 1, unit_price: 89.00 },
-      { user_id: userId, name: "Eurolite LED BAR-12 QCL", category: "Lichttechnik", quantity: 4, condition: "in-einsatz" as const, location: "Stadtfest Bühne", notes: "RGBW LED Bar", dmx_channels: 5, dmx_universe: 1, unit_price: 159.00 },
-      { user_id: userId, name: "ADJ Fog Fury Jett Pro", category: "Effektgeräte", quantity: 1, condition: "verfügbar" as const, location: "Lager C - Regal 3", notes: "Vertikal-Nebelmaschine mit LED", dmx_channels: 4, dmx_universe: 2, unit_price: 699.00 },
-      { user_id: userId, name: "Antari Z-1520 RGB", category: "Effektgeräte", quantity: 1, condition: "verfügbar" as const, location: "Lager C - Regal 3", notes: "Hazer mit RGB LEDs", dmx_channels: 3, dmx_universe: 2, unit_price: 890.00 },
-      { user_id: userId, name: "Shure SM58", category: "Mikrofone", quantity: 6, condition: "verfügbar" as const, location: "Lager A - Schrank 1", notes: "Dynamisches Gesangsmikrofon", accessories: "Klammer, Tasche", unit_price: 99.00 },
-      { user_id: userId, name: "Sennheiser e835", category: "Mikrofone", quantity: 4, condition: "verfügbar" as const, location: "Lager A - Schrank 1", accessories: "Klammer", unit_price: 89.00 },
-      { user_id: userId, name: "Sennheiser EW 100 G4", category: "Mikrofone", quantity: 2, condition: "verliehen" as const, location: "Extern", notes: "Drahtlos-Set UHF", lent_to: "Theater am Park", lent_until: "2026-03-25", accessories: "Handsender, Empfänger, Antenne", unit_price: 599.00 },
-      { user_id: userId, name: "Behringer X32 Compact", category: "Mischpulte", quantity: 1, condition: "verfügbar" as const, location: "Lager B - Rack 1", notes: "Digitalmischpult 32 Kanäle", accessories: "Flightcase, Netzkabel", unit_price: 1799.00 },
-      { user_id: userId, name: "Allen & Heath SQ-5", category: "Mischpulte", quantity: 1, condition: "in-einsatz" as const, location: "Stadtfest Bühne", notes: "48-Kanal Digitalmixer", accessories: "Flightcase", unit_price: 3299.00 },
-      { user_id: userId, name: "Boxenständer", category: "Zubehör", quantity: 8, condition: "verfügbar" as const, location: "Lager B - Ecke", unit_price: 35.00 },
-      { user_id: userId, name: "Mikrofonständer", category: "Zubehör", quantity: 10, condition: "verfügbar" as const, location: "Lager A - Ecke", unit_price: 19.90 },
-      { user_id: userId, name: "Strom-Verteiler 32A", category: "Zubehör", quantity: 2, condition: "verfügbar" as const, location: "Lager A - Regal 4", notes: "CEE 32A auf 6x Schuko", unit_price: 189.00 },
-      { user_id: userId, name: "GrandMA2 onPC Node", category: "Lichttechnik", quantity: 1, condition: "defekt" as const, location: "Werkstatt", notes: "USB-Port defekt, Reparatur angefragt", dmx_channels: 2048, dmx_universe: 1, unit_price: 1200.00 },
+      { user_id: userId, name: "XLR-Kabel 10m", category: "audio", quantity: 20, condition: "verfügbar" as const, location: "Lager A - Regal 1", notes: "Neutrik-Stecker, schwarz", accessories: null, unit_price: 12.50 },
+      { user_id: userId, name: "XLR-Kabel 5m", category: "audio", quantity: 15, condition: "verfügbar" as const, location: "Lager A - Regal 1", notes: "Neutrik-Stecker, schwarz", unit_price: 8.90 },
+      { user_id: userId, name: "Powercon-Kabel 3m", category: "strom", quantity: 10, condition: "verfügbar" as const, location: "Lager A - Regal 2", unit_price: 15.00 },
+      { user_id: userId, name: "CAT6 Ethercon 20m", category: "it-netzwerk", quantity: 6, condition: "verfügbar" as const, location: "Lager A - Regal 2", unit_price: 25.00 },
+      { user_id: userId, name: "DMX-Kabel 10m", category: "licht", quantity: 12, condition: "verfügbar" as const, location: "Lager A - Regal 3", unit_price: 14.00 },
+      { user_id: userId, name: "QSC K12.2", category: "audio", quantity: 4, condition: "verfügbar" as const, location: "Lager B - Boden", notes: "Aktive 12\" Topteile", unit_price: 899.00 },
+      { user_id: userId, name: "QSC KS118", category: "audio", quantity: 2, condition: "verfügbar" as const, location: "Lager B - Boden", notes: "18\" Aktiv-Subwoofer", unit_price: 1499.00 },
+      { user_id: userId, name: "JBL EON715", category: "audio", quantity: 2, condition: "verliehen" as const, location: "Extern", lent_to: "Musikverein Harmonie", lent_until: "2026-03-20", unit_price: 649.00 },
+      { user_id: userId, name: "Stairville MH-x200 Pro Spot", category: "licht", quantity: 4, condition: "verfügbar" as const, location: "Lager C - Regal 1", notes: "Moving Head Spot, 200W LED", dmx_channels: 16, dmx_universe: 1, unit_price: 549.00 },
+      { user_id: userId, name: "Cameo FLAT PAR CAN RGB 10", category: "licht", quantity: 8, condition: "verfügbar" as const, location: "Lager C - Regal 2", notes: "LED PAR, 144x10mm RGB", dmx_channels: 6, dmx_universe: 1, unit_price: 89.00 },
+      { user_id: userId, name: "Eurolite LED BAR-12 QCL", category: "licht", quantity: 4, condition: "in-einsatz" as const, location: "Stadtfest Bühne", notes: "RGBW LED Bar", dmx_channels: 5, dmx_universe: 1, unit_price: 159.00 },
+      { user_id: userId, name: "ADJ Fog Fury Jett Pro", category: "licht", quantity: 1, condition: "verfügbar" as const, location: "Lager C - Regal 3", notes: "Vertikal-Nebelmaschine mit LED", dmx_channels: 4, dmx_universe: 2, unit_price: 699.00 },
+      { user_id: userId, name: "Antari Z-1520 RGB", category: "licht", quantity: 1, condition: "verfügbar" as const, location: "Lager C - Regal 3", notes: "Hazer mit RGB LEDs", dmx_channels: 3, dmx_universe: 2, unit_price: 890.00 },
+      { user_id: userId, name: "Shure SM58", category: "audio", quantity: 6, condition: "verfügbar" as const, location: "Lager A - Schrank 1", notes: "Dynamisches Gesangsmikrofon", accessories: "Klammer, Tasche", unit_price: 99.00 },
+      { user_id: userId, name: "Sennheiser e835", category: "audio", quantity: 4, condition: "verfügbar" as const, location: "Lager A - Schrank 1", accessories: "Klammer", unit_price: 89.00 },
+      { user_id: userId, name: "Sennheiser EW 100 G4", category: "audio", quantity: 2, condition: "verliehen" as const, location: "Extern", notes: "Drahtlos-Set UHF", lent_to: "Theater am Park", lent_until: "2026-03-25", accessories: "Handsender, Empfänger, Antenne", unit_price: 599.00 },
+      { user_id: userId, name: "Behringer X32 Compact", category: "audio", quantity: 1, condition: "verfügbar" as const, location: "Lager B - Rack 1", notes: "Digitalmischpult 32 Kanäle", accessories: "Flightcase, Netzkabel", unit_price: 1799.00 },
+      { user_id: userId, name: "Allen & Heath SQ-5", category: "audio", quantity: 1, condition: "in-einsatz" as const, location: "Stadtfest Bühne", notes: "48-Kanal Digitalmixer", accessories: "Flightcase", unit_price: 3299.00 },
+      { user_id: userId, name: "Boxenständer", category: "rigging", quantity: 8, condition: "verfügbar" as const, location: "Lager B - Ecke", unit_price: 35.00 },
+      { user_id: userId, name: "Mikrofonständer", category: "werkzeug", quantity: 10, condition: "verfügbar" as const, location: "Lager A - Ecke", unit_price: 19.90 },
+      { user_id: userId, name: "Strom-Verteiler 32A", category: "strom", quantity: 2, condition: "verfügbar" as const, location: "Lager A - Regal 4", notes: "CEE 32A auf 6x Schuko", unit_price: 189.00 },
+      { user_id: userId, name: "GrandMA2 onPC Node", category: "licht", quantity: 1, condition: "defekt" as const, location: "Werkstatt", notes: "USB-Port defekt, Reparatur angefragt", dmx_channels: 2048, dmx_universe: 1, unit_price: 1200.00 },
     ];
 
     const { data: insertedItems, error: itemsError } = await supabaseAdmin
