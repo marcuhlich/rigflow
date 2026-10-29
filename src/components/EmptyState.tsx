@@ -1,9 +1,9 @@
-import { useTranslation } from 'react-i18next';
-import { Package, Filter, Search, Plus, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { useTranslation } from "react-i18next";
+import { Package, Filter, Search, Plus, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { EmptyPanel } from "@/components/QueryState";
 
-type EmptyStateVariant = 'empty' | 'filtered' | 'search';
+type EmptyStateVariant = "empty" | "filtered" | "search";
 
 interface EmptyStateProps {
   variant: EmptyStateVariant;
@@ -14,6 +14,7 @@ interface EmptyStateProps {
   className?: string;
 }
 
+/** Inventory-specific empty states: no items at all, nothing matches filters, nothing matches search. */
 export function EmptyState({
   variant,
   searchQuery,
@@ -24,65 +25,62 @@ export function EmptyState({
 }: EmptyStateProps) {
   const { t } = useTranslation();
 
-  const configs = {
-    empty: {
-      Icon: Package,
-      title: t('empty_state.empty.title'),
-      description: t('empty_state.empty.description'),
-    },
-    filtered: {
-      Icon: Filter,
-      title: t('empty_state.filtered.title'),
-      description: t('empty_state.filtered.description'),
-    },
-    search: {
-      Icon: Search,
-      title: t('empty_state.search.title'),
-      description: t('empty_state.search.description'),
-    },
-  };
+  if (variant === "search") {
+    return (
+      <EmptyPanel
+        className={className}
+        icon={Search}
+        title={
+          searchQuery
+            ? t("empty_state.search.title_with_query", { query: searchQuery })
+            : t("empty_state.search.title")
+        }
+        description={t("empty_state.search.description")}
+        action={
+          onClearSearch && (
+            <Button variant="outline" size="sm" onClick={onClearSearch}>
+              <X />
+              {t("empty_state.search.clear_button")}
+            </Button>
+          )
+        }
+      />
+    );
+  }
 
-  const { Icon, title, description } = configs[variant];
-
-  const displayTitle =
-    variant === 'search' && searchQuery
-      ? t('empty_state.search.title_with_query', { query: searchQuery })
-      : title;
+  if (variant === "filtered") {
+    return (
+      <EmptyPanel
+        className={className}
+        icon={Filter}
+        title={t("empty_state.filtered.title")}
+        description={t("empty_state.filtered.description")}
+        action={
+          onClearFilters && (
+            <Button variant="outline" size="sm" onClick={onClearFilters}>
+              <X />
+              {t("empty_state.filtered.clear_button")}
+            </Button>
+          )
+        }
+      />
+    );
+  }
 
   return (
-    <div
-      className={cn(
-        'glass-card flex flex-col items-center gap-5 py-16 px-8 text-center',
-        className
-      )}
-    >
-      <div className="rounded-full border border-border/40 bg-muted/30 p-5">
-        <Icon className="h-8 w-8 text-muted-foreground" strokeWidth={1.5} />
-      </div>
-      <div className="max-w-xs">
-        <h3 className="text-base font-medium">{displayTitle}</h3>
-        <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-          {description}
-        </p>
-      </div>
-      {variant === 'empty' && onAddItem && (
-        <Button onClick={onAddItem} className="gap-1.5">
-          <Plus className="h-4 w-4" />
-          {t('empty_state.empty.add_button')}
-        </Button>
-      )}
-      {variant === 'filtered' && onClearFilters && (
-        <Button variant="outline" onClick={onClearFilters} className="gap-1.5">
-          <X className="h-4 w-4" />
-          {t('empty_state.filtered.clear_button')}
-        </Button>
-      )}
-      {variant === 'search' && onClearSearch && (
-        <Button variant="outline" onClick={onClearSearch} className="gap-1.5">
-          <X className="h-4 w-4" />
-          {t('empty_state.search.clear_button')}
-        </Button>
-      )}
-    </div>
+    <EmptyPanel
+      className={className}
+      icon={Package}
+      title={t("empty_state.empty.title")}
+      description={t("empty_state.empty.description")}
+      action={
+        onAddItem && (
+          <Button size="sm" onClick={onAddItem}>
+            <Plus />
+            {t("empty_state.empty.add_button")}
+          </Button>
+        )
+      }
+    />
   );
 }

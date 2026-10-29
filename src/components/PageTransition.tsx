@@ -1,27 +1,15 @@
-import { ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import { ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 
-const TRANSITION_CSS = `
-  @keyframes pageSlideIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .page-enter {
-    animation: pageSlideIn 0.4s ease forwards;
-  }
-`;
-
+/**
+ * Short fade/translate on route change (uses the global `animate-page` utility, ≤ 200ms).
+ * Note: AppLayout already animates its outlet; only use this for content outside the shell.
+ */
 export function PageTransition({ children }: { children: ReactNode }) {
   const location = useLocation();
-
   return (
-    <>
-      <style>{TRANSITION_CSS}</style>
-      <div key={location.pathname} className="page-enter">
-        {children}
-      </div>
-    </>
+    <div key={location.pathname} className="animate-page">
+      {children}
+    </div>
   );
 }
-

@@ -1,22 +1,23 @@
-import React, { useState } from "react";
-import { Pencil, Trash2, MoreVertical, QrCode } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Table, TableBody, TableCell,
-  TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu, DropdownMenuContent,
-  DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "@/components/StatusBadge";
 import { QRCodeDisplay } from "@/components/QRCodeDisplay";
-import { InventoryItem } from "@/types/inventory";
-import { cn } from "@/lib/utils";
 import { InventoryContextMenu } from "@/components/InventoryContextMenu";
-import { EmptyState } from "@/components/EmptyState";
-import { useTranslation } from 'react-i18next';
+import { ItemActionsMenu } from "@/components/inventory/ItemActionsMenu";
+import { ItemThumb } from "@/components/inventory/ItemThumb";
+import { ItemTags } from "@/components/inventory/ItemTags";
+import {
+  CONDITION_ORDER, formatDmx, formatPrice, useCategoryLabel,
+  type CategoryRef, type ItemDraft, type ItemUpdate,
+} from "@/components/inventory/format";
+import { InventoryItem } from "@/types/inventory";
+import type { Project } from "@/types/project";
+import { cn } from "@/lib/utils";
+
+type SortKey = "name" | "category" | "condition" | "location" | "quantity";
+type SortState = { key: SortKey; dir: "asc" | "desc" } | null;
 
 interface InventoryTableProps {
   items: InventoryItem[];
@@ -25,21 +26,56 @@ interface InventoryTableProps {
   onViewDetails?: (id: string) => void;
   selectedIds?: Set<string>;
   onToggleSelection?: (id: string) => void;
+  onSelectAll?: () => void;
+  onClearSelection?: () => void;
+  /** When true a row click toggles selection instead of opening the item. */
   selectionMode?: boolean;
-  onUpdateItem?: (
-    id: string,
-    updates: Partial<Omit<InventoryItem, "id" | "user_id" | "created_at" | "updated_at">>
-  ) => Promise<void>;
-  onAddItem?: (
-    item: Omit<InventoryItem, "id" | "user_id" | "created_at" | "updated_at">
-  ) => Promise<void>;
+  onUpdateItem?: (id: string, updates: ItemUpdate) => Promise<void>;
+  onAddItem?: (item: ItemDraft) => Promise<void>;
   onFilterCategory?: (category: string) => void;
-  // Empty state
-  searchQuery?: string;
-  hasActiveFilters?: boolean;
-  onAddItemClick?: () => void;
-  onClearFilters?: () => void;
-  onClearSearch?: () => void;
+  categories?: CategoryRef[];
+  projects?: Project[];
+}
+
+const EMPTY_SET = new Set<string>();
+const noopAsync = async () => {};
+const noop = () => {};
+
+const TH = "sticky top-0 z-10 h-9 border-b border-border bg-surface-sunken px-3 text-left align-middle text-2xs font-medium uppercase tracking-[0.06em] text-muted-foreground";
+const TD = "px-3 py-2 align-middle";
+
+interface SortHeaderProps {
+  col: SortKey;
+  label: string;
+  sort: SortState;
+  onSort: (key: SortKey) => void;
+  className?: string;
+  alignRight?: boolean;
+}
+
+function SortHeader({ col, label, sort, onSort, className, alignRight }: SortHeaderProps) {
+  const active = sort?.key === col;
+  const dir = active ? sort.dir : null;
+  const Icon = dir === "asc" ? ArrowUp : dir === "desc" ? ArrowDown : ChevronsUpDown;
+  return (
+    <th
+      className={cn(TH, alignRight && "text-right", className)}
+      aria-sort={dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none"}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(col)}
+        className={cn(
+          "-mx-1 inline-flex items-center gap-1 rounded px-1 py-0.5 uppercase tracking-[inherit] transition-colors hover:text-foreground",
+          active && "text-foreground",
+          alignRight && "flex-row-reverse"
+        )}
+      >
+        {label}
+        <Icon className={cn("h-3 w-3", !active && "opacity-40")} />
+      </button>
+    </th>
+  );
 }
 
 export const InventoryTable = React.memo(function InventoryTable({
@@ -47,162 +83,195 @@ export const InventoryTable = React.memo(function InventoryTable({
   onEdit,
   onDelete,
   onViewDetails,
-  selectedIds = new Set(),
+  selectedIds = EMPTY_SET,
   onToggleSelection,
+  onSelectAll,
+  onClearSelection,
   selectionMode = false,
   onUpdateItem,
   onAddItem,
   onFilterCategory,
-  searchQuery = "",
-  hasActiveFilters = false,
-  onAddItemClick,
-  onClearFilters,
-  onClearSearch,
+  categories,
+  projects,
 }: InventoryTableProps) {
+  const { t, i18n } = useTranslation();
+  const categoryLabel = useCategoryLabel(categories);
   const [qrItemId, setQrItemId] = useState<string | null>(null);
-  const qrItem = items.find((i) => i.id === qrItemId);
-  const { t } = useTranslation();
+  const [sort, setSort] = useState<SortState>(null);
+  const lastCheckedIndex = useRef<number | null>(null);
 
-  if (items.length === 0) {
-    if (searchQuery.trim()) {
-      return (
-        <EmptyState
-          variant="search"
-          searchQuery={searchQuery}
-          onClearSearch={onClearSearch}
-        />
-      );
-    }
-    if (hasActiveFilters) {
-      return (
-        <EmptyState
-          variant="filtered"
-          onClearFilters={onClearFilters}
-        />
-      );
-    }
-    return (
-      <EmptyState
-        variant="empty"
-        onAddItem={onAddItemClick}
-      />
-    );
-  }
+  const sorted = useMemo(() => {
+    if (!sort) return items;
+    const factor = sort.dir === "asc" ? 1 : -1;
+    const collator = new Intl.Collator(i18n.language, { numeric: true, sensitivity: "base" });
+    return [...items].sort((a, b) => {
+      switch (sort.key) {
+        case "quantity":
+          return (a.quantity - b.quantity) * factor;
+        case "condition":
+          return ((CONDITION_ORDER[a.condition] ?? 9) - (CONDITION_ORDER[b.condition] ?? 9)) * factor;
+        case "category":
+          return collator.compare(categoryLabel(a.category), categoryLabel(b.category)) * factor;
+        default:
+          return collator.compare(a[sort.key] ?? "", b[sort.key] ?? "") * factor;
+      }
+    });
+  }, [items, sort, i18n.language, categoryLabel]);
+
+  const toggleSort = (key: SortKey) =>
+    setSort((prev) => {
+      if (!prev || prev.key !== key) return { key, dir: "asc" };
+      if (prev.dir === "asc") return { key, dir: "desc" };
+      return null;
+    });
+
+  const allSelected = sorted.length > 0 && sorted.every((i) => selectedIds.has(i.id));
+
+  const handleCheck = useCallback(
+    (index: number, shift: boolean) => {
+      if (!onToggleSelection) return;
+      const last = lastCheckedIndex.current;
+      if (shift && last !== null && last !== index) {
+        // Range select: bring every row between the anchor and this one to the anchor's state.
+        const anchor = sorted[last];
+        const target = anchor ? selectedIds.has(anchor.id) : true;
+        const [from, to] = last < index ? [last, index] : [index, last];
+        for (let i = from; i <= to; i++) {
+          const row = sorted[i];
+          if (row && selectedIds.has(row.id) !== target) onToggleSelection(row.id);
+        }
+      } else {
+        const row = sorted[index];
+        if (row) onToggleSelection(row.id);
+      }
+      lastCheckedIndex.current = index;
+    },
+    [onToggleSelection, selectedIds, sorted]
+  );
+
+  const qrItem = qrItemId ? items.find((i) => i.id === qrItemId) : undefined;
+  const sortProps = { sort, onSort: toggleSort };
 
   return (
     <>
-      <div className="glass-card overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-border/50 hover:bg-transparent">
-              {selectionMode && (
-                <TableHead className="w-[40px]" />
-              )}
-              <TableHead className="text-muted-foreground font-semibold">{t('fields.name')}</TableHead>
-              <TableHead className="text-muted-foreground font-semibold">{t('fields.category')}</TableHead>
-              <TableHead className="text-muted-foreground font-semibold text-center">{t('fields.quantity')}</TableHead>
-              <TableHead className="text-muted-foreground font-semibold">{t('fields.condition')}</TableHead>
-              <TableHead className="text-muted-foreground font-semibold">{t('fields.location')}</TableHead>
-              {!selectionMode && (
-                <TableHead className="w-[60px]" />
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => {
+      <div className="surface overflow-clip">
+        <table className="w-full border-separate border-spacing-0 text-[13px]">
+          <thead>
+            <tr>
+              <th className={cn(TH, "w-10 pr-0")}>
+                <Checkbox
+                  checked={allSelected}
+                  onCheckedChange={() => (allSelected ? onClearSelection?.() : onSelectAll?.())}
+                  aria-label={t("trash.select_all")}
+                  className="translate-y-px"
+                />
+              </th>
+              <SortHeader {...sortProps} col="name" label={t("fields.name")} />
+              <SortHeader {...sortProps} col="category" label={t("fields.category")} className="w-[14%]" />
+              <SortHeader {...sortProps} col="condition" label={t("fields.status")} className="w-[16%]" />
+              <SortHeader {...sortProps} col="location" label={t("fields.location")} className="hidden w-[14%] lg:table-cell" />
+              <SortHeader {...sortProps} col="quantity" label={t("fields.quantity")} className="w-20" alignRight />
+              <th className={cn(TH, "hidden w-32 xl:table-cell")}>{t("fields.dmx_address")}</th>
+              <th className={cn(TH, "hidden w-28 text-right 2xl:table-cell")}>{t("fields.unit_price")}</th>
+              <th className={cn(TH, "w-10")}>
+                <span className="sr-only">{t("common.actions")}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((item, index) => {
               const isSelected = selectedIds.has(item.id);
+              const dmx = formatDmx(item);
+              const price = formatPrice(item.unit_price, i18n.language);
+              const cell = cn(TD, "border-b border-border", index === sorted.length - 1 && "border-b-0");
 
               return (
                 <InventoryContextMenu
                   key={item.id}
                   item={item}
-                  onUpdateItem={onUpdateItem ?? (async () => {})}
-                  onAddItem={onAddItem ?? (async () => {})}
-                  onFilterCategory={onFilterCategory ?? (() => {})}
+                  onUpdateItem={onUpdateItem ?? noopAsync}
+                  onAddItem={onAddItem ?? noopAsync}
+                  onFilterCategory={onFilterCategory ?? noop}
+                  projects={projects}
                 >
-                  <TableRow
+                  <tr
                     className={cn(
-                      "border-border/30 transition-colors hover:bg-muted/20",
-                      isSelected && "bg-primary/5 hover:bg-primary/10",
-                      selectionMode && "cursor-pointer"
+                      "group cursor-pointer transition-colors",
+                      isSelected ? "bg-primary/[0.06] hover:bg-primary/10" : "hover:bg-muted/50"
                     )}
-                    onClick={() => selectionMode && onToggleSelection?.(item.id)}
+                    onClick={(e) => {
+                      if (selectionMode) handleCheck(index, e.shiftKey);
+                      else onViewDetails?.(item.id);
+                    }}
                   >
-                    {selectionMode && (
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => onToggleSelection?.(item.id)}
-                          className="h-4 w-4"
-                        />
-                      </TableCell>
-                    )}
+                    <td className={cn(cell, "pr-0")} onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={isSelected}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleCheck(index, e.shiftKey);
+                        }}
+                        aria-label={t("inventory.select_item_aria", { name: item.name })}
+                        className="translate-y-px"
+                      />
+                    </td>
 
-                    <TableCell
-                      className={cn(
-                        "font-medium",
-                        !selectionMode && "cursor-pointer hover:opacity-70 transition-opacity"
-                      )}
-                      onClick={(e) => {
-                        if (selectionMode) return;
-                        e.stopPropagation();
-                        onViewDetails?.(item.id);
-                      }}
-                    >
-                      {item.name}
-                    </TableCell>
+                    <td className={cn(cell, "max-w-0")}>
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <ItemThumb src={item.image_url} alt="" className="h-7 w-7" />
+                        <span className="truncate font-medium text-foreground">{item.name}</span>
+                        <ItemTags tags={item.tags} max={2} className="hidden lg:flex" />
+                      </div>
+                    </td>
 
-                    <TableCell className="text-muted-foreground">{item.category}</TableCell>
+                    <td className={cn(cell, "max-w-0 truncate text-muted-foreground")}>
+                      {categoryLabel(item.category)}
+                    </td>
 
-                    <TableCell className="text-center">
-                      <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-md bg-muted/50 font-medium">
-                        {item.quantity}
-                      </span>
-                    </TableCell>
+                    <td className={cn(cell, "max-w-0")}>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <StatusBadge condition={item.condition} />
+                        {item.condition === "verliehen" && item.lent_to && (
+                          <span className="truncate text-xs text-muted-foreground" title={item.lent_to}>
+                            {item.lent_to}
+                          </span>
+                        )}
+                      </div>
+                    </td>
 
-                    <TableCell>
-                      <StatusBadge condition={item.condition} />
-                    </TableCell>
+                    <td className={cn(cell, "hidden max-w-0 truncate text-muted-foreground lg:table-cell")}>
+                      {item.location || <span className="text-muted-foreground/50">—</span>}
+                    </td>
 
-                    <TableCell className="text-muted-foreground">{item.location}</TableCell>
+                    <td className={cn(cell, "text-right font-mono tabular-nums")}>{item.quantity}</td>
 
-                    {!selectionMode && (
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="glass-card border-border/50">
-                            <DropdownMenuItem onClick={() => setQrItemId(item.id)}>
-                              <QrCode className="h-4 w-4 mr-2" /> {t('inventory_context.show_qr')}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onEdit(item)}>
-                              <Pencil className="h-4 w-4 mr-2" /> {t('common.edit')}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onDelete(item.id)}>
-                              <Trash2 className="h-4 w-4 mr-2" /> {t('common.delete')}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    )}
-                  </TableRow>
+                    <td className={cn(cell, "hidden font-mono text-xs tabular-nums text-muted-foreground xl:table-cell")}>
+                      {dmx ?? <span className="text-muted-foreground/50">—</span>}
+                    </td>
+
+                    <td className={cn(cell, "hidden text-right font-mono text-xs tabular-nums text-muted-foreground 2xl:table-cell")}>
+                      {price ?? <span className="text-muted-foreground/50">—</span>}
+                    </td>
+
+                    <td className={cn(cell, "px-1.5 text-right")} onClick={(e) => e.stopPropagation()}>
+                      <ItemActionsMenu
+                        className="opacity-60 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+                        onShowQr={() => setQrItemId(item.id)}
+                        onEdit={() => onEdit(item)}
+                        onDelete={() => onDelete(item.id)}
+                      />
+                    </td>
+                  </tr>
                 </InventoryContextMenu>
               );
             })}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
 
       {qrItem && (
         <QRCodeDisplay
-          isOpen={!!qrItemId}
+          isOpen
           onClose={() => setQrItemId(null)}
           itemId={qrItem.id}
           itemName={qrItem.name}
