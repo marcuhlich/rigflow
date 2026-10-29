@@ -1,26 +1,32 @@
 import { LucideIcon } from "lucide-react";
 import { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 interface Props {
-  title: string;
-  description?: string;
+  title: ReactNode;
+  description?: ReactNode;
+  /** Kept for backwards compatibility; icons are no longer rendered in page titles. */
   icon?: LucideIcon;
+  /** Small line above the title, e.g. a breadcrumb or back link */
+  eyebrow?: ReactNode;
   actions?: ReactNode;
+  className?: string;
 }
 
-export function PageHeader({ title, description, icon: Icon, actions }: Props) {
+export function PageHeader({ title, description, eyebrow, actions, className }: Props) {
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-6">
-      <div>
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2">
-          {Icon && <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />}
-          {title}
-        </h2>
-        {description && (
-          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">{description}</p>
-        )}
+    <header
+      className={cn(
+        "mb-5 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between",
+        className
+      )}
+    >
+      <div className="min-w-0">
+        {eyebrow && <div className="mb-1.5 text-[13px] text-muted-foreground">{eyebrow}</div>}
+        <h1 className="truncate text-xl font-semibold tracking-tight sm:text-[22px]">{title}</h1>
+        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       </div>
-      {actions && <div className="flex gap-1.5 sm:gap-2 w-full sm:w-auto flex-wrap">{actions}</div>}
-    </div>
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+    </header>
   );
 }

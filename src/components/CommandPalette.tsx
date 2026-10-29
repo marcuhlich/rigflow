@@ -13,6 +13,7 @@ import { useRecentItems } from '@/hooks/useRecentItems';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 import styles from '@/styles/CommandPalette.module.css';
+import { OPEN_COMMAND_PALETTE_EVENT } from '@/lib/constants';
 
 interface CommandItem {
   id: string;
@@ -50,6 +51,12 @@ export function CommandPalette() {
       attributeFilter: ['class'],
     });
     return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const openPalette = () => setOpen(true);
+    window.addEventListener(OPEN_COMMAND_PALETTE_EVENT, openPalette);
+    return () => window.removeEventListener(OPEN_COMMAND_PALETTE_EVENT, openPalette);
   }, []);
 
   useEffect(() => {

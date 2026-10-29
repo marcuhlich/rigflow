@@ -1484,7 +1484,7 @@ export default function ProjectDetail() {
           inventory_item_id: item.inventory_item_id, type: 'damage',
           description: `Schaden nach Projekt „${project.name}" festgestellt`,
           recorded_at: new Date().toISOString(),
-        } as any).catch(() => {});
+        } as any); // Fehler hier ist nicht kritisch, Archivierung läuft weiter
       }
     }
 

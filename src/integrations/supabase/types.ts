@@ -1005,7 +1005,7 @@ export type Database = {
       is_demo_user: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      item_condition: "verf??gbar" | "verliehen" | "in-einsatz" | "defekt"
+      item_condition: "verfügbar" | "verliehen" | "in-einsatz" | "defekt"
       project_status:
         | "draft"
         | "planned"
@@ -1144,7 +1144,7 @@ export const Constants = {
   },
   public: {
     Enums: {
-      item_condition: ["verf??gbar", "verliehen", "in-einsatz", "defekt"],
+      item_condition: ["verfügbar", "verliehen", "in-einsatz", "defekt"],
       project_status: [
         "draft",
         "planned",

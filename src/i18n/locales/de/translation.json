@@ -1,5 +1,7 @@
 {
   "common": {
+    "load_error": "Daten konnten nicht geladen werden",
+    "retry": "Erneut versuchen",
     "save": "Speichern",
     "cancel": "Abbrechen",
     "delete": "Löschen",
@@ -50,7 +52,11 @@
     "settings": "Einstellungen",
     "home": "Home",
     "dmx": "DMX",
-    "more": "More"
+    "more": "Mehr",
+    "search": "Suchen",
+    "search_hint": "Suchen oder Befehl …",
+    "workspace": "Arbeitsbereich",
+    "tools": "Werkzeuge"
   },
   "auth": {
     "logout": "Abmelden",
@@ -630,6 +636,7 @@
     }
   },
   "undo_redo": {
+    "history": "Verlauf",
     "undo": "Rückgängig",
     "redo": "Wiederherstellen",
     "undo_tooltip": "Rückgängig (Strg + Z)",
@@ -2293,11 +2300,11 @@
   },
   "attr": {
     "common": {
-      "unit_price": "St�ckpreis",
+      "unit_price": "Stückpreis",
       "weight_kg": "Gewicht",
       "dimensions_cm": "Abmessungen",
-      "units_per_case": "St�ck pro Karton",
-      "connectivity": "Anschl�sse"
+      "units_per_case": "Stück pro Karton",
+      "connectivity": "Anschlüsse"
     },
     "audio": {
       "frequency_range": "Frequenzbereich",
@@ -2305,11 +2312,11 @@
       "connector_type": "Anschlusstyp"
     },
     "video": {
-      "resolution": "Aufl�sung"
+      "resolution": "Auflösung"
     },
     "licht": {
       "lamp_type": "Lampentyp",
-      "cooling": "K�hlung",
+      "cooling": "Kühlung",
       "beam_angle_min": "Abstrahlwinkel (min)",
       "beam_angle_max": "Abstrahlwinkel (max)",
       "dmx_mode": "DMX-Modus"
@@ -2319,7 +2326,7 @@
       "material": "Material"
     },
     "strom": {
-      "amperage": "Stromst�rke",
+      "amperage": "Stromstärke",
       "voltage": "Spannung"
     },
     "network": {

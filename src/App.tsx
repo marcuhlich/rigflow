@@ -1,19 +1,19 @@
-import { useEffect, lazy, Suspense, useState, useMemo } from "react";
+import { useEffect, lazy, Suspense, useState } from "react";
 import { UndoRedoProvider } from "@/contexts/UndoRedoContext";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ErrorBoundary, RouteErrorBoundary } from "@/components/ErrorBoundary";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CommandPalette } from "@/components/CommandPalette";
 import { PushService } from "@/lib/pushService";
 import { logger } from "@/lib/logger";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
-import { Loader2 } from "lucide-react";
+import { PageLoader } from "@/components/QueryState";
 import { useOverdueReminder } from "@/hooks/useOverdueReminder";
 import { applyStoredAppearance } from "@/lib/appearanceUtils";
 import SettingsGuard from "@/components/SettingsGuard";
@@ -71,6 +71,16 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 60 * 5,
       gcTime: 1000 * 60 * 10,
+      retry: (failureCount, error) => {
+        // Auth/permission errors won't fix themselves by retrying
+        const status = (error as { status?: number } | null)?.status;
+        if (status === 401 || status === 403 || status === 404) return false;
+        return failureCount < 2;
+      },
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      retry: 0,
     },
   },
 });
@@ -82,7 +92,8 @@ function OverdueReminderInit() {
   return null;
 }
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+/** Layout route for everything behind login: auth check + app shell. */
+function ProtectedLayout() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -100,20 +111,21 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, navigate]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
+  if (loading) return <PageLoader className="min-h-screen" />;
   if (!user) return null;
 
-  return <AppLayout>{children}</AppLayout>;
+  return (
+    <AppLayout>
+      <RouteErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
+      </RouteErrorBoundary>
+    </AppLayout>
+  );
 }
 
-function AdminRoute({ children }: { children: React.ReactNode }) {
+function AdminOnly({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -126,7 +138,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   if (loading) return null;
   if (!user || !user.app_metadata?.is_admin) return null;
 
-  return <AppLayout>{children}</AppLayout>;
+  return <>{children}</>;
 }
 
 function ConsentGuard({ children }: { children: React.ReactNode }) {
@@ -151,11 +163,7 @@ function ConsentGuard({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    }>
+    <Suspense fallback={<PageLoader className="min-h-screen" />}>
     <Routes>
 
       {/* ── Public ─────────────────────────────────────────────────────── */}
@@ -172,36 +180,37 @@ function AppRoutes() {
       <Route path="/datenschutz"        element={<PublicPageLayout><Datenschutz /></PublicPageLayout>}/>
       <Route path="/nutzungsbedingungen"        element={<PublicPageLayout><Nutzungsbedingungen /></PublicPageLayout>}/>
 
-      {/* ── App ────────────────────────────────────────────────────────── */}
-      <Route path="/"             element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/inventory"    element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
-      <Route path="/inventory/:id" element={<ProtectedRoute><ItemDetail /></ProtectedRoute>} />
-      <Route path="/lending"      element={<ProtectedRoute><Lending /></ProtectedRoute>} />
-      <Route path="/projects"   element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
-      <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
-      <Route path="/dmx"          element={<ProtectedRoute><DMXPatchplan /></ProtectedRoute>} />
-      <Route path="/scanner"      element={<ProtectedRoute><Scanner /></ProtectedRoute>} />
-      <Route path="/help"         element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
+      {/* ── App (eingeloggt) ───────────────────────────────────────────── */}
+      <Route element={<ProtectedLayout />}>
+        <Route path="/"              element={<Dashboard />} />
+        <Route path="/inventory"     element={<Inventory />} />
+        <Route path="/inventory/:id" element={<ItemDetail />} />
+        <Route path="/lending"       element={<Lending />} />
+        <Route path="/projects"      element={<ProjectsPage />} />
+        <Route path="/projects/:id"  element={<ProjectDetail />} />
+        <Route path="/dmx"           element={<DMXPatchplan />} />
+        <Route path="/scanner"       element={<Scanner />} />
+        <Route path="/help"          element={<HelpPage />} />
 
-      {/* ── Features ──────────────────────────────────────────────────── */}
-      <Route path="/features/dmx"          element={<DMX />} />
-      <Route path="/features/scanner"       element={<ScannerWorkflow />} />
-      <Route path="/features/service"      element={<Service />} />
+        <Route element={<SettingsGuard />}>
+          <Route path="/settings"                  element={<AccountSettings />} />
+          <Route path="/settings/account-info"     element={<AccountInfo />} />
+          <Route path="/settings/notifications"    element={<Notifications />} />
+          <Route path="/settings/privacy-security" element={<PrivacySecurity />} />
+          <Route path="/settings/appearance"       element={<Appearance />} />
+          <Route path="/settings/about"            element={<AboutRigFlow />} />
+          <Route path="/settings/wunschliste"      element={<WunschlisteTab />} />
+        </Route>
 
-      {/* ── Settings ───────────────────────────────────────────────────── */}
-      <Route element={<ProtectedRoute><SettingsGuard /></ProtectedRoute>}>
-        <Route path="/settings"                    element={<AccountSettings />} />
-        <Route path="/settings/account-info"       element={<AccountInfo />} />
-        <Route path="/settings/notifications"      element={<Notifications />} />
-        <Route path="/settings/privacy-security"   element={<PrivacySecurity />} />
-        <Route path="/settings/appearance"         element={<Appearance />} />
-        <Route path="/settings/about"              element={<AboutRigFlow />} />
-        <Route path="/settings/wunschliste"         element={<WunschlisteTab />} />
+        {/* Dev (nur Admin) */}
+        <Route path="/dev/notifications" element={<AdminOnly><NotificationTest /></AdminOnly>} />
+        <Route path="/dev/haptics"       element={<AdminOnly><HapticsTest /></AdminOnly>} />
       </Route>
 
-      {/* ── Dev (nur Admin) ────────────────────────────────────────────── */}
-      <Route path="/dev/notifications" element={<AdminRoute><NotificationTest /></AdminRoute>} />
-      <Route path="/dev/haptics" element={<AdminRoute><HapticsTest /></AdminRoute>} />
+      {/* ── Feature-Seiten (öffentlich) ───────────────────────────────── */}
+      <Route path="/features/dmx"     element={<DMX />} />
+      <Route path="/features/scanner" element={<ScannerWorkflow />} />
+      <Route path="/features/service" element={<Service />} />
 
       {/* ── Fallback ───────────────────────────────────────────────────── */}
       <Route path="*" element={<NotFound />} />
@@ -246,7 +255,7 @@ function AppInitializer() {
       .catch(() => {});
 
     // ── Warm Start: App lief bereits ──────────────────────────────────
-    let urlListener: any;
+    let urlListener: { remove: () => void } | undefined;
     CapApp.addListener('appUrlOpen', ({ url }) => handleAuthUrl(url))
       .then(l => { urlListener = l; });
 
@@ -274,7 +283,7 @@ function AppInitializer() {
                 await reg.unregister();
                 logger.info('App', 'Alten leeren SW deregistriert');
               }
-            } catch (e) { /* ignore */ }
+            } catch { /* ignore */ }
           }
         }
       }

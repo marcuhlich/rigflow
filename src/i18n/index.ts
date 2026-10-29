@@ -17,7 +17,7 @@ i18n
     detection: {
       order: ['localStorage', 'navigator'],
       lookupLocalStorage: 'rigflow_language',
-      cacheUserLanguage: true,
+      caches: ['localStorage'],
     },
 });
 

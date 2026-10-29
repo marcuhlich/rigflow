@@ -15,9 +15,6 @@ export default function NotificationTest() {
     notifyChecklistDone,
     notifyNewMember,
     notifyNewDeviceSignIn,
-    notifySync,
-    notifyOffline,
-    notifyOnline,
   } = useNotifications();
 
   return (
@@ -65,21 +62,6 @@ export default function NotificationTest() {
         </Button>
       </div>
 
-      <div className="space-y-2">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bestehende (pass-through)</p>
-        <Button variant="outline" className="w-full" onClick={() => notifySync(12)}>
-          Sync OK (12 Artikel)
-        </Button>
-        <Button variant="outline" className="w-full" onClick={() => notifySync(8, 2)}>
-          Sync mit 2 Konflikten
-        </Button>
-        <Button variant="outline" className="w-full" onClick={notifyOffline}>
-          Offline
-        </Button>
-        <Button variant="outline" className="w-full" onClick={notifyOnline}>
-          Online
-        </Button>
-      </div>
     </div>
   );
 }

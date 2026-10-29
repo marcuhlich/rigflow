@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,7 +39,9 @@ export function useCategories() {
         // Load user-specific categories if user is logged in
         if (user) {
           if (isActive) {
-            const { data: userCatData, error: userCatError } = await supabase
+            // user_categories fehlt in den generierten Typen (siehe Migration 20260311061809),
+            // daher hier untypisiert abfragen.
+            const { data: userCatData, error: userCatError } = await (supabase as unknown as SupabaseClient)
               .from('user_categories')
               .select('*')
               .eq('user_id', user.id)

@@ -11,8 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { Button } from "@/components/ui/button";
-import { User, Settings, LogOut } from "lucide-react";
+import { Settings, LogOut, ChevronsUpDown } from "lucide-react";
 import posthog from "posthog-js";
 import { ANALYTICS_CONSENT_KEY } from "@/lib/constants";
 
@@ -48,21 +47,28 @@ export function UserMenu() {
     }
   };
 
+  const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || t("user_menu.default_name");
+  const initial = displayName.charAt(0);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-2">
-          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-            <User className="h-4 w-4 text-primary" />
-          </div>
-
-          <span className="hidden sm:inline text-sm">
-            {user?.email?.split("@")[0]}
+        <button
+          type="button"
+          className="flex h-10 w-full items-center gap-2.5 rounded-md px-2 text-left transition-colors hover:bg-sidebar-accent/60 data-[state=open]:bg-sidebar-accent"
+        >
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-sidebar-border bg-background text-xs font-semibold uppercase text-foreground">
+            {initial}
           </span>
-        </Button>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[13px] font-medium">{displayName}</span>
+            <span className="block truncate text-2xs text-muted-foreground">{user?.email}</span>
+          </span>
+          <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="start" side="top" className="w-56">
         <div className="px-2 py-1.5 text-sm">
           <p className="font-medium text-foreground">
             {user?.email}

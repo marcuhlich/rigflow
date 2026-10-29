@@ -1,5 +1,7 @@
 {
   "common": {
+    "load_error": "Could not load data",
+    "retry": "Try again",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
@@ -50,7 +52,11 @@
     "settings": "Settings",
     "home": "Home",
     "dmx": "DMX",
-    "more": "More"
+    "more": "More",
+    "search": "Search",
+    "search_hint": "Search or run a command…",
+    "workspace": "Workspace",
+    "tools": "Tools"
   },
   "auth": {
     "logout": "Sign out",
@@ -631,6 +637,7 @@
     }
   },
   "undo_redo": {
+    "history": "History",
     "undo": "Undo",
     "redo": "Redo",
     "undo_tooltip": "Undo (Ctrl + Z)",
