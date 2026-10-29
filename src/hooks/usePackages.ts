@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 import { Package, PackageItem, PackageWithItems } from '@/types/project';
 import { InventoryItem } from '@/types/inventory';
+import i18n from '@/i18n';
 
 type PackageItemRow = Database['public']['Tables']['package_items']['Row'];
 type PackageUpdate = Database['public']['Tables']['packages']['Update'];
@@ -71,7 +72,7 @@ export function usePackages() {
       logger.error('usePackages', 'Failed to load packages', error);
       if (isCurrent()) setError(error instanceof Error ? error : new Error(String(error)));
       if (isCurrent() && navigator.onLine) {
-        toast({ title: 'Fehler', description: 'Pakete konnten nicht geladen werden.', variant: 'destructive' });
+        toast({ title: i18n.t('common.error'), description: i18n.t('feedback.packages_load_failed'), variant: 'destructive' });
       }
     } finally {
       if (isCurrent()) setLoading(false);
@@ -82,7 +83,7 @@ export function usePackages() {
 
   const fail = (action: string, error: unknown): never => {
     logger.error('usePackages', action, error);
-    toast({ title: 'Fehler', variant: 'destructive' });
+    toast({ title: i18n.t('common.error'), variant: 'destructive' });
     throw error;
   };
 
@@ -122,10 +123,10 @@ export function usePackages() {
     });
     if (error) {
       if (error.code === '23505') {
-        toast({ title: 'Hinweis', description: 'Artikel ist bereits im Paket enthalten.' });
+        toast({ title: i18n.t('feedback.notice'), description: i18n.t('feedback.item_already_in_package') });
       } else {
         logger.error('usePackages', 'Add item to package failed', error);
-        toast({ title: 'Fehler', variant: 'destructive' });
+        toast({ title: i18n.t('common.error'), variant: 'destructive' });
       }
       throw error;
     }
@@ -168,7 +169,7 @@ export function usePackages() {
     const failed = results.find(r => r.error);
     if (failed?.error) {
       logger.error('usePackages', 'Reorder failed', failed.error);
-      toast({ title: 'Fehler', variant: 'destructive' });
+      toast({ title: i18n.t('common.error'), variant: 'destructive' });
       // Roll back to the server state
       await fetchPackages();
     }

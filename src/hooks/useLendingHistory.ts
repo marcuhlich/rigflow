@@ -66,7 +66,7 @@ export function useLendingHistory() {
       const isNetworkError = err instanceof Error && err.message.includes('Failed to fetch');
       if (!isNetworkError && isCurrent()) {
         toast({
-          title: 'Fehler',
+          title: i18n.t('common.error'),
           description: i18n.t('lending.load_failed', { defaultValue: 'Verleihhistorie konnte nicht geladen werden.' }),
           variant: 'destructive',
         });
@@ -89,7 +89,7 @@ export function useLendingHistory() {
     if (error) {
       logger.error('useLendingHistory', 'Failed to update item status', error, { itemId });
       toast({
-        title: 'Fehler',
+        title: i18n.t('common.error'),
         description: i18n.t('lending.item_status_update_failed', {
           defaultValue: 'Der Status des Artikels konnte nicht aktualisiert werden.',
         }),
@@ -109,7 +109,7 @@ export function useLendingHistory() {
       if (error) throw error;
     } catch (err) {
       logger.error('useLendingHistory', 'Failed to add lending record', err);
-      toast({ title: 'Fehler', description: 'Verleih konnte nicht gespeichert werden.', variant: 'destructive' });
+      toast({ title: i18n.t('common.error'), description: i18n.t('feedback.loan_save_failed'), variant: 'destructive' });
       throw err;
     }
 
@@ -121,7 +121,7 @@ export function useLendingHistory() {
     });
 
     await fetchRecords();
-    toast({ title: 'Verleih erfasst', description: `${record.item_name} an ${record.lent_to} verliehen.` });
+    toast({ title: i18n.t('feedback.loan_created'), description: i18n.t('feedback.loan_created_desc', { item: record.item_name, person: record.lent_to }) });
   };
 
   const markReturned = async (id: string) => {
@@ -135,7 +135,7 @@ export function useLendingHistory() {
       if (error) throw error;
     } catch (err) {
       logger.error('useLendingHistory', 'Failed to mark record as returned', err);
-      toast({ title: 'Fehler', description: 'Rückgabe konnte nicht erfasst werden.', variant: 'destructive' });
+      toast({ title: i18n.t('common.error'), description: i18n.t('feedback.return_failed'), variant: 'destructive' });
       throw err;
     }
 
@@ -145,7 +145,7 @@ export function useLendingHistory() {
     }
 
     await fetchRecords();
-    toast({ title: 'Rückgabe erfasst', description: 'Artikel wurde als zurückgegeben markiert.' });
+    toast({ title: i18n.t('feedback.return_recorded'), description: i18n.t('feedback.return_recorded_desc') });
   };
 
   const deleteRecord = async (id: string) => {
@@ -155,7 +155,7 @@ export function useLendingHistory() {
       .eq('id', id);
     if (deleteError) {
       logger.error('useLendingHistory', 'Failed to delete lending record', deleteError);
-      toast({ title: 'Fehler', description: 'Eintrag konnte nicht gelöscht werden.', variant: 'destructive' });
+      toast({ title: i18n.t('common.error'), description: i18n.t('feedback.delete_failed'), variant: 'destructive' });
       throw deleteError;
     }
     await fetchRecords();

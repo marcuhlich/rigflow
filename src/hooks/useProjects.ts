@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Project, ProjectStatus } from '@/types/project';
 import { offlineQueue } from '@/lib/offlineQueue';
+import i18n from '@/i18n';
 
 /** Legacy (not user-scoped) cache key – only read as a migration fallback. */
 const PROJECTS_CACHE_KEY = 'projects';
@@ -85,8 +86,8 @@ export function useProjects() {
       const isNetworkError = err instanceof Error && err.message.includes('Failed to fetch');
       if (!isNetworkError && isCurrent()) {
         toast({
-          title: 'Fehler',
-          description: 'Projekte konnten nicht geladen werden.',
+          title: i18n.t('common.error'),
+          description: i18n.t('feedback.projects_load_failed'),
           variant: 'destructive',
         });
       }
@@ -97,7 +98,7 @@ export function useProjects() {
 
   const fail = (action: string, error: unknown): never => {
     logger.error('useProjects', action, error);
-    toast({ title: 'Fehler', variant: 'destructive' });
+    toast({ title: i18n.t('common.error'), variant: 'destructive' });
     throw error;
   };
 

@@ -21,6 +21,7 @@ import {
   findNextAvailableChannel,
 } from '@/lib/dmxPatchplan';
 import { EnrichedProjectItem } from './useProjectDetail';
+import i18n from '@/i18n';
 
 interface ProjectDMXInstance {
   id:                string;
@@ -108,16 +109,16 @@ export function useProjectDMXPatchplan(
       if (!projectId) return;
       const item = projectInventoryItems.find(i => i.id === itemId);
       if (!item?.dmx_channels) {
-        toast({ title: 'Fehler', description: 'Gerät nicht gefunden', variant: 'destructive' });
+        toast({ title: i18n.t('common.error'), description: i18n.t('feedback.device_not_found'), variant: 'destructive' });
         return;
       }
       if (newStartAddress < 1 || newStartAddress > 512) {
-        toast({ title: 'Fehler', description: 'Ungültige DMX-Adresse (1–512)', variant: 'destructive' });
+        toast({ title: i18n.t('common.error'), description: i18n.t('feedback.dmx_invalid_address'), variant: 'destructive' });
         return;
       }
       const endAddress = newStartAddress + item.dmx_channels - 1;
       if (endAddress > 512) {
-        toast({ title: 'Fehler', description: `Benötigt ${item.dmx_channels} Kanäle — kein Platz ab ${newStartAddress}.`, variant: 'destructive' });
+        toast({ title: i18n.t('common.error'), description: i18n.t('feedback.dmx_no_room', { channels: item.dmx_channels, start: newStartAddress }), variant: 'destructive' });
         return;
       }
       try {
@@ -129,10 +130,10 @@ export function useProjectDMXPatchplan(
           );
         if (error) throw error;
         await fetchProjectConfigs();
-        toast({ title: 'Gespeichert', description: `Instanz ${instanceNumber}: CH ${newStartAddress}–${endAddress}, Universe ${newUniverse}` });
+        toast({ title: i18n.t('feedback.saved'), description: i18n.t('feedback.dmx_instance_saved', { instance: instanceNumber, start: newStartAddress, end: endAddress, universe: newUniverse }) });
       } catch (error) {
         logger.error('useProjectDMXPatchplan', 'Failed to save instance config', error);
-        toast({ title: 'Fehler', description: 'Konnte nicht gespeichert werden.', variant: 'destructive' });
+        toast({ title: i18n.t('common.error'), description: i18n.t('feedback.save_failed'), variant: 'destructive' });
       }
     },
     [projectId, projectInventoryItems, fetchProjectConfigs, toast]
@@ -150,10 +151,10 @@ export function useProjectDMXPatchplan(
           .eq('instance_number', instanceNumber);
         if (error) throw error;
         await fetchProjectConfigs();
-        toast({ title: 'Zurückgesetzt', description: 'Instanz nutzt wieder die Inventar-Standard-Adresse.' });
+        toast({ title: i18n.t('feedback.reset'), description: i18n.t('feedback.dmx_instance_reset') });
       } catch (error) {
         logger.error('useProjectDMXPatchplan', 'Failed to reset instance config', error);
-        toast({ title: 'Fehler', variant: 'destructive' });
+        toast({ title: i18n.t('common.error'), variant: 'destructive' });
       }
     },
     [projectId, fetchProjectConfigs, toast]
@@ -165,7 +166,7 @@ export function useProjectDMXPatchplan(
       if (!item?.dmx_channels) return;
       const nextCh = findNextAvailableChannel(patchplan, universe, item.dmx_channels);
       if (nextCh === -1) {
-        toast({ title: 'Fehler', description: `Kein freier Block (${item.dmx_channels} Kanäle) in Universe ${universe}`, variant: 'destructive' });
+        toast({ title: i18n.t('common.error'), description: i18n.t('feedback.dmx_no_free_block', { channels: item.dmx_channels, universe }), variant: 'destructive' });
         return;
       }
       const existingRow    = patchplan.find(r => r.itemId === itemId && r.universe === universe);

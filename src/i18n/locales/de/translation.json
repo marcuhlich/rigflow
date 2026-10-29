@@ -37,7 +37,7 @@
     "decline": "Ablehnen",
     "accept": "Akzeptieren",
     "later": "Später",
-    "next":"Weiter",
+    "next": "Weiter",
     "saved": "Gespeichert",
     "enabled": "Aktiviert",
     "disabled": "Deaktiviert",
@@ -128,7 +128,8 @@
     "verifying_link": "Link wird überprüft…",
     "change_password_error": "Passwort konnte nicht geändert werden. Bitte fordere einen neuen Link an.",
     "passwords_dont_match": "Passwörter stimmen nicht überein",
-    "please_wait": "Bitte warten..."
+    "please_wait": "Bitte warten...",
+    "request_new_link": "Neuen Link anfordern"
   },
   "settings": {
     "title": "Einstellungen",
@@ -144,7 +145,9 @@
     "terms_link": "Nutzungsbedingungen",
     "imprint_link": "Impressum",
     "privacy_policy_link": "Datenschutzerklärung",
-    "about_rigflow": "Über RigFlow"
+    "about_rigflow": "Über RigFlow",
+    "member_since": "Mitglied seit",
+    "account_id": "Konto-ID"
   },
   "category_settings": {
     "title": "Kategorie-Eigenschaften",
@@ -152,7 +155,8 @@
     "available_fields": "Verfügbare Felder für {{category}}",
     "attribute_enabled": "{{attr}} aktiviert",
     "attribute_disabled": "{{attr}} deaktiviert",
-    "error_updating_attribute": "Fehler beim Aktualisieren der Eigenschaft"
+    "error_updating_attribute": "Fehler beim Aktualisieren der Eigenschaft",
+    "empty_fields": "Für diese Kategorie gibt es keine konfigurierbaren Felder."
   },
   "audit": {
     "panel_title": "Letzte Änderungen",
@@ -264,7 +268,10 @@
     },
     "account": {
       "logout_desc": "Abmelden als {{email}}"
-    }
+    },
+    "search_inventory_for": "Inventar nach „{{query}}“ durchsuchen",
+    "hint_navigate": "Navigieren",
+    "hint_select": "Auswählen"
   },
   "demo": {
     "badge": "Demo-Account",
@@ -323,7 +330,23 @@
     "conflicts_title": "DMX-Adresskonflikte im Projekt",
     "conflicts_more": "… und {{count}} weitere",
     "readonly_hint": "Archiviertes Projekt — DMX-Konfiguration ist schreibgeschützt.",
-    "isolation_hint": "DMX-Adressen hier sind <strong class=\"text-foreground\">nur für dieses Projekt</strong> gültig"
+    "isolation_hint": "DMX-Adressen hier sind <strong class=\"text-foreground\">nur für dieses Projekt</strong> gültig",
+    "toast": {
+      "error": "Fehler",
+      "device_not_found": "Gerät nicht gefunden",
+      "invalid_address": "Ungültige DMX-Adresse (1-512)",
+      "not_enough_space_from": "Benötigt {{channels}} Kanäle. Nicht genug Platz ab Adresse {{address}}.",
+      "saved": "Gespeichert",
+      "instance_saved": "Instanz {{instance}}: Adresse {{start}}–{{end}}, Universe {{universe}}",
+      "save_failed": "Konnte nicht gespeichert werden.",
+      "reset": "Zurückgesetzt",
+      "instance_reset": "Instanz {{instance}} nutzt wieder Standard-Adressen.",
+      "reset_failed": "Konnte nicht zurückgesetzt werden.",
+      "success": "Erfolg",
+      "base_address_updated": "Basis-Adresse aktualisiert: {{address}}",
+      "universe_updated": "Universe aktualisiert: {{universe}}",
+      "universe_full": "Nicht genug Platz in Universe {{universe}}"
+    }
   },
   "dmx_table": {
     "conflict_message": "Überschneidet sich mit {{name}} ({{start}}–{{end}})",
@@ -475,7 +498,10 @@
   },
   "image_upload": {
     "preview_alt": "Bild",
-    "select_button": "Bild auswählen"
+    "select_button": "Bild auswählen",
+    "replace": "Ersetzen",
+    "remove": "Bild entfernen",
+    "error": "Bild konnte nicht hochgeladen werden."
   },
   "inventory_grid": {
     "lent_until": "bis"
@@ -491,7 +517,10 @@
       "name_required": "Name ist erforderlich",
       "category_required": "Kategorie ist erforderlich",
       "quantity_zero": "Menge darf nicht 0 sein",
-      "units_per_case_exceeds_quantity": "Kann nicht größer sein als die Gesamtmenge"
+      "units_per_case_exceeds_quantity": "Kann nicht größer sein als die Gesamtmenge",
+      "range": "Muss zwischen {{min}} und {{max}} liegen",
+      "summary": "Bitte prüfe die markierten Felder.",
+      "dmx_instances_save": "Das Item wurde gespeichert, die DMX-Instanzen aber nicht."
     },
     "label": {
       "name": "Name",
@@ -530,22 +559,32 @@
     "dmx": {
       "instance_1_hint": "(Instanz 1)",
       "all_instances": "Alle Instanzen",
-      "instance_sync_hint": "Instanz #1 ist immer mit den Basis-Feldern oben synchronisiert"
-    }
+      "instance_sync_hint": "Instanz #1 ist immer mit den Basis-Feldern oben synchronisiert",
+      "end_address": "Ende",
+      "out_of_range": "Mindestens eine Instanz endet nach Kanal 512.",
+      "instances_after_save": "Adressen werden automatisch fortlaufend vergeben. Einzelne Instanzen kannst du nach dem Speichern anpassen."
+    },
+    "section": {
+      "general": "Allgemein",
+      "value": "Wert & Zubehör"
+    },
+    "case_summary_one": "{{count}} Case à {{perCase}} Stk.",
+    "case_summary_other": "{{count}} Cases à {{perCase}} Stk.",
+    "case_remainder": "+ {{count}} einzeln"
   },
   "attr": {
     "licht": {
       "lamp_type": "Lampentyp",
       "cooling": "Kühlung",
-      "beam_angle_min": "Abstrahlwinkel min.",
-      "beam_angle_max": "Abstrahlwinkel max.",
+      "beam_angle_min": "Abstrahlwinkel (min)",
+      "beam_angle_max": "Abstrahlwinkel (max)",
       "dmx_mode": "DMX-Modus"
     },
     "audio": {
       "frequency_range": "Frequenzbereich",
       "is_active": "Aktiv (mit Verstärker)",
       "impedance": "Impedanz",
-      "connector_type": "Anschluss"
+      "connector_type": "Anschlusstyp"
     },
     "video": {
       "resolution": "Auflösung",
@@ -555,18 +594,31 @@
     "rigging": {
       "wll": "Traglast (WLL)",
       "self_weight": "Eigengewicht",
-      "certification_date": "Prüfdatum"
+      "certification_date": "Prüfdatum",
+      "load_capacity": "Tragkraft",
+      "material": "Material"
     },
     "strom": {
       "voltage": "Spannung",
       "max_amperage": "Max. Strom",
       "connector_in": "Eingang",
-      "connector_out": "Ausgang"
+      "connector_out": "Ausgang",
+      "amperage": "Stromstärke"
     },
     "it_netzwerk": {
       "ip_range": "IP-Bereich",
       "protocol": "Protokoll",
       "port_count": "Ports"
+    },
+    "common": {
+      "unit_price": "Stückpreis",
+      "weight_kg": "Gewicht",
+      "dimensions_cm": "Abmessungen",
+      "units_per_case": "Stück pro Karton",
+      "connectivity": "Anschlüsse"
+    },
+    "network": {
+      "bandwidth": "Bandbreite"
     }
   },
   "maintenance": {
@@ -592,7 +644,9 @@
       "notes_placeholder": "Notizen (optional)…",
       "cost_label": "Kosten (optional)",
       "photo": "Foto",
-      "photo_selected": "✓ Foto"
+      "photo_selected": "✓ Foto",
+      "title": "Neuer Wartungseintrag",
+      "type_label": "Art"
     },
     "date_picker": {
       "placeholder": "Datum wählen"
@@ -603,8 +657,12 @@
       "days_ago_one": "Vor {{count}} Tag",
       "days_ago_other": "Vor {{count}} Tagen",
       "photo_alt": "Wartungsfoto",
-      "delete_title": "Eintrag löschen"
-    }
+      "delete_title": "Eintrag löschen",
+      "title": "Wartungsverlauf"
+    },
+    "delete_confirm_description": "Dieser Wartungseintrag wird endgültig gelöscht.",
+    "save_error": "Wartungseintrag konnte nicht gespeichert werden.",
+    "delete_error": "Wartungseintrag konnte nicht gelöscht werden."
   },
   "offline": {
     "offline": "Offline",
@@ -717,7 +775,25 @@
       "returned_from": "{{item}} zurückgegeben (war an {{person}})",
       "marked_defect": "{{item}} als defekt markiert"
     },
-    "all_loans": "Alle Ausleihen"
+    "all_loans": "Alle Ausleihen",
+    "attention": {
+      "title": "Braucht Aufmerksamkeit",
+      "empty_title": "Alles im grünen Bereich",
+      "empty_desc": "Keine fälligen Rückgaben, defekten Artikel oder anstehenden Wartungen.",
+      "group_returns": "Rückgaben fällig",
+      "group_maintenance": "Wartung fällig",
+      "never_maintained": "Nie gewartet",
+      "maintenance_due_on": "Fällig am {{date}}",
+      "more": "+{{count}} weitere anzeigen"
+    },
+    "breakdown": {
+      "title": "Bestand",
+      "unassigned": "Ohne Angabe"
+    },
+    "empty": {
+      "title": "Noch kein Equipment erfasst",
+      "description": "Lege deine ersten Artikel im Inventar an. Danach siehst du hier Bestand, Verleih und anstehende Projekte auf einen Blick."
+    }
   },
   "report": {
     "title": "Projektbericht",
@@ -864,7 +940,37 @@
     "undo_delete_description": "\"{{name}}\" wurde wiederhergestellt.",
     "redo_add_description": "\"{{name}}\" wurde erneut hinzugefügt.",
     "redo_update_description": "\"{{name}}\" wurde erneut geändert.",
-    "redo_delete_description": "\"{{name}}\" wurde erneut gelöscht."
+    "redo_delete_description": "\"{{name}}\" wurde erneut gelöscht.",
+    "tags_save_failed": "Tags konnten nicht gespeichert werden.",
+    "toast": {
+      "error": "Fehler",
+      "load_failed_title": "Fehler beim Laden",
+      "load_failed": "Items konnten nicht geladen werden.",
+      "offline_saved": "Offline gespeichert",
+      "offline_item_queued": "Item wird synchronisiert, wenn du wieder online bist.",
+      "add_failed": "Item konnte nicht hinzugefügt werden.",
+      "offline_changes_queued": "Änderungen werden synchronisiert, wenn du wieder online bist.",
+      "update_failed": "Item konnte nicht aktualisiert werden.",
+      "delete_failed": "Item konnte nicht gelöscht werden.",
+      "restore_failed": "Item konnte nicht wiederhergestellt werden.",
+      "permanent_delete_failed": "Item konnte nicht endgültig gelöscht werden.",
+      "empty_trash_failed": "Papierkorb konnte nicht geleert werden.",
+      "batch_update_success": "Batch-Update erfolgreich",
+      "batch_update_failed": "Batch-Update fehlgeschlagen.",
+      "moved_to_trash": "In Papierkorb verschoben",
+      "moved_to_trash_count": "{{count}} Item(s) in den Papierkorb verschoben.",
+      "batch_delete_failed": "Batch-Löschen fehlgeschlagen.",
+      "offline": "Offline",
+      "offline_no_refresh": "Daten können offline nicht neu geladen werden.",
+      "reload_failed_title": "Fehler beim Neuladen",
+      "reload_failed": "Items konnten nicht neu geladen werden.",
+      "batch_updated_count": "{{count}} Item(s) aktualisiert.",
+      "batch_moved_count": "{{count}} Item(s) verschoben."
+    },
+    "batch_trash_title": "In den Papierkorb verschieben?",
+    "batch_trash_description_one": "{{count}} Item wird in den Papierkorb verschoben. Du kannst es dort 30 Tage lang wiederherstellen.",
+    "batch_trash_description_other": "{{count}} Items werden in den Papierkorb verschoben. Du kannst sie dort 30 Tage lang wiederherstellen.",
+    "select_item_aria": "„{{name}}“ auswählen"
   },
   "legal": {
     "load_error": "# Dokument nicht verfügbar\nDas Dokument konnte nicht geladen werden. Bitte stelle sicher, dass du online bist, oder versuche es später erneut."
@@ -883,7 +989,8 @@
       "Keine Datenerfassung"
     ],
     "privacy_link": "Datenschutz",
-    "desktop_description": "Wir verwenden PostHog Analytics, um die App zu verbessern. Deine Daten sind anonymisiert."
+    "desktop_description": "Wir verwenden PostHog Analytics, um die App zu verbessern. Deine Daten sind anonymisiert.",
+    "private_title_plain": "Ohne Analytik:"
   },
   "install": {
     "title": "App installieren",
@@ -929,24 +1036,24 @@
     "tip": "Tipp: Aktiviere Benachrichtigungen in den Einstellungen, um über Synchronisierungen informiert zu werden.",
     "go_app": "Zur App",
     "android_fallback": "Tippe auf Menü → „Zum Startbildschirm hinzufügen“ um die App zu installieren",
-    "desktop_title":             "RigFlow Desktop",
-    "desktop_subtitle":          "Lade die Desktop-App für {{osLabel}} herunter",
-    "os_windows":                "Windows",
-    "os_macos":                  "macOS",
-    "os_linux":                  "Linux",
-    "os_unknown":                "dein System",
-    "online_download":           "Online - Download verfügbar",
-    "offline_download":          "Offline - Download nicht verfügbar",
-    "online_full":               "Online - Alle Funktionen verfügbar",
-    "offline_limited":           "Offline - Eingeschränkte Funktionen",
-    "checking_updates":          "Prüfe auf Updates...",
-    "version_label":             "Version {{version}}",
-    "download_installer":        "Installer herunterladen",
-    "no_installer":              "Kein Installer für dein System verfügbar.",
-    "github_releases":           "Alle Releases auf GitHub",
-    "mobile_title":              "RigFlow einrichten",
-    "mobile_subtitle":           "Optimiere deine App für offline Nutzung und Benachrichtigungen",
-    "installation_heading":      "App-Installation:",
+    "desktop_title": "RigFlow Desktop",
+    "desktop_subtitle": "Lade die Desktop-App für {{osLabel}} herunter",
+    "os_windows": "Windows",
+    "os_macos": "macOS",
+    "os_linux": "Linux",
+    "os_unknown": "dein System",
+    "online_download": "Online - Download verfügbar",
+    "offline_download": "Offline - Download nicht verfügbar",
+    "online_full": "Online - Alle Funktionen verfügbar",
+    "offline_limited": "Offline - Eingeschränkte Funktionen",
+    "checking_updates": "Prüfe auf Updates...",
+    "version_label": "Version {{version}}",
+    "download_installer": "Installer herunterladen",
+    "no_installer": "Kein Installer für dein System verfügbar.",
+    "github_releases": "Alle Releases auf GitHub",
+    "mobile_title": "RigFlow einrichten",
+    "mobile_subtitle": "Optimiere deine App für offline Nutzung und Benachrichtigungen",
+    "installation_heading": "App-Installation:",
     "mobile_features": [
       "Schneller Zugriff vom Homescreen",
       "Funktioniert offline",
@@ -954,16 +1061,16 @@
       "Vollbildmodus ohne Browser-UI"
     ],
     "notifications_description": "Erhalte Updates, wenn deine Items synchronisiert werden oder Konflikte aufgelöst werden müssen.",
-    "notifications_activating":  "Wird aktiviert...",
-    "notifications_enable":      "Benachrichtigungen aktivieren",
-    "notifications_enabled":     "Benachrichtigungen aktiviert",
-    "notifications_disabled":    "Benachrichtigungen sind deaktiviert. Aktiviere sie in den Browser-Einstellungen.",
+    "notifications_activating": "Wird aktiviert...",
+    "notifications_enable": "Benachrichtigungen aktivieren",
+    "notifications_enabled": "Benachrichtigungen aktiviert",
+    "notifications_disabled": "Benachrichtigungen sind deaktiviert. Aktiviere sie in den Browser-Einstellungen.",
     "notification_welcome_body": "Benachrichtigungen sind aktiviert! 🎉",
-    "already_installed":         "App ist bereits installiert",
-    "browser_menu_hint":         "Installation über Browser-Menü:",
-    "ios_browser":               "Teilen - Zum Homebildschirm",
-    "android_browser":           "Menü (Drei Punkte) - Zum Startbildschirm hinzufügen",
-    "continue_to_app":           "Weiter zur App"
+    "already_installed": "App ist bereits installiert",
+    "browser_menu_hint": "Installation über Browser-Menü:",
+    "ios_browser": "Teilen - Zum Homebildschirm",
+    "android_browser": "Menü (Drei Punkte) - Zum Startbildschirm hinzufügen",
+    "continue_to_app": "Weiter zur App"
   },
   "notfound": {
     "badge": "ARTIKEL NICHT GEFUNDEN — 404",
@@ -1013,32 +1120,36 @@
     "delete_dialog_description": "\"{{name}}\" wird in den Papierkorb verschoben und kann dort wiederhergestellt werden.",
     "delete_success_description": "\"{{name}}\" kann im Papierkorb wiederhergestellt werden.",
     "update_error_description": "Item konnte nicht aktualisiert werden.",
-    "delete_error_description": "Item konnte nicht gelöscht werden."
+    "delete_error_description": "Item konnte nicht gelöscht werden.",
+    "section_label": "Etikett",
+    "history_empty": "Dieses Item wurde noch nicht verliehen.",
+    "details_empty": "Keine weiteren Details erfasst.",
+    "units_per_case_value": "{{count}}er Case"
   },
   "conditions": {
     "available": "Verfügbar",
-    "lent":      "Verliehen",
-    "in_use":    "Im Einsatz",
-    "defect":    "Defekt"
+    "lent": "Verliehen",
+    "in_use": "Im Einsatz",
+    "defect": "Defekt"
   },
   "categories": {
-    "licht":       "Licht",
-    "audio":       "Audio",
-    "video":       "Video",
-    "rigging":     "Rigging",
-    "strom":       "Strom",
+    "licht": "Licht",
+    "audio": "Audio",
+    "video": "Video",
+    "rigging": "Rigging",
+    "strom": "Strom",
     "it-netzwerk": "IT / Netzwerk",
-    "werkzeug":    "Werkzeug & Zubehör"
+    "werkzeug": "Werkzeug & Zubehör"
   },
   "attr_values": {
     "lamp_type": {
-      "LED":       "LED",
-      "Halogen":   "Halogen",
+      "LED": "LED",
+      "Halogen": "Halogen",
       "Entladung": "Entladung",
-      "Laser":     "Laser"
+      "Laser": "Laser"
     },
     "cooling": {
-      "Aktiv":  "Aktiv",
+      "Aktiv": "Aktiv",
       "Passiv": "Passiv"
     }
   },
@@ -1090,62 +1201,112 @@
     "created_desc": "\"{{name}}\" wurde angelegt.",
     "updated_title": "Paket aktualisiert",
     "deleted_title": "Paket gelöscht",
-    "unknown": "Unbekannt"
+    "unknown": "Unbekannt",
+    "col_name": "Paket",
+    "col_items": "Artikel",
+    "col_quantity": "Stück",
+    "edit_contents": "Inhalt bearbeiten",
+    "edit_details": "Details bearbeiten",
+    "qty_label": "Menge",
+    "drag_handle": "Ziehen zum Verschieben",
+    "remove_item": "Aus Paket entfernen",
+    "add_item": "Zum Paket hinzufügen",
+    "already_added": "Bereits im Paket",
+    "delete_error": "Das Paket konnte nicht gelöscht werden, weil die Projektzuordnungen nicht entfernt werden konnten."
   },
   "lending": {
-    "description":          "Übersicht aller Verleihvorgänge und Rückgaben",
-    "new_loan":             "Neuer Verleih",
-    "stat_active":          "Aktiv verliehen",
-    "stat_overdue":         "Überfällig",
-    "stat_returned":        "Zurückgegeben",
-    "stat_total":           "Gesamt",
-    "overdue_title_one":    "{{count}} überfällige Rückgabe",
-    "overdue_title_other":  "{{count}} überfällige Rückgaben",
-    "return_action":        "Zurück",
-    "search_placeholder":   "Suche nach Artikel oder Person...",
-    "tab_active":           "Aktiv ({{count}})",
-    "tab_history":          "Historie ({{count}})",
-    "empty_active_title":   "Keine aktiven Verleihvorgänge",
-    "empty_active_desc":    "Erstelle einen neuen Verleih über den Button oben.",
-    "empty_history_title":  "Noch keine abgeschlossenen Verleihvorgänge",
-    "empty_history_desc":   "Abgeschlossene Verleihvorgänge erscheinen hier.",
-    "overdue_badge_one":    "{{count}} Tag überfällig",
-    "overdue_badge_other":  "{{count}} Tage überfällig",
-    "due_today":            "Heute fällig",
-    "due_soon_one":         "Noch {{count}} Tag",
-    "due_soon_other":       "Noch {{count}} Tage",
-    "date_format":          "dd. MMM yyyy",
-    "item_with_category":   "{{name}} ({{category}})",
-    "delete_title":         "Eintrag löschen?",
-    "delete_description":   "Dieser Verleiheintrag wird permanent gelöscht.",
+    "description": "Übersicht aller Verleihvorgänge und Rückgaben",
+    "new_loan": "Neuer Verleih",
+    "stat_active": "Aktiv verliehen",
+    "stat_overdue": "Überfällig",
+    "stat_returned": "Zurückgegeben",
+    "stat_total": "Gesamt",
+    "overdue_title_one": "{{count}} überfällige Rückgabe",
+    "overdue_title_other": "{{count}} überfällige Rückgaben",
+    "return_action": "Zurück",
+    "search_placeholder": "Suche nach Artikel oder Person...",
+    "tab_active": "Aktiv ({{count}})",
+    "tab_history": "Historie ({{count}})",
+    "empty_active_title": "Keine aktiven Verleihvorgänge",
+    "empty_active_desc": "Erstelle einen neuen Verleih über den Button oben.",
+    "empty_history_title": "Noch keine abgeschlossenen Verleihvorgänge",
+    "empty_history_desc": "Abgeschlossene Verleihvorgänge erscheinen hier.",
+    "overdue_badge_one": "{{count}} Tag überfällig",
+    "overdue_badge_other": "{{count}} Tage überfällig",
+    "due_today": "Heute fällig",
+    "due_soon_one": "Noch {{count}} Tag",
+    "due_soon_other": "Noch {{count}} Tage",
+    "date_format": "dd. MMM yyyy",
+    "item_with_category": "{{name}} ({{category}})",
+    "delete_title": "Eintrag löschen?",
+    "delete_description": "Dieser Verleiheintrag wird permanent gelöscht.",
     "card": {
-      "returned_badge":  "Zurückgegeben",
-      "lent_to_label":   "An:",
-      "lent_at":         "Verliehen:",
-      "due_date":        "Fällig:",
-      "returned_at":     "Zurück:",
-      "return_button":   "Rückgabe"
+      "returned_badge": "Zurückgegeben",
+      "lent_to_label": "An:",
+      "lent_at": "Verliehen:",
+      "due_date": "Fällig:",
+      "returned_at": "Zurück:",
+      "return_button": "Rückgabe"
     },
     "add_dialog": {
-      "title":               "Neuer Verleih",
-      "item_label":          "Artikel *",
-      "item_placeholder":    "Artikel auswählen...",
-      "lent_to_label":       "Verliehen an *",
+      "title": "Neuer Verleih",
+      "item_label": "Artikel *",
+      "item_placeholder": "Artikel auswählen...",
+      "lent_to_label": "Verliehen an *",
       "lent_to_placeholder": "Name oder Organisation",
-      "due_date_label":      "Rückgabe bis",
-      "submit":              "Verleih erfassen"
+      "due_date_label": "Rückgabe bis",
+      "submit": "Verleih erfassen",
+      "description": "Halte fest, welcher Artikel an wen geht und bis wann er zurückkommt.",
+      "item_search": "Artikel suchen…",
+      "item_empty": "Keine Artikel gefunden"
     },
     "date_picker": {
-      "placeholder":      "Datum wählen",
-      "display_format":   "dd.MM.yyyy",
-      "days":    ["So","Mo","Di","Mi","Do","Fr","Sa"],
-      "months":  ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"]
+      "placeholder": "Datum wählen",
+      "display_format": "dd.MM.yyyy",
+      "days": [
+        "So",
+        "Mo",
+        "Di",
+        "Mi",
+        "Do",
+        "Fr",
+        "Sa"
+      ],
+      "months": [
+        "Januar",
+        "Februar",
+        "März",
+        "April",
+        "Mai",
+        "Juni",
+        "Juli",
+        "August",
+        "September",
+        "Oktober",
+        "November",
+        "Dezember"
+      ]
+    },
+    "item_status_update_failed": "Der Status des Artikels konnte nicht aktualisiert werden.",
+    "load_failed": "Verleihhistorie konnte nicht geladen werden.",
+    "tabs": {
+      "active": "Aktiv",
+      "history": "Historie"
+    },
+    "no_results": "Keine Verleihvorgänge zu deiner Suche.",
+    "table": {
+      "item": "Artikel",
+      "borrower": "Empfänger",
+      "lent_at": "Verliehen am",
+      "due_date": "Fällig am",
+      "status": "Status",
+      "returned_at": "Zurückgegeben"
     }
   },
   "maintenance_types": {
-    "check":      "Routinecheck",
-    "reparatur":  "Reparatur",
-    "reinigung":  "Reinigung",
+    "check": "Routinecheck",
+    "reparatur": "Reparatur",
+    "reinigung": "Reinigung",
     "inspektion": "Inspektion"
   },
   "projects": {
@@ -1154,7 +1315,6 @@
     "tab_projects": "Projekte",
     "tab_packages": "Pakete",
     "status_next": "→ nächster",
-
     "date_picker": {
       "range_placeholder": "Zeitraum wählen",
       "start_label": "Startdatum",
@@ -1162,10 +1322,30 @@
       "reset": "Zurücksetzen",
       "hint_start": "Startdatum wählen",
       "hint_end": "Enddatum wählen",
-      "days": ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"],
-      "months": ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"]
+      "days": [
+        "So",
+        "Mo",
+        "Di",
+        "Mi",
+        "Do",
+        "Fr",
+        "Sa"
+      ],
+      "months": [
+        "Januar",
+        "Februar",
+        "März",
+        "April",
+        "Mai",
+        "Juni",
+        "Juli",
+        "August",
+        "September",
+        "Oktober",
+        "November",
+        "Dezember"
+      ]
     },
-
     "form": {
       "title_create": "Neues Projekt",
       "title_edit": "Projekt bearbeiten",
@@ -1180,11 +1360,9 @@
       "period_label": "Zeitraum",
       "notes_placeholder": "Zusätzliche Informationen..."
     },
-
     "card": {
       "details_link": "Details"
     },
-
     "list": {
       "btn_new": "Neues Projekt",
       "search_placeholder": "Projekte durchsuchen...",
@@ -1196,22 +1374,26 @@
       "empty_title": "Noch keine Projekte",
       "empty_desc": "Erstelle ein Projekt für jede Veranstaltung – mit Status, Datum, Ort und Equipment-Zuordnung.",
       "empty_btn": "Erstes Projekt erstellen",
-      "no_results": "Keine Projekte gefunden."
+      "no_results": "Keine Projekte gefunden.",
+      "col_name": "Name",
+      "col_items": "Artikel",
+      "change_status": "Status ändern",
+      "favorite": "Favorit",
+      "favorite_add": "Als Favorit markieren",
+      "favorite_remove": "Aus Favoriten entfernen",
+      "open": "Projekt öffnen"
     },
-
     "toast": {
       "created_title": "Projekt erstellt",
       "created_desc": "\"{{name}}\" angelegt.",
       "saved_title": "Projekt gespeichert",
       "deleted_title": "Projekt gelöscht"
     },
-
     "status_change": {
       "warning_title": "Status zurücksetzen?",
       "warning_desc": "Das Projekt ist als <strong>{{from}}</strong> markiert. Es auf <strong>{{to}}</strong> zu setzen ist unüblich – bist du sicher?",
       "confirm": "Ja, Status ändern"
     },
-
     "delete": {
       "title": "Projekt löschen?",
       "description": "Das Projekt wird in den Papierkorb verschoben. Equipment und Pakete bleiben erhalten."
@@ -1337,7 +1519,6 @@
         ],
         "export": {
           "title": "Export & Druck",
-
           "items": [
             {
               "label": "CSV-Export",
@@ -1355,7 +1536,6 @@
         },
         "benefits": {
           "title": "Was dir das bringt",
-
           "items": [
             {
               "title": "Kein manuelles Zählen",
@@ -1383,23 +1563,52 @@
           "description": "Dokumentiere Wartungen, setze Reminder für die nächste Prüfung und lade Schadensfotos direkt aus der App hoch. Für jedes Gerät gibt es eine eigene Maintenance-Timeline – mit Typ, Datum, Notizen und Kosten."
         },
         "type_labels": {
-          "check":      "Prüfung",
-          "reparatur":  "Reparatur",
-          "reinigung":  "Reinigung",
+          "check": "Prüfung",
+          "reparatur": "Reparatur",
+          "reinigung": "Reinigung",
           "inspektion": "Inspektion"
         },
         "status_section_title": "Status-Banner pro Gerät",
         "interval_label": "Intervall: {{interval}}",
         "demo_devices": [
-          { "label": "SM58 Mikrofon #3",      "interval": "180d", "text": "Letzte Wartung vor 3 Tagen" },
-          { "label": "Endstufe Crown XLS",    "interval": "180d", "text": "Wartung bald fällig – letzte vor 138 Tagen" },
-          { "label": "FOH-Pult Yamaha CL5",   "interval": "365d", "text": "Wartung überfällig – noch keine Wartung erfasst" }
+          {
+            "label": "SM58 Mikrofon #3",
+            "interval": "180d",
+            "text": "Letzte Wartung vor 3 Tagen"
+          },
+          {
+            "label": "Endstufe Crown XLS",
+            "interval": "180d",
+            "text": "Wartung bald fällig – letzte vor 138 Tagen"
+          },
+          {
+            "label": "FOH-Pult Yamaha CL5",
+            "interval": "365d",
+            "text": "Wartung überfällig – noch keine Wartung erfasst"
+          }
         ],
         "demo_records": [
-          { "type": "check",      "ago": "Heute",           "notes": "DGUV V3 bestanden, kein Befund." },
-          { "type": "reparatur",  "ago": "Vor 12 Tagen",    "notes": "Lager getauscht, läuft wieder ruhig.", "cost": "34.90" },
-          { "type": "reinigung",  "ago": "Vor 1 Monat",     "notes": "Innenreinigung, Lüfter gereinigt." },
-          { "type": "inspektion", "ago": "Vor 3 Monaten",   "notes": "Saisoncheck vor der Festivalsaison." }
+          {
+            "type": "check",
+            "ago": "Heute",
+            "notes": "DGUV V3 bestanden, kein Befund."
+          },
+          {
+            "type": "reparatur",
+            "ago": "Vor 12 Tagen",
+            "notes": "Lager getauscht, läuft wieder ruhig.",
+            "cost": "34.90"
+          },
+          {
+            "type": "reinigung",
+            "ago": "Vor 1 Monat",
+            "notes": "Innenreinigung, Lüfter gereinigt."
+          },
+          {
+            "type": "inspektion",
+            "ago": "Vor 3 Monaten",
+            "notes": "Saisoncheck vor der Festivalsaison."
+          }
         ],
         "form_title": "Neuer Wartungseintrag",
         "form_photo_btn": "Foto hinzufügen",
@@ -1407,10 +1616,22 @@
         "benefits": {
           "title": "Was du damit dokumentierst",
           "items": [
-            { "title": "Geräte-Historie",         "desc": "Jeder technische Eingriff ist chronologisch und nachvollziehbar dokumentiert." },
-            { "title": "Überfälligkeits-Anzeige", "desc": "Status-Banner pro Gerät: grün / amber / rot – sofort sichtbar welches Gerät dran ist." },
-            { "title": "Schadensfotos",           "desc": "Fotos direkt aus der App aufnehmen und am Wartungseintrag speichern." },
-            { "title": "Quick-Confirm",           "desc": "\"Wartung heute bestätigt\" mit einem Tap – ohne Formular für schnelle Bestätigungen." }
+            {
+              "title": "Geräte-Historie",
+              "desc": "Jeder technische Eingriff ist chronologisch und nachvollziehbar dokumentiert."
+            },
+            {
+              "title": "Überfälligkeits-Anzeige",
+              "desc": "Status-Banner pro Gerät: grün / amber / rot – sofort sichtbar welches Gerät dran ist."
+            },
+            {
+              "title": "Schadensfotos",
+              "desc": "Fotos direkt aus der App aufnehmen und am Wartungseintrag speichern."
+            },
+            {
+              "title": "Quick-Confirm",
+              "desc": "\"Wartung heute bestätigt\" mit einem Tap – ohne Formular für schnelle Bestätigungen."
+            }
           ]
         },
         "tracked": {
@@ -1436,27 +1657,27 @@
     },
     "home": {
       "native": {
-        "headline_1":    "Dein Event-Gear",
-        "headline_2":    "vollständig im Griff",
-        "subtitle":      "Verwalte dein komplettes Inventar offline und in Echtzeit",
-        "cta_register":  "Kostenlos Registrieren",
-        "cta_login":     "Du hast bereits ein Konto? Melde dich an"
+        "headline_1": "Dein Event-Gear",
+        "headline_2": "vollständig im Griff",
+        "subtitle": "Verwalte dein komplettes Inventar offline und in Echtzeit",
+        "cta_register": "Kostenlos Registrieren",
+        "cta_login": "Du hast bereits ein Konto? Melde dich an"
       },
       "header": {
-        "install":      "App installieren",
-        "login":        "Anmelden",
+        "install": "App installieren",
+        "login": "Anmelden",
         "start_mobile": "Start"
       },
       "hero": {
-        "title_line1":   "Nie wieder fehlendes",
-        "title_highlight":"Equipment beim Gig.",
-        "subtitle":      "Perfekt für Verleiher, DJs und kleine Event-Teams, die den Überblick über ihr Equipment behalten wollen – ohne Excel-Chaos und manuelle Listen.",
-        "cta_features":  "Features ansehen",
-        "no_cc":         "Kein Kreditkarte. Keine Verpflichtung. Sofort loslegen.",
-        "mockup_alt":    "RigFlow Dashboard"
+        "title_line1": "Nie wieder fehlendes",
+        "title_highlight": "Equipment beim Gig.",
+        "subtitle": "Perfekt für Verleiher, DJs und kleine Event-Teams, die den Überblick über ihr Equipment behalten wollen – ohne Excel-Chaos und manuelle Listen.",
+        "cta_features": "Features ansehen",
+        "no_cc": "Kein Kreditkarte. Keine Verpflichtung. Sofort loslegen.",
+        "mockup_alt": "RigFlow Dashboard"
       },
       "qr_section": {
-        "title":       "QR-Code Scanning",
+        "title": "QR-Code Scanning",
         "description": "Erfasse dein Equipment mit einem Scan. Einfach. Schnell. Offline.",
         "items": [
           "QR-Codes für alle Geräte generieren",
@@ -1465,7 +1686,7 @@
         ]
       },
       "inventory_section": {
-        "title":       "Inventar-Übersicht",
+        "title": "Inventar-Übersicht",
         "description": "Alle Geräte auf einen Blick. Filter, suche und verwalte dein komplettes Equipment.",
         "items": [
           "Kategorien: Licht, Ton, Kabel & mehr",
@@ -1473,123 +1694,229 @@
           "Bilder und Notizen pro Gerät"
         ],
         "demo_items": [
-          { "name": "JBL EON 615",      "status": "verfügbar"  },
-          { "name": "Moving Head 250W", "status": "verliehen"  },
-          { "name": "SM58 Mikrofon",     "status": "verfügbar"  },
-          { "name": "XLR 10m (x8)",      "status": "in Einsatz" }
+          {
+            "name": "JBL EON 615",
+            "status": "verfügbar"
+          },
+          {
+            "name": "Moving Head 250W",
+            "status": "verliehen"
+          },
+          {
+            "name": "SM58 Mikrofon",
+            "status": "verfügbar"
+          },
+          {
+            "name": "XLR 10m (x8)",
+            "status": "in Einsatz"
+          }
         ]
       },
       "project_section": {
-        "badge":                "Projekt- & Pack-Management",
-        "title":                "Packlisten, die mitdenken.",
-        "description":          "Stell dein Material für Projekte zusammen und behalte beim Packen den Überblick. RigFlow zeigt dir in Echtzeit, was bereits verladen ist und was noch fehlt.",
+        "badge": "Projekt- & Pack-Management",
+        "title": "Packlisten, die mitdenken.",
+        "description": "Stell dein Material für Projekte zusammen und behalte beim Packen den Überblick. RigFlow zeigt dir in Echtzeit, was bereits verladen ist und was noch fehlt.",
         "sub_features": [
-          { "label": "Projekt-Reports", "desc": "Generiere Reports pro Event"   },
-          { "label": "Set-Listen",      "desc": "Packages schnell verwalten"    },
-          { "label": "Echtzeit",        "desc": "Verfügbarkeit live sehen"      }
+          {
+            "label": "Projekt-Reports",
+            "desc": "Generiere Reports pro Event"
+          },
+          {
+            "label": "Set-Listen",
+            "desc": "Packages schnell verwalten"
+          },
+          {
+            "label": "Echtzeit",
+            "desc": "Verfügbarkeit live sehen"
+          }
         ],
-        "demo_project_prefix":  "Projekt:",
-        "demo_project_name":    "Open Air Berlin",
-        "demo_project_meta":    "15. Juni 2025 · 3 Packages",
-        "demo_status_active":   "aktiv",
+        "demo_project_prefix": "Projekt:",
+        "demo_project_name": "Open Air Berlin",
+        "demo_project_meta": "15. Juni 2025 · 3 Packages",
+        "demo_status_active": "aktiv",
         "demo_packages": [
-          { "name": "PA System", "items": 8,  "done": 8  },
-          { "name": "Licht-Rig", "items": 12, "done": 10 },
-          { "name": "Backline",  "items": 5,  "done": 5  }
+          {
+            "name": "PA System",
+            "items": 8,
+            "done": 8
+          },
+          {
+            "name": "Licht-Rig",
+            "items": 12,
+            "done": 10
+          },
+          {
+            "name": "Backline",
+            "items": 5,
+            "done": 5
+          }
         ],
-        "demo_ready":           "bereit",
-        "demo_availability":    "23 von 25 Artikeln verfügbar"
+        "demo_ready": "bereit",
+        "demo_availability": "23 von 25 Artikeln verfügbar"
       },
       "tech_section": {
-        "badge":       "Das Herzstück",
-        "title":       "Mehr als nur eine Liste.",
+        "badge": "Das Herzstück",
+        "title": "Mehr als nur eine Liste.",
         "description": "RigFlow geht tiefer als andere Tools – mit Features, die du im täglichen Event-Betrieb wirklich brauchst.",
         "cards": [
           {
-            "title":      "DMX-Patchplan",
-            "tag":        "Licht & Technik",
-            "description":"Plane dein Universum. Verwalte Startadressen und Modi direkt am Gerät – Konflikte werden automatisch erkannt.",
+            "title": "DMX-Patchplan",
+            "tag": "Licht & Technik",
+            "description": "Plane dein Universum. Verwalte Startadressen und Modi direkt am Gerät – Konflikte werden automatisch erkannt.",
             "link_label": "DMX-Workflow ansehen"
           },
           {
-            "title":      "Wartung & Service",
-            "tag":        "DGUV V3 konform",
-            "description":"Tracke Prüfzyklen und reparierte Mängel in der Maintenance-Historie. Kein Gerät fällt durch die Prüfung.",
+            "title": "Wartung & Service",
+            "tag": "DGUV V3 konform",
+            "description": "Tracke Prüfzyklen und reparierte Mängel in der Maintenance-Historie. Kein Gerät fällt durch die Prüfung.",
             "link_label": "Service-Features ansehen"
           },
           {
-            "title":      "QR-Scanner Workflow",
-            "tag":        "Kern-Feature",
-            "description":"Verleih, Aufbau, Abbau, Inventur – vier Modi, ein Wizard. Ein Scan aktualisiert den Status und bucht gegen dein Projekt.",
+            "title": "QR-Scanner Workflow",
+            "tag": "Kern-Feature",
+            "description": "Verleih, Aufbau, Abbau, Inventur – vier Modi, ein Wizard. Ein Scan aktualisiert den Status und bucht gegen dein Projekt.",
             "link_label": "Scanner-Workflow ansehen"
           }
         ],
         "conflict_label": "Konflikt",
         "dmx_preview_rows": [
-          { "ch": "001", "name": "Spot A", "mode": "16ch" },
-          { "ch": "017", "name": "Spot B", "mode": "16ch" },
-          { "ch": "033", "name": "Hazer",  "mode": "4ch"  }
+          {
+            "ch": "001",
+            "name": "Spot A",
+            "mode": "16ch"
+          },
+          {
+            "ch": "017",
+            "name": "Spot B",
+            "mode": "16ch"
+          },
+          {
+            "ch": "033",
+            "name": "Hazer",
+            "mode": "4ch"
+          }
         ],
         "service_preview_rows": [
-          { "name": "SM58 #3",          "date": "12.03.25", "status": "geprüft" },
-          { "name": "Moving Head A",    "date": "01.06.25", "status": "fällig"  },
-          { "name": "Endstufe Crown",   "date": "—",        "status": "Mangel"  }
+          {
+            "name": "SM58 #3",
+            "date": "12.03.25",
+            "status": "geprüft"
+          },
+          {
+            "name": "Moving Head A",
+            "date": "01.06.25",
+            "status": "fällig"
+          },
+          {
+            "name": "Endstufe Crown",
+            "date": "—",
+            "status": "Mangel"
+          }
         ],
-        "scanner_modes": ["Verleih", "Aufbau", "Abbau/Rückgabe", "Inventur"]
+        "scanner_modes": [
+          "Verleih",
+          "Aufbau",
+          "Abbau/Rückgabe",
+          "Inventur"
+        ]
       },
       "security_section": {
         "security": {
-          "badge":        "Sicherheit & Datenschutz",
-          "title_line1":  "Sicherheit auf",
-          "title_line2":  "Enterprise-Level.",
-          "description":  "Deine Daten gehören dir. Mit Multi-Faktor-Authentisierung (MFA), regelmäßigen Backups und DSGVO-konformem Hosting ist dein Inventar jederzeit sicher.",
+          "badge": "Sicherheit & Datenschutz",
+          "title_line1": "Sicherheit auf",
+          "title_line2": "Enterprise-Level.",
+          "description": "Deine Daten gehören dir. Mit Multi-Faktor-Authentisierung (MFA), regelmäßigen Backups und DSGVO-konformem Hosting ist dein Inventar jederzeit sicher.",
           "items": [
-            { "label": "Multi-Faktor-Authentisierung (MFA)", "desc": "Kein unbefugter Zugriff auf dein Konto" },
-            { "label": "DSGVO-konformes Hosting",            "desc": "Daten in europäischen Rechenzentren"   },
-            { "label": "Automatische Backups",               "desc": "Dein Inventar ist immer gesichert"     },
-            { "label": "Account-Löschung jederzeit",         "desc": "Volle Kontrolle über deine Daten"      }
+            {
+              "label": "Multi-Faktor-Authentisierung (MFA)",
+              "desc": "Kein unbefugter Zugriff auf dein Konto"
+            },
+            {
+              "label": "DSGVO-konformes Hosting",
+              "desc": "Daten in europäischen Rechenzentren"
+            },
+            {
+              "label": "Automatische Backups",
+              "desc": "Dein Inventar ist immer gesichert"
+            },
+            {
+              "label": "Account-Löschung jederzeit",
+              "desc": "Volle Kontrolle über deine Daten"
+            }
           ]
         },
         "export": {
-          "badge":        "Import & Export",
-          "title_line1":  "Kein",
-          "title_line2":  "Vendor Lock-in.",
-          "description":  "Exportiere deine Daten jederzeit als CSV oder synchronisiere sie direkt mit Google Sheets – dein Inventar bleibt immer portabel.",
-          "csv_title":    "CSV-Export",
-          "csv_desc":     "Alle Daten als Datei herunterladen",
+          "badge": "Import & Export",
+          "title_line1": "Kein",
+          "title_line2": "Vendor Lock-in.",
+          "description": "Exportiere deine Daten jederzeit als CSV oder synchronisiere sie direkt mit Google Sheets – dein Inventar bleibt immer portabel.",
+          "csv_title": "CSV-Export",
+          "csv_desc": "Alle Daten als Datei herunterladen",
           "sheets_title": "Google Sheets",
-          "sheets_desc":  "Direkte Synchronisierung"
+          "sheets_desc": "Direkte Synchronisierung"
         }
       },
       "features_section": {
-        "title":       "Das bekommst du mit RigFlow",
+        "title": "Das bekommst du mit RigFlow",
         "description": "Alles, was du für professionelles Inventory-Management brauchst",
         "items": [
-          { "title": "Offline-Funktionen",  "description": "Arbeite überall, auch ohne Internet. Alles synchronisiert sich automatisch." },
-          { "title": "QR-Code Management",  "description": "Generiere und scanne QR-Codes. Schnelle Erfassung deiner Ausrüstung."        },
-          { "title": "Event-Checklisten",   "description": "Plane deine Gigs mit intelligenten Checklisten und Equipment-Paketen."        },
-          { "title": "Echtzeit-Sync",       "description": "Alle deine Geräte sind immer aktuell. Cloud-sicher und schnell."             },
-          { "title": "DMX-Konfiguration",   "description": "Verwalte deine DMX-Kanäle und Universen direkt in der App."                  },
-          { "title": "Audit-Log",           "description": "Nachverfolgung aller Änderungen. Wer hat was und wann gemacht?"              }
+          {
+            "title": "Offline-Funktionen",
+            "description": "Arbeite überall, auch ohne Internet. Alles synchronisiert sich automatisch."
+          },
+          {
+            "title": "QR-Code Management",
+            "description": "Generiere und scanne QR-Codes. Schnelle Erfassung deiner Ausrüstung."
+          },
+          {
+            "title": "Event-Checklisten",
+            "description": "Plane deine Gigs mit intelligenten Checklisten und Equipment-Paketen."
+          },
+          {
+            "title": "Echtzeit-Sync",
+            "description": "Alle deine Geräte sind immer aktuell. Cloud-sicher und schnell."
+          },
+          {
+            "title": "DMX-Konfiguration",
+            "description": "Verwalte deine DMX-Kanäle und Universen direkt in der App."
+          },
+          {
+            "title": "Audit-Log",
+            "description": "Nachverfolgung aller Änderungen. Wer hat was und wann gemacht?"
+          }
         ]
       },
       "cta_section": {
         "title": "Bereit, dein Inventar-Chaos zu beenden?",
-        "btn":   "Inventar jetzt organisieren",
+        "btn": "Inventar jetzt organisieren",
         "no_cc": "Kostenlos. Keine Kreditkarte. Sofort starten."
       },
       "footer": {
-        "brand_desc":    "Das Inventar-Management für Veranstaltungstechniker.",
-        "col_product":   "Produkt",
+        "brand_desc": "Das Inventar-Management für Veranstaltungstechniker.",
+        "col_product": "Produkt",
         "link_features": "Features",
-        "link_start":    "Jetzt starten",
-        "link_dmx":      "DMX-Workflow",
-        "col_legal":     "Rechtliches",
-        "privacy":       "Datenschutz",
-        "col_contact":   "Kontakt",
-        "copyright":     "© 2026 RigFlow. Gebaut für Veranstaltungstechniker.",
-        "made_with":     "Made with ❤️ for the live events industry."
+        "link_start": "Jetzt starten",
+        "link_dmx": "DMX-Workflow",
+        "col_legal": "Rechtliches",
+        "privacy": "Datenschutz",
+        "col_contact": "Kontakt",
+        "copyright": "© 2026 RigFlow. Gebaut für Veranstaltungstechniker.",
+        "made_with": "Made with ❤️ for the live events industry."
+      },
+      "how": {
+        "eyebrow": "So funktioniert's",
+        "title": "In drei Schritten startklar.",
+        "step1_title": "Inventar anlegen",
+        "step1_desc": "Erfasse dein Equipment mit Kategorie, Seriennummer und Lagerort.",
+        "step2_title": "QR-Codes anbringen",
+        "step2_desc": "Generiere für jedes Gerät einen QR-Code und kleb ihn auf Gerät oder Case.",
+        "step3_title": "Scannen und packen",
+        "step3_desc": "Scanne bei Verleih, Aufbau und Abbau – der Status aktualisiert sich sofort."
       }
+    },
+    "nav": {
+      "label": "Hauptnavigation",
+      "service": "Service"
     }
   },
   "project_detail": {
@@ -1603,12 +1930,10 @@
     "mark_in_use_desc": "Standort → \"{{name}}\"",
     "finalize_toast": "Projekt abgeschlossen",
     "finalize_desc": "\"{{name}}\" wurde archiviert.",
-
     "date_picker": {
       "start_label": "Startdatum",
       "end_label": "Enddatum"
     },
-
     "phase_template": {
       "available": "Checkliste \"{{label}}\" verfügbar",
       "count_hint": "{{count}} Standard-Aufgaben hinzufügen?",
@@ -1678,14 +2003,12 @@
         }
       }
     },
-
     "conflict": {
       "defect": "Defekt",
       "lending_named": "Verliehen an {{name}}",
       "lending": "Im Verleih",
       "project": "Im Einsatz"
     },
-
     "finalize": {
       "title": "Projekt abschließen",
       "description": "\"{{name}}\" wird archiviert. Aktueller Stand:",
@@ -1717,21 +2040,25 @@
       "submitting": "Wird abgeschlossen...",
       "done_title": "Projekt archiviert",
       "done_desc": "\"{{name}}\" wurde abgeschlossen. Alle Items wurden zurückgebucht.",
-      "close": "Schließen"
+      "close": "Schließen",
+      "report_open": "Vorschau",
+      "back_to_projects": "Zu den Projekten",
+      "failed": "Projekt konnte nicht abgeschlossen werden",
+      "maintenance_failed": "Wartungseinträge für beschädigte Artikel konnten nicht angelegt werden",
+      "maintenance_note": "Schaden nach Projekt „{{name}}“ festgestellt"
     },
-
     "edit_quantity": {
       "title": "Menge bearbeiten",
       "label": "Menge",
       "max_hint": "(max. {{max}})",
       "saving": "Speichern...",
-      "save": "Speichern"
+      "save": "Speichern",
+      "decrease": "Menge verringern",
+      "increase": "Menge erhöhen"
     },
-
     "edit_dialog": {
       "notes_label": "Notizen"
     },
-
     "picker": {
       "title": "Equipment hinzufügen",
       "desc": "Pakete oder Einzelartikel zum Projekt hinzufügen.",
@@ -1748,16 +2075,13 @@
       "add_btn": "Hinzufügen",
       "item_meta": "{{category}} · {{location}} · Bestand: {{quantity}}"
     },
-
     "package_group": {
       "packed_count": "{{packed}}/{{total}} gepackt",
       "item_count": "{{count}} Artikel",
       "all_packed": "✓ Vollständig",
       "empty": "Paket enthält keine Artikel"
     },
-
     "direct_items_title": "Direktartikel",
-
     "equipment": {
       "aufbau_title": "Equipment als \"Im Einsatz\" markieren",
       "aufbau_desc": "Standort → Projektname · Condition → Im Einsatz",
@@ -1778,17 +2102,22 @@
       "add_btn": "Equipment hinzufügen",
       "packages_section": "Pakete",
       "empty_title": "Noch kein Equipment zugewiesen",
-      "empty_desc": "Füge Pakete oder Einzelartikel hinzu."
+      "empty_desc": "Füge Pakete oder Einzelartikel hinzu.",
+      "positions_one": "{{count}} Position",
+      "positions_other": "{{count}} Positionen",
+      "remove_package": "Paket entfernen",
+      "remove_package_title": "Paket entfernen?",
+      "remove_package_desc_one": "„{{name}}“ und {{count}} Artikel werden aus dem Projekt entfernt. Artikel im Einsatz werden an ihren Originalstandort zurückgebucht.",
+      "remove_package_desc_other": "„{{name}}“ und {{count}} Artikel werden aus dem Projekt entfernt. Artikel im Einsatz werden an ihren Originalstandort zurückgebucht."
     },
-
     "todos": {
       "progress": "{{done}} von {{total}} erledigt",
       "new_placeholder": "Neue Aufgabe...",
       "empty_title": "Noch keine Todos",
       "empty_desc": "Erstelle Aufgaben für dieses Projekt.",
-      "empty_archived": "Dieses Projekt ist archiviert."
+      "empty_archived": "Dieses Projekt ist archiviert.",
+      "drag_handle": "Zum Sortieren ziehen"
     },
-
     "sidebar": {
       "info_title": "Projektinfo",
       "date_until": "bis {{date}}",
@@ -1801,11 +2130,25 @@
       "conflicts_title": "Equipment-Konflikte",
       "conflicts_desc": "{{count}} Artikel sind defekt, verliehen oder anderweitig im Einsatz. Trotzdem buchbar — prüfe die Verfügbarkeit."
     },
-
     "returning_banner": {
       "title": "Rücklauf abschließen",
       "desc": "Equipment zurückbuchen, Schäden dokumentieren und das Projekt archivieren.",
       "btn": "Projekt abschließen"
+    },
+    "status_menu_label": "Status ändern",
+    "status_next": "nächster",
+    "favorite_toggle": "Als Favorit markieren",
+    "toast": {
+      "marked_in_use": "Equipment als „Im Einsatz“ markiert"
+    },
+    "report": {
+      "popup_blocked": "Druckfenster wurde blockiert. Erlaube Pop-ups für diese Seite."
+    },
+    "dmx": {
+      "stat_devices": "Geräte",
+      "stat_instances": "Instanzen",
+      "stat_universes": "Universen",
+      "stat_conflicts": "Konflikte"
     }
   },
   "register": {
@@ -1858,23 +2201,25 @@
     "finale_resend_done": "✓ E-Mail erneut gesendet",
     "finale_resend_prompt": "Keine E-Mail erhalten? Erneut senden",
     "go_to_login": "Zum Login",
-    "login_link": "Anmelden"
+    "login_link": "Anmelden",
+    "title": "Konto erstellen",
+    "subtitle": "Kostenlos und ohne Kreditkarte. In einer Minute startklar.",
+    "label_name": "Dein Name",
+    "label_warehouse": "Name deines Lagers",
+    "submit": "Konto erstellen",
+    "terms_notice": "Mit der Registrierung akzeptierst du die <terms>Nutzungsbedingungen</terms> und die <privacy>Datenschutzerklärung</privacy>."
   },
   "onboarding": {
     "step_indicator": "Schritt {{current}} von {{total}}",
- 
     "notifications_title": "Benachrichtigungen",
     "notifications_description": "RigFlow erinnert dich an überfällige Rückgaben und wichtige Ereignisse – direkt auf dein Gerät.",
     "notifications_allow": "Benachrichtigungen erlauben",
- 
     "camera_title": "Kamera & Fotos",
     "camera_description": "Fotografiere Equipment direkt aus der App oder lade Bilder aus deiner Galerie hoch.",
     "camera_allow": "Kamera erlauben",
- 
     "analytics_title": "Nutzungsanalyse",
     "analytics_description": "Darf RigFlow anonymisierte Nutzungsdaten sammeln? Das hilft uns, die App zu verbessern – ohne dass wir wissen, wer du bist.",
     "analytics_allow": "Ja, gerne helfen",
- 
     "skip": "Nicht jetzt"
   },
   "condition": {
@@ -1889,7 +2234,8 @@
       "mode": "Modus wählen",
       "context": "Details eingeben",
       "scan": "Items scannen",
-      "summary": "Zusammenfassung"
+      "summary": "Zusammenfassung",
+      "progress": "Schritt {{current}} von {{total}}"
     },
     "mode": {
       "verleih": {
@@ -1922,7 +2268,8 @@
       "project_empty": "Projekt hat noch keine Items",
       "condition_hint_title": "Zustand beim Abbau",
       "condition_hint_desc": "Den Zustand jedes Items kannst du in der Zusammenfassung festlegen.",
-      "next_button": "Weiter – Scanner öffnen"
+      "next_button": "Weiter – Scanner öffnen",
+      "project_load_error": "Projekt-Items konnten nicht geladen werden"
     },
     "scan": {
       "all_scanned": "Alle Projekt-Items gescannt!",
@@ -1932,7 +2279,9 @@
       "scanned_count": "{{count}} Item(s) gescannt",
       "not_in_project_warning_one": "1 Artikel ist nicht im Projekt \"{{project}}\"",
       "not_in_project_warning_other": "{{count}} Artikel sind nicht im Projekt \"{{project}}\"",
-      "to_summary": "Zur Zusammenfassung ({{count}})"
+      "to_summary": "Zur Zusammenfassung ({{count}})",
+      "remove_entry": "{{name}} entfernen",
+      "inventur_hint": "Ein Scan öffnet direkt die Detailansicht des Items."
     },
     "summary": {
       "action_label": "Aktion",
@@ -1945,7 +2294,11 @@
       "cond_missing": "? Fehlt",
       "inventur_hint": "Inventur ändert keine Status — es wird nur protokolliert was gescannt wurde.",
       "saving": "Wird gespeichert…",
-      "confirm": "Bestätigen"
+      "confirm": "Bestätigen",
+      "project_label": "Projekt",
+      "condition_ok": "OK",
+      "condition_damaged": "Beschädigt",
+      "condition_missing": "Fehlt"
     },
     "confirm": {
       "booked_verleih": "Verleih gebucht",
@@ -1966,6 +2319,33 @@
       "no_items_desc": "Scanne mindestens ein Item.",
       "save_error_title": "Fehler beim Speichern",
       "save_error_unknown": "Unbekannter Fehler"
+    },
+    "camera": {
+      "hint": "QR-Code in den Rahmen halten",
+      "error_title": "Kamera nicht verfügbar",
+      "error": {
+        "unsupported": "Dein Browser unterstützt keinen Kamerazugriff. Gib den Code manuell ein.",
+        "denied": "Der Kamerazugriff wurde verweigert. Erlaube ihn in den Browser- oder App-Einstellungen und versuch es erneut.",
+        "not_found": "Es wurde keine Kamera gefunden.",
+        "in_use": "Die Kamera wird gerade von einer anderen App verwendet.",
+        "unknown": "Die Kamera konnte nicht gestartet werden."
+      }
+    },
+    "manual": {
+      "toggle": "Code eingeben"
+    },
+    "result": {
+      "done": "Fertig",
+      "added": "Zur Liste hinzugefügt",
+      "added_not_in_project": "Hinzugefügt – nicht im Projekt",
+      "not_in_project_badge": "Nicht im Projekt",
+      "invalid_title": "Kein RigFlow-Code",
+      "invalid_desc": "Dieser QR-Code enthält keine Item-ID.",
+      "no_projects": "Keinem Projekt zugeordnet"
+    },
+    "empty_inventory": {
+      "title": "Noch keine Items im Inventar",
+      "description": "Lege zuerst Items an und drucke ihre QR-Labels – dann kannst du hier scannen."
     }
   },
   "appearance": {
@@ -2011,10 +2391,22 @@
       "label": "Farbenblindheits-Modus",
       "description": "Passt die Farbpalette an verschiedene Formen der Farbenblindheit an.",
       "modes": {
-        "none":         { "label": "Keine",        "desc": "Standard-Farbdarstellung" },
-        "deuteranopia": { "label": "Deuteranopie", "desc": "Rot-Grün-Schwäche (häufigste Form)" },
-        "protanopia":   { "label": "Protanopie",   "desc": "Rot-Blindheit" },
-        "tritanopia":   { "label": "Tritanopie",   "desc": "Blau-Gelb-Schwäche" }
+        "none": {
+          "label": "Keine",
+          "desc": "Standard-Farbdarstellung"
+        },
+        "deuteranopia": {
+          "label": "Deuteranopie",
+          "desc": "Rot-Grün-Schwäche (häufigste Form)"
+        },
+        "protanopia": {
+          "label": "Protanopie",
+          "desc": "Rot-Blindheit"
+        },
+        "tritanopia": {
+          "label": "Tritanopie",
+          "desc": "Blau-Gelb-Schwäche"
+        }
       }
     },
     "shortcuts": {
@@ -2037,6 +2429,10 @@
       "item_colorblind": "Farbenblindheits-Modus: Keine",
       "item_shortcuts": "Tastaturkürzel: An",
       "button": "Auf Standard zurücksetzen"
+    },
+    "language": {
+      "de": "Deutsch",
+      "en": "English"
     }
   },
   "notifications": {
@@ -2059,7 +2455,9 @@
     "new_members_description": "Erhalte eine Meldung wenn jemand deiner Organisation beitritt.",
     "security_alerts_label": "Sicherheitswarnungen",
     "security_alerts_description": "Erhalte eine Meldung wenn sich ein neues Gerät mit deinem Konto anmeldet.",
-    "footer_hint": "Die Zustellung erfolgt über Push-Benachrichtigungen direkt auf dein Gerät."
+    "footer_hint": "Die Zustellung erfolgt über Push-Benachrichtigungen direkt auf dein Gerät.",
+    "push_allow": "Erlauben",
+    "push_unsupported": "Dieser Browser unterstützt keine Push-Benachrichtigungen. Installiere RigFlow als App, um Hinweise zu erhalten."
   },
   "privacy": {
     "auth_section_title": "Authentifizierung",
@@ -2168,87 +2566,113 @@
     "hero_title_1": "Scannen –",
     "hero_title_2": "nicht suchen.",
     "hero_description": "Ein QR-Code-Scan setzt den Status deines Equipments – ob Verleih, Aufbau, Rückgabe oder Inventur. Der wizard-basierte Scanner führt dich in vier einfachen Schritten durch den kompletten Workflow.",
-
     "modes": {
-      "verleih":  { "label": "Verleih",           "description": "Equipment ausgeben und als verliehen markieren",                        "target_status": "verliehen"  },
-      "aufbau":   { "label": "Aufbau",            "description": "Items als \"Im Einsatz\" markieren – optional gegen Projekt prüfen",    "target_status": "im Einsatz" },
-      "abbau":    { "label": "Abbau / Rückgabe",  "description": "Items zurückbuchen und Zustand beim Scannen erfassen",                  "target_status": "verfügbar"  },
-      "inventur": { "label": "Inventur",           "description": "Vorhandene Items erfassen und Bestand überprüfen",                      "target_status": "verfügbar"  }
+      "verleih": {
+        "label": "Verleih",
+        "description": "Equipment ausgeben und als verliehen markieren",
+        "target_status": "verliehen"
+      },
+      "aufbau": {
+        "label": "Aufbau",
+        "description": "Items als \"Im Einsatz\" markieren – optional gegen Projekt prüfen",
+        "target_status": "im Einsatz"
+      },
+      "abbau": {
+        "label": "Abbau / Rückgabe",
+        "description": "Items zurückbuchen und Zustand beim Scannen erfassen",
+        "target_status": "verfügbar"
+      },
+      "inventur": {
+        "label": "Inventur",
+        "description": "Vorhandene Items erfassen und Bestand überprüfen",
+        "target_status": "verfügbar"
+      }
     },
-
     "steps": {
-      "mode":    "Modus wählen",
+      "mode": "Modus wählen",
       "context": "Details eingeben",
-      "scan":    "Items scannen",
+      "scan": "Items scannen",
       "summary": "Zusammenfassung"
     },
-
     "demo": {
-      "section_title":    "So funktioniert's – interaktiv",
+      "section_title": "So funktioniert's – interaktiv",
       "mode_select_label": "Modus wählen",
-      "scanner_title":    "Scanner",
-      "hint":             "Wähle links einen Modus – der Wizard rechts zeigt den echten App-Flow."
+      "scanner_title": "Scanner",
+      "hint": "Wähle links einen Modus – der Wizard rechts zeigt den echten App-Flow."
     },
-
     "context_step": {
-      "lend_to_label":           "An wen wird verliehen? *",
-      "lend_to_placeholder":     "Max Mustermann",
-      "return_until_label":      "Rückgabe bis (optional)",
+      "lend_to_label": "An wen wird verliehen? *",
+      "lend_to_placeholder": "Max Mustermann",
+      "return_until_label": "Rückgabe bis (optional)",
       "return_until_placeholder": "20.05.2026",
-      "project_label":           "Projekt zur Prüfung (optional)",
-      "project_items_expected":  "{{count}} Items im Projekt erwartet",
-      "inventur_info":           "Inventur ändert keine Status — es wird nur protokolliert was gescannt wurde.",
-      "next_button":             "Weiter – Scanner öffnen"
+      "project_label": "Projekt zur Prüfung (optional)",
+      "project_items_expected": "{{count}} Items im Projekt erwartet",
+      "inventur_info": "Inventur ändert keine Status — es wird nur protokolliert was gescannt wurde.",
+      "next_button": "Weiter – Scanner öffnen"
     },
-
     "scan_step": {
       "project_progress": "{{scanned}} / {{total}}",
-      "scan_more":        "Weiteren scannen",
-      "items_scanned":    "{{count}} Items gescannt",
-      "to_summary":       "Zur Zusammenfassung ({{count}})"
+      "scan_more": "Weiteren scannen",
+      "items_scanned": "{{count}} Items gescannt",
+      "to_summary": "Zur Zusammenfassung ({{count}})"
     },
-
     "summary_step": {
-      "action_label":      "Aktion",
-      "project_info":      "Projekt: {{name}}",
-      "lend_info":         "An: {{name}} · bis {{date}}",
-      "items_count":       "{{count}} Items",
-      "condition_ok":      "✓ OK",
-      "condition_defect":  "! Defekt",
+      "action_label": "Aktion",
+      "project_info": "Projekt: {{name}}",
+      "lend_info": "An: {{name}} · bis {{date}}",
+      "items_count": "{{count}} Items",
+      "condition_ok": "✓ OK",
+      "condition_defect": "! Defekt",
       "condition_missing": "? Fehlt",
-      "confirm":           "Bestätigen"
+      "confirm": "Bestätigen"
     },
-
     "features": {
       "section_title": "Vier Modi, ein Workflow",
-      "verleih":  { "title": "Verleih",          "desc": "Nach Angabe der Person und des Verleihdatums wird das Gerät als Verliehen markiert. Gut geeignet für Verleihbetrieb und externe Ausleihen." },
-      "aufbau":   { "title": "Aufbau",           "desc": "Prüfe ob alle Geräte für ein Event schon gepackt sind. Die gescannten Items werden dann direkt als \"Im Einsatz\" markiert, so weißt du immer, wo dein Equipment ist." },
-      "abbau":    { "title": "Abbau / Rückgabe", "desc": "Direkt beim Abbauen den Zustand deiner Geräte dokumentieren: OK, Defekt oder Fehlt. So kannst du besser Ersatzteile und Reparaturen planen." },
-      "inventur": { "title": "Inventur",          "desc": "Der Scan öffnet die Detailansicht eines Items. So kannst du nicht nur sehen, wo ein Gerät gelagert ist, sondern auch direkt den Zustand prüfen und protokollieren – ideal für regelmäßige Bestandschecks." }
+      "verleih": {
+        "title": "Verleih",
+        "desc": "Nach Angabe der Person und des Verleihdatums wird das Gerät als Verliehen markiert. Gut geeignet für Verleihbetrieb und externe Ausleihen."
+      },
+      "aufbau": {
+        "title": "Aufbau",
+        "desc": "Prüfe ob alle Geräte für ein Event schon gepackt sind. Die gescannten Items werden dann direkt als \"Im Einsatz\" markiert, so weißt du immer, wo dein Equipment ist."
+      },
+      "abbau": {
+        "title": "Abbau / Rückgabe",
+        "desc": "Direkt beim Abbauen den Zustand deiner Geräte dokumentieren: OK, Defekt oder Fehlt. So kannst du besser Ersatzteile und Reparaturen planen."
+      },
+      "inventur": {
+        "title": "Inventur",
+        "desc": "Der Scan öffnet die Detailansicht eines Items. So kannst du nicht nur sehen, wo ein Gerät gelagert ist, sondern auch direkt den Zustand prüfen und protokollieren – ideal für regelmäßige Bestandschecks."
+      }
     },
-
     "project_integration": {
       "section_title": "Eng verzahnt mit deinen Projekten",
-      "check":           { "title": "Projekt-Check",    "desc": "Beim Aufbau oder Abbau direkt gegen ein laufendes Projekt scannen – gescannte Items werden automatisch als \"gepackt\" markiert." },
-      "not_in_set":      { "title": "Nicht im Set?",    "desc": "Gescannte Items die nicht im Projekt-Package sind werden sofort markiert." },
-      "location_update": { "title": "Location-Update",  "desc": "Beim Aufbau mit Projekt wird der Standort des Geräts automatisch auf den Projektnamen gesetzt." }
+      "check": {
+        "title": "Projekt-Check",
+        "desc": "Beim Aufbau oder Abbau direkt gegen ein laufendes Projekt scannen – gescannte Items werden automatisch als \"gepackt\" markiert."
+      },
+      "not_in_set": {
+        "title": "Nicht im Set?",
+        "desc": "Gescannte Items die nicht im Projekt-Package sind werden sofort markiert."
+      },
+      "location_update": {
+        "title": "Location-Update",
+        "desc": "Beim Aufbau mit Projekt wird der Standort des Geräts automatisch auf den Projektnamen gesetzt."
+      }
     },
-
     "cta": {
-      "title":  "Scannen statt tippen – ab heute.",
+      "title": "Scannen statt tippen – ab heute.",
       "button": "Kostenlos starten"
     },
-
     "footer": {
       "copyright": "© 2026 RigFlow",
-      "imprint":   "Impressum",
-      "privacy":   "Datenschutz"
+      "imprint": "Impressum",
+      "privacy": "Datenschutz"
     },
-
     "demo_items": {
-      "cat_audio":    "Ton",
+      "cat_audio": "Ton",
       "cat_lighting": "Lichttechnik",
-      "cat_effects":  "Effekte"
+      "cat_effects": "Effekte"
     }
   },
   "about": {
@@ -2296,41 +2720,82 @@
         "label": "Deine Daten",
         "desc": "MFA, DSGVO-konform, Export jederzeit möglich."
       }
-      }
-  },
-  "attr": {
-    "common": {
-      "unit_price": "Stückpreis",
-      "weight_kg": "Gewicht",
-      "dimensions_cm": "Abmessungen",
-      "units_per_case": "Stück pro Karton",
-      "connectivity": "Anschlüsse"
-    },
-    "audio": {
-      "frequency_range": "Frequenzbereich",
-      "impedance": "Impedanz",
-      "connector_type": "Anschlusstyp"
-    },
-    "video": {
-      "resolution": "Auflösung"
-    },
-    "licht": {
-      "lamp_type": "Lampentyp",
-      "cooling": "Kühlung",
-      "beam_angle_min": "Abstrahlwinkel (min)",
-      "beam_angle_max": "Abstrahlwinkel (max)",
-      "dmx_mode": "DMX-Modus"
-    },
-    "rigging": {
-      "load_capacity": "Tragkraft",
-      "material": "Material"
-    },
-    "strom": {
-      "amperage": "Stromstärke",
-      "voltage": "Spannung"
-    },
-    "network": {
-      "bandwidth": "Bandbreite"
     }
+  },
+  "validation": {
+    "dmx_address_nan": "DMX-Adresse muss eine Zahl sein",
+    "dmx_address_min": "DMX-Adresse muss mindestens 1 sein",
+    "dmx_address_max": "DMX-Adresse darf maximal 512 sein",
+    "range_start": "Start: {{error}}",
+    "range_end": "Ende: {{error}}",
+    "range_order": "End-Adresse muss größer oder gleich Start-Adresse sein",
+    "range_too_large": "Range zu groß: {{range}} Kanäle (max 512)",
+    "channels_nan": "Kanäle müssen eine Zahl sein",
+    "channels_min": "Kanäle müssen mindestens 1 sein",
+    "channels_max": "Kanäle dürfen maximal 512 sein",
+    "quantity_nan": "Menge muss eine Zahl sein",
+    "quantity_min": "Menge muss mindestens 1 sein",
+    "quantity_max": "Menge darf maximal 9999 sein",
+    "required": "Dieses Feld ist erforderlich",
+    "min_length": "Mindestens {{min}} Zeichen erforderlich",
+    "max_length": "Maximal {{max}} Zeichen erlaubt",
+    "email_required": "Email-Adresse erforderlich",
+    "email_invalid": "Ungültige Email-Adresse",
+    "uuid_required": "UUID erforderlich",
+    "uuid_invalid": "Ungültiges UUID-Format",
+    "universe_nan": "Universe muss eine Zahl sein",
+    "universe_min": "Universe muss mindestens 1 sein",
+    "universe_max": "Universe darf maximal 500 sein"
+  },
+  "wishlist": {
+    "new_button": "Vorschlag",
+    "admin_hint": "Admin-Ansicht: Status ändern und löschen aktiv",
+    "form_title": "Neuer Vorschlag",
+    "title_label": "Titel",
+    "title_placeholder": "Funktion kurz beschreiben",
+    "description_label": "Details (optional)",
+    "submit": "Einreichen",
+    "submitting": "Wird eingereicht…",
+    "submit_error": "Vorschlag konnte nicht eingereicht werden.",
+    "submitted": "Danke für deinen Vorschlag!",
+    "empty_title": "Noch keine Vorschläge",
+    "empty_description": "Sei der Erste und schlage eine Funktion vor.",
+    "vote": "Abstimmen",
+    "unvote": "Stimme zurückziehen",
+    "vote_error": "Deine Stimme konnte nicht gespeichert werden.",
+    "update_error": "Änderung konnte nicht gespeichert werden.",
+    "delete_title": "Vorschlag löschen?",
+    "delete_description": "„{{title}}“ wird dauerhaft entfernt.",
+    "status_label": "Status",
+    "status": {
+      "offen": "Offen",
+      "geplant": "Geplant",
+      "in_arbeit": "In Arbeit",
+      "umgesetzt": "Umgesetzt",
+      "abgelehnt": "Abgelehnt"
+    }
+  },
+  "feedback": {
+    "audit_load_failed": "Aktivitätsprotokoll konnte nicht geladen werden.",
+    "loan_save_failed": "Verleih konnte nicht gespeichert werden.",
+    "loan_created": "Verleih erfasst",
+    "loan_created_desc": "{{item}} an {{person}} verliehen.",
+    "return_failed": "Rückgabe konnte nicht erfasst werden.",
+    "return_recorded": "Rückgabe erfasst",
+    "return_recorded_desc": "Artikel wurde als zurückgegeben markiert.",
+    "delete_failed": "Eintrag konnte nicht gelöscht werden.",
+    "notice": "Hinweis",
+    "item_already_in_package": "Artikel ist bereits im Paket enthalten.",
+    "packages_load_failed": "Pakete konnten nicht geladen werden.",
+    "projects_load_failed": "Projekte konnten nicht geladen werden.",
+    "device_not_found": "Gerät nicht gefunden",
+    "dmx_invalid_address": "Ungültige DMX-Adresse (1–512)",
+    "dmx_no_room": "Benötigt {{channels}} Kanäle – kein Platz ab {{start}}.",
+    "saved": "Gespeichert",
+    "dmx_instance_saved": "Instanz {{instance}}: CH {{start}}–{{end}}, Universe {{universe}}",
+    "save_failed": "Konnte nicht gespeichert werden.",
+    "reset": "Zurückgesetzt",
+    "dmx_instance_reset": "Instanz nutzt wieder die Standard-Adresse aus dem Inventar.",
+    "dmx_no_free_block": "Kein freier Block ({{channels}} Kanäle) in Universe {{universe}}"
   }
-  }
+}

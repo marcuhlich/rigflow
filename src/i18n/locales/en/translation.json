@@ -128,7 +128,8 @@
     "verifying_link": "Verifying link…",
     "change_password_error": "Password could not be changed. Please request a new link.",
     "passwords_dont_match": "Passwords do not match",
-    "please_wait": "Please wait..."
+    "please_wait": "Please wait...",
+    "request_new_link": "Request a new link"
   },
   "settings": {
     "title": "Settings",
@@ -145,7 +146,9 @@
     "terms_link": "Terms of Use",
     "imprint_link": "Legal Notice",
     "privacy_policy_link": "Privacy Policy",
-    "about_rigflow": "About RigFlow"
+    "about_rigflow": "About RigFlow",
+    "member_since": "Member since",
+    "account_id": "Account ID"
   },
   "category_settings": {
     "title": "Category Attributes",
@@ -153,7 +156,8 @@
     "available_fields": "Available fields for {{category}}",
     "attribute_enabled": "{{attr}} enabled",
     "attribute_disabled": "{{attr}} disabled",
-    "error_updating_attribute": "Error updating attribute"
+    "error_updating_attribute": "Error updating attribute",
+    "empty_fields": "This category has no configurable fields."
   },
   "audit": {
     "panel_title": "Recent Changes",
@@ -265,7 +269,10 @@
     },
     "account": {
       "logout_desc": "Sign out as {{email}}"
-    }
+    },
+    "search_inventory_for": "Search inventory for “{{query}}”",
+    "hint_navigate": "Navigate",
+    "hint_select": "Select"
   },
   "demo": {
     "badge": "Demo Account",
@@ -324,7 +331,23 @@
     "conflicts_title": "DMX address conflicts in project",
     "conflicts_more": "… and {{count}} more",
     "readonly_hint": "Archived project — DMX configuration is read-only.",
-    "isolation_hint": "DMX addresses here are valid <strong class=\"text-foreground\">for this project only</strong>"
+    "isolation_hint": "DMX addresses here are valid <strong class=\"text-foreground\">for this project only</strong>",
+    "toast": {
+      "error": "Error",
+      "device_not_found": "Device not found",
+      "invalid_address": "Invalid DMX address (1-512)",
+      "not_enough_space_from": "Needs {{channels}} channels. Not enough space from address {{address}}.",
+      "saved": "Saved",
+      "instance_saved": "Instance {{instance}}: address {{start}}–{{end}}, universe {{universe}}",
+      "save_failed": "Could not be saved.",
+      "reset": "Reset",
+      "instance_reset": "Instance {{instance}} uses the default addresses again.",
+      "reset_failed": "Could not be reset.",
+      "success": "Success",
+      "base_address_updated": "Base address updated: {{address}}",
+      "universe_updated": "Universe updated: {{universe}}",
+      "universe_full": "Not enough space in universe {{universe}}"
+    }
   },
   "dmx_table": {
     "conflict_message": "Overlaps with {{name}} ({{start}}–{{end}})",
@@ -476,7 +499,10 @@
   },
   "image_upload": {
     "preview_alt": "Image",
-    "select_button": "Select image"
+    "select_button": "Select image",
+    "replace": "Replace",
+    "remove": "Remove image",
+    "error": "Image could not be uploaded."
   },
   "inventory_grid": {
     "lent_until": "until"
@@ -492,7 +518,10 @@
       "name_required": "Name is required",
       "category_required": "Category is required",
       "quantity_zero": "Quantity must be greater than 0",
-      "units_per_case_exceeds_quantity": "Cannot exceed total quantity"
+      "units_per_case_exceeds_quantity": "Cannot exceed total quantity",
+      "range": "Must be between {{min}} and {{max}}",
+      "summary": "Please check the highlighted fields.",
+      "dmx_instances_save": "The item was saved, but its DMX instances were not."
     },
     "label": {
       "name": "Name",
@@ -531,22 +560,32 @@
     "dmx": {
       "instance_1_hint": "(Instance 1)",
       "all_instances": "All instances",
-      "instance_sync_hint": "Instance #1 is always in sync with the base fields above"
-    }
+      "instance_sync_hint": "Instance #1 is always in sync with the base fields above",
+      "end_address": "End",
+      "out_of_range": "At least one instance ends beyond channel 512.",
+      "instances_after_save": "Addresses are assigned consecutively. You can adjust individual instances after saving."
+    },
+    "section": {
+      "general": "General",
+      "value": "Value & accessories"
+    },
+    "case_summary_one": "{{count}} case of {{perCase}}",
+    "case_summary_other": "{{count}} cases of {{perCase}}",
+    "case_remainder": "+ {{count}} loose"
   },
   "attr": {
     "licht": {
-      "lamp_type": "Lamp type",
+      "lamp_type": "Lamp Type",
       "cooling": "Cooling",
-      "beam_angle_min": "Beam angle min.",
-      "beam_angle_max": "Beam angle max.",
-      "dmx_mode": "DMX mode"
+      "beam_angle_min": "Beam Angle (min)",
+      "beam_angle_max": "Beam Angle (max)",
+      "dmx_mode": "DMX Mode"
     },
     "audio": {
-      "frequency_range": "Frequency range",
+      "frequency_range": "Frequency Range",
       "is_active": "Active (with amplifier)",
       "impedance": "Impedance",
-      "connector_type": "Connector"
+      "connector_type": "Connector Type"
     },
     "video": {
       "resolution": "Resolution",
@@ -556,18 +595,31 @@
     "rigging": {
       "wll": "Working load limit (WLL)",
       "self_weight": "Self weight",
-      "certification_date": "Inspection date"
+      "certification_date": "Inspection date",
+      "load_capacity": "Load Capacity",
+      "material": "Material"
     },
     "strom": {
       "voltage": "Voltage",
       "max_amperage": "Max. current",
       "connector_in": "Input",
-      "connector_out": "Output"
+      "connector_out": "Output",
+      "amperage": "Amperage"
     },
     "it_netzwerk": {
       "ip_range": "IP range",
       "protocol": "Protocol",
       "port_count": "Ports"
+    },
+    "common": {
+      "unit_price": "Unit Price",
+      "weight_kg": "Weight",
+      "dimensions_cm": "Dimensions",
+      "units_per_case": "Units per Case",
+      "connectivity": "Connectivity"
+    },
+    "network": {
+      "bandwidth": "Bandwidth"
     }
   },
   "maintenance": {
@@ -593,7 +645,9 @@
       "notes_placeholder": "Notes (optional)…",
       "cost_label": "Cost (optional)",
       "photo": "Photo",
-      "photo_selected": "✓ Photo"
+      "photo_selected": "✓ Photo",
+      "title": "New maintenance entry",
+      "type_label": "Type"
     },
     "date_picker": {
       "placeholder": "Pick a date"
@@ -604,8 +658,12 @@
       "days_ago_one": "{{count}} day ago",
       "days_ago_other": "{{count}} days ago",
       "photo_alt": "Maintenance photo",
-      "delete_title": "Delete entry"
-    }
+      "delete_title": "Delete entry",
+      "title": "Maintenance log"
+    },
+    "delete_confirm_description": "This maintenance entry will be permanently deleted.",
+    "save_error": "Maintenance entry could not be saved.",
+    "delete_error": "Maintenance entry could not be deleted."
   },
   "offline": {
     "offline": "Offline",
@@ -718,7 +776,25 @@
       "returned_from": "{{item}} returned (was lent to {{person}})",
       "marked_defect": "{{item}} marked as defective"
     },
-    "all_loans": "All loans"
+    "all_loans": "All loans",
+    "attention": {
+      "title": "Needs attention",
+      "empty_title": "All clear",
+      "empty_desc": "No returns due, defective items or upcoming maintenance.",
+      "group_returns": "Returns due",
+      "group_maintenance": "Maintenance due",
+      "never_maintained": "Never serviced",
+      "maintenance_due_on": "Due {{date}}",
+      "more": "Show {{count}} more"
+    },
+    "breakdown": {
+      "title": "Stock",
+      "unassigned": "Not set"
+    },
+    "empty": {
+      "title": "No equipment yet",
+      "description": "Add your first items to the inventory. You'll then see stock, loans and upcoming projects here at a glance."
+    }
   },
   "report": {
     "title": "Project Report",
@@ -868,7 +944,37 @@
     "undo_delete_description": "\"{{name}}\" has been restored.",
     "redo_add_description": "\"{{name}}\" has been added again.",
     "redo_update_description": "\"{{name}}\" has been changed again.",
-    "redo_delete_description": "\"{{name}}\" has been deleted again."
+    "redo_delete_description": "\"{{name}}\" has been deleted again.",
+    "tags_save_failed": "Tags could not be saved.",
+    "toast": {
+      "error": "Error",
+      "load_failed_title": "Loading failed",
+      "load_failed": "Items could not be loaded.",
+      "offline_saved": "Saved offline",
+      "offline_item_queued": "The item will be synced when you are back online.",
+      "add_failed": "Item could not be added.",
+      "offline_changes_queued": "Changes will be synced when you are back online.",
+      "update_failed": "Item could not be updated.",
+      "delete_failed": "Item could not be deleted.",
+      "restore_failed": "Item could not be restored.",
+      "permanent_delete_failed": "Item could not be permanently deleted.",
+      "empty_trash_failed": "Trash could not be emptied.",
+      "batch_update_success": "Batch update successful",
+      "batch_update_failed": "Batch update failed.",
+      "moved_to_trash": "Moved to trash",
+      "moved_to_trash_count": "{{count}} item(s) moved to the trash.",
+      "batch_delete_failed": "Batch delete failed.",
+      "offline": "Offline",
+      "offline_no_refresh": "Data cannot be reloaded while offline.",
+      "reload_failed_title": "Reload failed",
+      "reload_failed": "Items could not be reloaded.",
+      "batch_updated_count": "{{count}} item(s) updated.",
+      "batch_moved_count": "{{count}} item(s) moved."
+    },
+    "batch_trash_title": "Move to trash?",
+    "batch_trash_description_one": "{{count}} item will be moved to the trash. You can restore it there for 30 days.",
+    "batch_trash_description_other": "{{count}} items will be moved to the trash. You can restore them there for 30 days.",
+    "select_item_aria": "Select \"{{name}}\""
   },
   "legal": {
     "load_error": "# Document unavailable\nThe document could not be loaded. Please make sure you are online, or try again later."
@@ -887,7 +993,8 @@
       "No data collection"
     ],
     "privacy_link": "Privacy policy",
-    "desktop_description": "We use PostHog Analytics to improve the app. All data is anonymized."
+    "desktop_description": "We use PostHog Analytics to improve the app. All data is anonymized.",
+    "private_title_plain": "Without analytics:"
   },
   "install": {
     "title": "Install app",
@@ -933,24 +1040,24 @@
     "tip": "Tip: Enable notifications in settings to stay updated on syncs.",
     "go_app": "Go to app",
     "android_fallback": "Open menu → “Add to Home Screen” to install the app",
-    "desktop_title":             "RigFlow Desktop",
-    "desktop_subtitle":          "Download the desktop app for {{osLabel}}",
-    "os_windows":                "Windows",
-    "os_macos":                  "macOS",
-    "os_linux":                  "Linux",
-    "os_unknown":                "your system",
-    "online_download":           "Online – Download available",
-    "offline_download":          "Offline – Download unavailable",
-    "online_full":               "Online – All features available",
-    "offline_limited":           "Offline – Limited functionality",
-    "checking_updates":          "Checking for updates...",
-    "version_label":             "Version {{version}}",
-    "download_installer":        "Download installer",
-    "no_installer":              "No installer available for your system.",
-    "github_releases":           "All releases on GitHub",
-    "mobile_title":              "Set up RigFlow",
-    "mobile_subtitle":           "Optimise your app for offline use and notifications",
-    "installation_heading":      "App installation:",
+    "desktop_title": "RigFlow Desktop",
+    "desktop_subtitle": "Download the desktop app for {{osLabel}}",
+    "os_windows": "Windows",
+    "os_macos": "macOS",
+    "os_linux": "Linux",
+    "os_unknown": "your system",
+    "online_download": "Online – Download available",
+    "offline_download": "Offline – Download unavailable",
+    "online_full": "Online – All features available",
+    "offline_limited": "Offline – Limited functionality",
+    "checking_updates": "Checking for updates...",
+    "version_label": "Version {{version}}",
+    "download_installer": "Download installer",
+    "no_installer": "No installer available for your system.",
+    "github_releases": "All releases on GitHub",
+    "mobile_title": "Set up RigFlow",
+    "mobile_subtitle": "Optimise your app for offline use and notifications",
+    "installation_heading": "App installation:",
     "mobile_features": [
       "Quick access from the home screen",
       "Works offline",
@@ -958,16 +1065,16 @@
       "Full-screen mode without browser UI"
     ],
     "notifications_description": "Get updates when your items are synced or conflicts need to be resolved.",
-    "notifications_activating":  "Activating...",
-    "notifications_enable":      "Enable notifications",
-    "notifications_enabled":     "Notifications enabled",
-    "notifications_disabled":    "Notifications are disabled. Enable them in your browser settings.",
+    "notifications_activating": "Activating...",
+    "notifications_enable": "Enable notifications",
+    "notifications_enabled": "Notifications enabled",
+    "notifications_disabled": "Notifications are disabled. Enable them in your browser settings.",
     "notification_welcome_body": "Notifications are enabled! 🎉",
-    "already_installed":         "App is already installed",
-    "browser_menu_hint":         "Install via browser menu:",
-    "ios_browser":               "Share – Add to Home Screen",
-    "android_browser":           "Menu (three dots) – Add to Home Screen",
-    "continue_to_app":           "Continue to app"
+    "already_installed": "App is already installed",
+    "browser_menu_hint": "Install via browser menu:",
+    "ios_browser": "Share – Add to Home Screen",
+    "android_browser": "Menu (three dots) – Add to Home Screen",
+    "continue_to_app": "Continue to app"
   },
   "notfound": {
     "badge": "ITEM NOT FOUND — 404",
@@ -1017,32 +1124,36 @@
     "delete_dialog_description": "\"{{name}}\" will be moved to the trash and can be restored there.",
     "delete_success_description": "\"{{name}}\" can be restored from the trash.",
     "update_error_description": "Item could not be updated.",
-    "delete_error_description": "Item could not be deleted."
+    "delete_error_description": "Item could not be deleted.",
+    "section_label": "Label",
+    "history_empty": "This item has not been lent out yet.",
+    "details_empty": "No further details recorded.",
+    "units_per_case_value": "{{count}} per case"
   },
   "conditions": {
     "available": "Available",
-    "lent":      "On Loan",
-    "in_use":    "In Use",
-    "defect":    "Defective"
+    "lent": "On Loan",
+    "in_use": "In Use",
+    "defect": "Defective"
   },
   "categories": {
-    "licht":       "Lighting",
-    "audio":       "Audio",
-    "video":       "Video",
-    "rigging":     "Rigging",
-    "strom":       "Power",
+    "licht": "Lighting",
+    "audio": "Audio",
+    "video": "Video",
+    "rigging": "Rigging",
+    "strom": "Power",
     "it-netzwerk": "IT / Network",
-    "werkzeug":    "Tools & Accessories"
+    "werkzeug": "Tools & Accessories"
   },
   "attr_values": {
     "lamp_type": {
-      "LED":       "LED",
-      "Halogen":   "Halogen",
+      "LED": "LED",
+      "Halogen": "Halogen",
       "Entladung": "Discharge",
-      "Laser":     "Laser"
+      "Laser": "Laser"
     },
     "cooling": {
-      "Aktiv":  "Active",
+      "Aktiv": "Active",
       "Passiv": "Passive"
     }
   },
@@ -1094,62 +1205,112 @@
     "created_desc": "\"{{name}}\" was created.",
     "updated_title": "Package updated",
     "deleted_title": "Package deleted",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "col_name": "Package",
+    "col_items": "Items",
+    "col_quantity": "Pieces",
+    "edit_contents": "Edit contents",
+    "edit_details": "Edit details",
+    "qty_label": "Quantity",
+    "drag_handle": "Drag to move",
+    "remove_item": "Remove from package",
+    "add_item": "Add to package",
+    "already_added": "Already in package",
+    "delete_error": "The package could not be deleted because its project assignments could not be removed."
   },
   "lending": {
-    "description":          "Overview of all loans and returns",
-    "new_loan":             "New Loan",
-    "stat_active":          "Active loans",
-    "stat_overdue":         "Overdue",
-    "stat_returned":        "Returned",
-    "stat_total":           "Total",
-    "overdue_title_one":    "{{count}} overdue return",
-    "overdue_title_other":  "{{count}} overdue returns",
-    "return_action":        "Return",
-    "search_placeholder":   "Search by item or person...",
-    "tab_active":           "Active ({{count}})",
-    "tab_history":          "History ({{count}})",
-    "empty_active_title":   "No active loans",
-    "empty_active_desc":    "Create a new loan using the button above.",
-    "empty_history_title":  "No completed loans yet",
-    "empty_history_desc":   "Completed loans will appear here.",
-    "overdue_badge_one":    "{{count}} day overdue",
-    "overdue_badge_other":  "{{count}} days overdue",
-    "due_today":            "Due today",
-    "due_soon_one":         "{{count}} day left",
-    "due_soon_other":       "{{count}} days left",
-    "date_format":          "MMM d, yyyy",
-    "item_with_category":   "{{name}} ({{category}})",
-    "delete_title":         "Delete entry?",
-    "delete_description":   "This lending record will be permanently deleted.",
+    "description": "Overview of all loans and returns",
+    "new_loan": "New Loan",
+    "stat_active": "Active loans",
+    "stat_overdue": "Overdue",
+    "stat_returned": "Returned",
+    "stat_total": "Total",
+    "overdue_title_one": "{{count}} overdue return",
+    "overdue_title_other": "{{count}} overdue returns",
+    "return_action": "Return",
+    "search_placeholder": "Search by item or person...",
+    "tab_active": "Active ({{count}})",
+    "tab_history": "History ({{count}})",
+    "empty_active_title": "No active loans",
+    "empty_active_desc": "Create a new loan using the button above.",
+    "empty_history_title": "No completed loans yet",
+    "empty_history_desc": "Completed loans will appear here.",
+    "overdue_badge_one": "{{count}} day overdue",
+    "overdue_badge_other": "{{count}} days overdue",
+    "due_today": "Due today",
+    "due_soon_one": "{{count}} day left",
+    "due_soon_other": "{{count}} days left",
+    "date_format": "MMM d, yyyy",
+    "item_with_category": "{{name}} ({{category}})",
+    "delete_title": "Delete entry?",
+    "delete_description": "This lending record will be permanently deleted.",
     "card": {
-      "returned_badge":  "Returned",
-      "lent_to_label":   "To:",
-      "lent_at":         "Loaned:",
-      "due_date":        "Due:",
-      "returned_at":     "Returned:",
-      "return_button":   "Return"
+      "returned_badge": "Returned",
+      "lent_to_label": "To:",
+      "lent_at": "Loaned:",
+      "due_date": "Due:",
+      "returned_at": "Returned:",
+      "return_button": "Return"
     },
     "add_dialog": {
-      "title":               "New Loan",
-      "item_label":          "Item *",
-      "item_placeholder":    "Select item...",
-      "lent_to_label":       "Lend to *",
+      "title": "New Loan",
+      "item_label": "Item *",
+      "item_placeholder": "Select item...",
+      "lent_to_label": "Lend to *",
       "lent_to_placeholder": "Name or organisation",
-      "due_date_label":      "Due date",
-      "submit":              "Add loan"
+      "due_date_label": "Due date",
+      "submit": "Add loan",
+      "description": "Record which item goes to whom and when it is due back.",
+      "item_search": "Search items…",
+      "item_empty": "No items found"
     },
     "date_picker": {
-      "placeholder":      "Select date",
-      "display_format":   "MM/dd/yyyy",
-      "days":    ["Su","Mo","Tu","We","Th","Fr","Sa"],
-      "months":  ["January","February","March","April","May","June","July","August","September","October","November","December"]
+      "placeholder": "Select date",
+      "display_format": "MM/dd/yyyy",
+      "days": [
+        "Su",
+        "Mo",
+        "Tu",
+        "We",
+        "Th",
+        "Fr",
+        "Sa"
+      ],
+      "months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ]
+    },
+    "item_status_update_failed": "The item's status could not be updated.",
+    "load_failed": "Loan history could not be loaded.",
+    "tabs": {
+      "active": "Active",
+      "history": "History"
+    },
+    "no_results": "No loans match your search.",
+    "table": {
+      "item": "Item",
+      "borrower": "Borrower",
+      "lent_at": "Lent",
+      "due_date": "Due",
+      "status": "Status",
+      "returned_at": "Returned"
     }
   },
   "maintenance_types": {
-    "check":      "Routine Check",
-    "reparatur":  "Repair",
-    "reinigung":  "Cleaning",
+    "check": "Routine Check",
+    "reparatur": "Repair",
+    "reinigung": "Cleaning",
     "inspektion": "Inspection"
   },
   "projects": {
@@ -1158,7 +1319,6 @@
     "tab_projects": "Projects",
     "tab_packages": "Packages",
     "status_next": "→ next",
-
     "date_picker": {
       "range_placeholder": "Select period",
       "start_label": "Start date",
@@ -1166,10 +1326,30 @@
       "reset": "Reset",
       "hint_start": "Select start date",
       "hint_end": "Select end date",
-      "days": ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
-      "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+      "days": [
+        "Su",
+        "Mo",
+        "Tu",
+        "We",
+        "Th",
+        "Fr",
+        "Sa"
+      ],
+      "months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ]
     },
-
     "form": {
       "title_create": "New Project",
       "title_edit": "Edit Project",
@@ -1184,11 +1364,9 @@
       "period_label": "Period",
       "notes_placeholder": "Additional information..."
     },
-
     "card": {
       "details_link": "Details"
     },
-
     "list": {
       "btn_new": "New Project",
       "search_placeholder": "Search projects...",
@@ -1200,22 +1378,26 @@
       "empty_title": "No projects yet",
       "empty_desc": "Create a project for each event – with status, date, location and equipment assignment.",
       "empty_btn": "Create first project",
-      "no_results": "No projects found."
+      "no_results": "No projects found.",
+      "col_name": "Name",
+      "col_items": "Items",
+      "change_status": "Change status",
+      "favorite": "Favorite",
+      "favorite_add": "Mark as favorite",
+      "favorite_remove": "Remove from favorites",
+      "open": "Open project"
     },
-
     "toast": {
       "created_title": "Project created",
       "created_desc": "\"{{name}}\" has been added.",
       "saved_title": "Project saved",
       "deleted_title": "Project deleted"
     },
-
     "status_change": {
       "warning_title": "Reset status?",
       "warning_desc": "This project is marked as <strong>{{from}}</strong>. Setting it to <strong>{{to}}</strong> is unusual – are you sure?",
       "confirm": "Yes, change status"
     },
-
     "delete": {
       "title": "Delete project?",
       "description": "The project will be moved to the trash. Equipment and packages will be kept."
@@ -1341,7 +1523,6 @@
         ],
         "export": {
           "title": "Export & Printing",
-
           "items": [
             {
               "label": "CSV Export",
@@ -1359,7 +1540,6 @@
         },
         "benefits": {
           "title": "Why it matters",
-
           "items": [
             {
               "title": "No manual counting",
@@ -1387,23 +1567,52 @@
           "description": "Document services, set reminders for the next inspection, and upload damage photos directly from the app. Every device gets its own maintenance timeline – with type, date, notes and costs."
         },
         "type_labels": {
-          "check":      "Inspection",
-          "reparatur":  "Repair",
-          "reinigung":  "Cleaning",
+          "check": "Inspection",
+          "reparatur": "Repair",
+          "reinigung": "Cleaning",
           "inspektion": "Service"
         },
         "status_section_title": "Status Banner per Device",
         "interval_label": "Interval: {{interval}}",
         "demo_devices": [
-          { "label": "SM58 Microphone #3",    "interval": "180d", "text": "Last service 3 days ago" },
-          { "label": "Crown XLS Amplifier",  "interval": "180d", "text": "Service due soon – last service 138 days ago" },
-          { "label": "Yamaha CL5 FOH Desk",  "interval": "365d", "text": "Service overdue – no service recorded yet" }
+          {
+            "label": "SM58 Microphone #3",
+            "interval": "180d",
+            "text": "Last service 3 days ago"
+          },
+          {
+            "label": "Crown XLS Amplifier",
+            "interval": "180d",
+            "text": "Service due soon – last service 138 days ago"
+          },
+          {
+            "label": "Yamaha CL5 FOH Desk",
+            "interval": "365d",
+            "text": "Service overdue – no service recorded yet"
+          }
         ],
         "demo_records": [
-          { "type": "check",      "ago": "Today",          "notes": "DGUV V3 passed, no issues found." },
-          { "type": "reparatur",  "ago": "12 days ago",    "notes": "Bearing replaced, running smoothly again.", "cost": "34.90" },
-          { "type": "reinigung",  "ago": "1 month ago",    "notes": "Internal cleaning, fan cleaned." },
-          { "type": "inspektion", "ago": "3 months ago",   "notes": "Pre-season check before festival season." }
+          {
+            "type": "check",
+            "ago": "Today",
+            "notes": "DGUV V3 passed, no issues found."
+          },
+          {
+            "type": "reparatur",
+            "ago": "12 days ago",
+            "notes": "Bearing replaced, running smoothly again.",
+            "cost": "34.90"
+          },
+          {
+            "type": "reinigung",
+            "ago": "1 month ago",
+            "notes": "Internal cleaning, fan cleaned."
+          },
+          {
+            "type": "inspektion",
+            "ago": "3 months ago",
+            "notes": "Pre-season check before festival season."
+          }
         ],
         "form_title": "New Maintenance Entry",
         "form_photo_btn": "Add photo",
@@ -1411,10 +1620,22 @@
         "benefits": {
           "title": "What you document with it",
           "items": [
-            { "title": "Device History",       "desc": "Every technical intervention is documented chronologically and traceably." },
-            { "title": "Overdue Indicator",    "desc": "Status banner per device: green / amber / red – instantly see which device needs attention." },
-            { "title": "Damage Photos",        "desc": "Take photos directly from the app and attach them to the maintenance entry." },
-            { "title": "Quick-Confirm",        "desc": "\"Service confirmed today\" with one tap – no form needed for quick confirmations." }
+            {
+              "title": "Device History",
+              "desc": "Every technical intervention is documented chronologically and traceably."
+            },
+            {
+              "title": "Overdue Indicator",
+              "desc": "Status banner per device: green / amber / red – instantly see which device needs attention."
+            },
+            {
+              "title": "Damage Photos",
+              "desc": "Take photos directly from the app and attach them to the maintenance entry."
+            },
+            {
+              "title": "Quick-Confirm",
+              "desc": "\"Service confirmed today\" with one tap – no form needed for quick confirmations."
+            }
           ]
         },
         "tracked": {
@@ -1440,27 +1661,27 @@
     },
     "home": {
       "native": {
-        "headline_1":    "Your Event Gear",
-        "headline_2":    "fully under control",
-        "subtitle":      "Manage your complete inventory offline and in real time",
-        "cta_register":  "Register for free",
-        "cta_login":     "Already have an account? Sign in"
+        "headline_1": "Your Event Gear",
+        "headline_2": "fully under control",
+        "subtitle": "Manage your complete inventory offline and in real time",
+        "cta_register": "Register for free",
+        "cta_login": "Already have an account? Sign in"
       },
       "header": {
-        "install":      "Install app",
-        "login":        "Sign in",
+        "install": "Install app",
+        "login": "Sign in",
         "start_mobile": "Start"
       },
       "hero": {
-        "title_line1":    "Never forget",
+        "title_line1": "Never forget",
         "title_highlight": "a cable again.",
-        "subtitle":       "Perfect for rental companies, DJs and small event teams who want to keep track of their gear – without spreadsheet chaos and manual lists.",
-        "cta_features":   "See features",
-        "no_cc":          "No credit card. No commitment. Start instantly.",
-        "mockup_alt":     "RigFlow Dashboard"
+        "subtitle": "Perfect for rental companies, DJs and small event teams who want to keep track of their gear – without spreadsheet chaos and manual lists.",
+        "cta_features": "See features",
+        "no_cc": "No credit card. No commitment. Start instantly.",
+        "mockup_alt": "RigFlow Dashboard"
       },
       "qr_section": {
-        "title":       "QR-Code Scanning",
+        "title": "QR-Code Scanning",
         "description": "Capture your equipment with one scan. Simple. Fast. Offline.",
         "items": [
           "Generate QR codes for all devices",
@@ -1469,7 +1690,7 @@
         ]
       },
       "inventory_section": {
-        "title":       "Inventory Overview",
+        "title": "Inventory Overview",
         "description": "All devices at a glance. Filter, search and manage your complete equipment.",
         "items": [
           "Categories: Lighting, Audio, Cables & more",
@@ -1477,123 +1698,229 @@
           "Photos and notes per device"
         ],
         "demo_items": [
-          { "name": "JBL EON 615",      "status": "available" },
-          { "name": "Moving Head 250W", "status": "on loan"   },
-          { "name": "SM58 Microphone",   "status": "available" },
-          { "name": "XLR 10m (x8)",      "status": "in use"    }
+          {
+            "name": "JBL EON 615",
+            "status": "available"
+          },
+          {
+            "name": "Moving Head 250W",
+            "status": "on loan"
+          },
+          {
+            "name": "SM58 Microphone",
+            "status": "available"
+          },
+          {
+            "name": "XLR 10m (x8)",
+            "status": "in use"
+          }
         ]
       },
       "project_section": {
-        "badge":               "Project & Pack Management",
-        "title":               "Packlists that think ahead.",
-        "description":         "Assemble your gear for projects and stay on top of packing. RigFlow shows you in real time what's already loaded and what's still missing.",
+        "badge": "Project & Pack Management",
+        "title": "Packlists that think ahead.",
+        "description": "Assemble your gear for projects and stay on top of packing. RigFlow shows you in real time what's already loaded and what's still missing.",
         "sub_features": [
-          { "label": "Project Reports", "desc": "Generate reports per event"    },
-          { "label": "Set Lists",       "desc": "Manage packages quickly"       },
-          { "label": "Real-time",       "desc": "See availability live"         }
+          {
+            "label": "Project Reports",
+            "desc": "Generate reports per event"
+          },
+          {
+            "label": "Set Lists",
+            "desc": "Manage packages quickly"
+          },
+          {
+            "label": "Real-time",
+            "desc": "See availability live"
+          }
         ],
-        "demo_project_prefix":  "Project:",
-        "demo_project_name":    "Open Air Berlin",
-        "demo_project_meta":    "June 15, 2025 · 3 Packages",
-        "demo_status_active":   "active",
+        "demo_project_prefix": "Project:",
+        "demo_project_name": "Open Air Berlin",
+        "demo_project_meta": "June 15, 2025 · 3 Packages",
+        "demo_status_active": "active",
         "demo_packages": [
-          { "name": "PA System",  "items": 8,  "done": 8  },
-          { "name": "Light Rig",  "items": 12, "done": 10 },
-          { "name": "Backline",   "items": 5,  "done": 5  }
+          {
+            "name": "PA System",
+            "items": 8,
+            "done": 8
+          },
+          {
+            "name": "Light Rig",
+            "items": 12,
+            "done": 10
+          },
+          {
+            "name": "Backline",
+            "items": 5,
+            "done": 5
+          }
         ],
-        "demo_ready":          "ready",
-        "demo_availability":   "23 of 25 items available"
+        "demo_ready": "ready",
+        "demo_availability": "23 of 25 items available"
       },
       "tech_section": {
-        "badge":       "The Core",
-        "title":       "More than just a list.",
+        "badge": "The Core",
+        "title": "More than just a list.",
         "description": "RigFlow goes deeper than other tools – with features you actually need in daily event operations.",
         "cards": [
           {
-            "title":       "DMX Patch Plan",
-            "tag":         "Lighting & Tech",
+            "title": "DMX Patch Plan",
+            "tag": "Lighting & Tech",
             "description": "Plan your universe. Manage start addresses and modes directly on the device – conflicts are detected automatically.",
-            "link_label":  "View DMX workflow"
+            "link_label": "View DMX workflow"
           },
           {
-            "title":       "Maintenance & Service",
-            "tag":         "DGUV V3 compliant",
+            "title": "Maintenance & Service",
+            "tag": "DGUV V3 compliant",
             "description": "Track inspection cycles and repaired issues in the maintenance history. No device misses an inspection.",
-            "link_label":  "View service features"
+            "link_label": "View service features"
           },
           {
-            "title":       "QR Scanner Workflow",
-            "tag":         "Core Feature",
+            "title": "QR Scanner Workflow",
+            "tag": "Core Feature",
             "description": "Loan, setup, breakdown, inventory – four modes, one wizard. One scan updates the status and books against your project.",
-            "link_label":  "View scanner workflow"
+            "link_label": "View scanner workflow"
           }
         ],
         "conflict_label": "Conflict",
         "dmx_preview_rows": [
-          { "ch": "001", "name": "Spot A", "mode": "16ch" },
-          { "ch": "017", "name": "Spot B", "mode": "16ch" },
-          { "ch": "033", "name": "Hazer",  "mode": "4ch"  }
+          {
+            "ch": "001",
+            "name": "Spot A",
+            "mode": "16ch"
+          },
+          {
+            "ch": "017",
+            "name": "Spot B",
+            "mode": "16ch"
+          },
+          {
+            "ch": "033",
+            "name": "Hazer",
+            "mode": "4ch"
+          }
         ],
         "service_preview_rows": [
-          { "name": "SM58 #3",         "date": "03/12/25", "status": "checked" },
-          { "name": "Moving Head A",   "date": "06/01/25", "status": "due"     },
-          { "name": "Crown Amplifier", "date": "—",        "status": "defect"  }
+          {
+            "name": "SM58 #3",
+            "date": "03/12/25",
+            "status": "checked"
+          },
+          {
+            "name": "Moving Head A",
+            "date": "06/01/25",
+            "status": "due"
+          },
+          {
+            "name": "Crown Amplifier",
+            "date": "—",
+            "status": "defect"
+          }
         ],
-        "scanner_modes": ["Loan", "Setup", "Breakdown / Return", "Inventory"]
+        "scanner_modes": [
+          "Loan",
+          "Setup",
+          "Breakdown / Return",
+          "Inventory"
+        ]
       },
       "security_section": {
         "security": {
-          "badge":       "Security & Privacy",
+          "badge": "Security & Privacy",
           "title_line1": "Enterprise-level",
           "title_line2": "security.",
           "description": "Your data belongs to you. With multi-factor authentication (MFA), regular backups and GDPR-compliant hosting, your inventory is always secure.",
           "items": [
-            { "label": "Multi-factor authentication (MFA)", "desc": "No unauthorised access to your account"    },
-            { "label": "GDPR-compliant hosting",            "desc": "Data in European data centres"            },
-            { "label": "Automatic backups",                 "desc": "Your inventory is always backed up"       },
-            { "label": "Account deletion at any time",      "desc": "Full control over your data"              }
+            {
+              "label": "Multi-factor authentication (MFA)",
+              "desc": "No unauthorised access to your account"
+            },
+            {
+              "label": "GDPR-compliant hosting",
+              "desc": "Data in European data centres"
+            },
+            {
+              "label": "Automatic backups",
+              "desc": "Your inventory is always backed up"
+            },
+            {
+              "label": "Account deletion at any time",
+              "desc": "Full control over your data"
+            }
           ]
         },
         "export": {
-          "badge":        "Import & Export",
-          "title_line1":  "No",
-          "title_line2":  "vendor lock-in.",
-          "description":  "Export your data at any time as CSV or sync it directly with Google Sheets – your inventory stays portable.",
-          "csv_title":    "CSV Export",
-          "csv_desc":     "Download all data as a file",
+          "badge": "Import & Export",
+          "title_line1": "No",
+          "title_line2": "vendor lock-in.",
+          "description": "Export your data at any time as CSV or sync it directly with Google Sheets – your inventory stays portable.",
+          "csv_title": "CSV Export",
+          "csv_desc": "Download all data as a file",
           "sheets_title": "Google Sheets",
-          "sheets_desc":  "Direct synchronisation"
+          "sheets_desc": "Direct synchronisation"
         }
       },
       "features_section": {
-        "title":       "What you get with RigFlow",
+        "title": "What you get with RigFlow",
         "description": "Everything you need for professional inventory management",
         "items": [
-          { "title": "Offline Features",   "description": "Work anywhere, even without internet. Everything syncs automatically."    },
-          { "title": "QR Code Management", "description": "Generate and scan QR codes. Quick capture of your equipment."             },
-          { "title": "Event Checklists",   "description": "Plan your gigs with smart checklists and equipment packages."              },
-          { "title": "Real-time Sync",     "description": "All your devices are always up to date. Cloud-secure and fast."           },
-          { "title": "DMX Configuration",  "description": "Manage your DMX channels and universes directly in the app."              },
-          { "title": "Audit Log",          "description": "Track all changes. Who did what and when?"                                }
+          {
+            "title": "Offline Features",
+            "description": "Work anywhere, even without internet. Everything syncs automatically."
+          },
+          {
+            "title": "QR Code Management",
+            "description": "Generate and scan QR codes. Quick capture of your equipment."
+          },
+          {
+            "title": "Event Checklists",
+            "description": "Plan your gigs with smart checklists and equipment packages."
+          },
+          {
+            "title": "Real-time Sync",
+            "description": "All your devices are always up to date. Cloud-secure and fast."
+          },
+          {
+            "title": "DMX Configuration",
+            "description": "Manage your DMX channels and universes directly in the app."
+          },
+          {
+            "title": "Audit Log",
+            "description": "Track all changes. Who did what and when?"
+          }
         ]
       },
       "cta_section": {
         "title": "Ready to end your inventory chaos?",
-        "btn":   "Organise inventory now",
+        "btn": "Organise inventory now",
         "no_cc": "Free. No credit card. Start instantly."
       },
       "footer": {
-        "brand_desc":    "Inventory management for event technicians.",
-        "col_product":   "Product",
+        "brand_desc": "Inventory management for event technicians.",
+        "col_product": "Product",
         "link_features": "Features",
-        "link_start":    "Get started",
-        "link_dmx":      "DMX Workflow",
-        "col_legal":     "Legal",
-        "privacy":       "Privacy Policy",
-        "col_contact":   "Contact",
-        "copyright":     "© 2026 RigFlow. Built for event technicians.",
-        "made_with":     "Made with ❤️ for the live events industry."
+        "link_start": "Get started",
+        "link_dmx": "DMX Workflow",
+        "col_legal": "Legal",
+        "privacy": "Privacy Policy",
+        "col_contact": "Contact",
+        "copyright": "© 2026 RigFlow. Built for event technicians.",
+        "made_with": "Made with ❤️ for the live events industry."
+      },
+      "how": {
+        "eyebrow": "How it works",
+        "title": "Up and running in three steps.",
+        "step1_title": "Add your inventory",
+        "step1_desc": "Add your gear with category, serial number and storage location.",
+        "step2_title": "Label with QR codes",
+        "step2_desc": "Generate a QR code for every item and stick it on the device or case.",
+        "step3_title": "Scan and pack",
+        "step3_desc": "Scan when lending, loading in and loading out – the status updates instantly."
       }
+    },
+    "nav": {
+      "label": "Main navigation",
+      "service": "Service"
     }
   },
   "project_detail": {
@@ -1607,12 +1934,10 @@
     "mark_in_use_desc": "Location → \"{{name}}\"",
     "finalize_toast": "Project closed",
     "finalize_desc": "\"{{name}}\" has been archived.",
-
     "date_picker": {
       "start_label": "Start date",
       "end_label": "End date"
     },
-
     "phase_template": {
       "available": "Checklist \"{{label}}\" available",
       "count_hint": "Add {{count}} standard tasks?",
@@ -1682,14 +2007,12 @@
         }
       }
     },
-
     "conflict": {
       "defect": "Defective",
       "lending_named": "On loan to {{name}}",
       "lending": "On Loan",
       "project": "In Use"
     },
-
     "finalize": {
       "title": "Close Project",
       "description": "\"{{name}}\" will be archived. Current status:",
@@ -1721,21 +2044,25 @@
       "submitting": "Closing...",
       "done_title": "Project Archived",
       "done_desc": "\"{{name}}\" has been closed. All items have been returned.",
-      "close": "Close"
+      "close": "Close",
+      "report_open": "Preview",
+      "back_to_projects": "Back to projects",
+      "failed": "Could not close the project",
+      "maintenance_failed": "Could not create maintenance entries for damaged items",
+      "maintenance_note": "Damage found after project “{{name}}”"
     },
-
     "edit_quantity": {
       "title": "Edit Quantity",
       "label": "Quantity",
       "max_hint": "(max. {{max}})",
       "saving": "Saving...",
-      "save": "Save"
+      "save": "Save",
+      "decrease": "Decrease quantity",
+      "increase": "Increase quantity"
     },
-
     "edit_dialog": {
       "notes_label": "Notes"
     },
-
     "picker": {
       "title": "Add Equipment",
       "desc": "Add packages or individual items to the project.",
@@ -1752,16 +2079,13 @@
       "add_btn": "Add",
       "item_meta": "{{category}} · {{location}} · Stock: {{quantity}}"
     },
-
     "package_group": {
       "packed_count": "{{packed}}/{{total}} packed",
       "item_count": "{{count}} items",
       "all_packed": "✓ Complete",
       "empty": "Package contains no items"
     },
-
     "direct_items_title": "Direct Items",
-
     "equipment": {
       "aufbau_title": "Mark equipment as 'In Use'",
       "aufbau_desc": "Location → Project name · Condition → In Use",
@@ -1782,17 +2106,22 @@
       "add_btn": "Add Equipment",
       "packages_section": "Packages",
       "empty_title": "No equipment assigned yet",
-      "empty_desc": "Add packages or individual items."
+      "empty_desc": "Add packages or individual items.",
+      "positions_one": "{{count}} line item",
+      "positions_other": "{{count}} line items",
+      "remove_package": "Remove package",
+      "remove_package_title": "Remove package?",
+      "remove_package_desc_one": "“{{name}}” and {{count}} item will be removed from the project. Items in use are returned to their original location.",
+      "remove_package_desc_other": "“{{name}}” and {{count}} items will be removed from the project. Items in use are returned to their original location."
     },
-
     "todos": {
       "progress": "{{done}} of {{total}} completed",
       "new_placeholder": "New task...",
       "empty_title": "No todos yet",
       "empty_desc": "Create tasks for this project.",
-      "empty_archived": "This project is archived."
+      "empty_archived": "This project is archived.",
+      "drag_handle": "Drag to reorder"
     },
-
     "sidebar": {
       "info_title": "Project Info",
       "date_until": "until {{date}}",
@@ -1805,11 +2134,25 @@
       "conflicts_title": "Equipment Conflicts",
       "conflicts_desc": "{{count}} item(s) are defective, on loan or otherwise in use. Still bookable — check availability."
     },
-
     "returning_banner": {
       "title": "Close Return",
       "desc": "Check equipment back in, document damage and archive the project.",
       "btn": "Close Project"
+    },
+    "status_menu_label": "Change status",
+    "status_next": "next",
+    "favorite_toggle": "Mark as favourite",
+    "toast": {
+      "marked_in_use": "Equipment marked as “In use”"
+    },
+    "report": {
+      "popup_blocked": "The print window was blocked. Allow pop-ups for this site."
+    },
+    "dmx": {
+      "stat_devices": "Devices",
+      "stat_instances": "Instances",
+      "stat_universes": "Universes",
+      "stat_conflicts": "Conflicts"
     }
   },
   "register": {
@@ -1862,23 +2205,25 @@
     "finale_resend_done": "✓ Email resent",
     "finale_resend_prompt": "Didn't receive an email? Resend",
     "go_to_login": "Go to login",
-    "login_link": "Log in"
+    "login_link": "Log in",
+    "title": "Create your account",
+    "subtitle": "Free, no credit card. Ready in a minute.",
+    "label_name": "Your name",
+    "label_warehouse": "Warehouse name",
+    "submit": "Create account",
+    "terms_notice": "By signing up you accept the <terms>Terms of Use</terms> and the <privacy>Privacy Policy</privacy>."
   },
   "onboarding": {
     "step_indicator": "Step {{current}} of {{total}}",
- 
     "notifications_title": "Notifications",
     "notifications_description": "RigFlow reminds you about overdue returns and important events – straight to your device.",
     "notifications_allow": "Allow notifications",
- 
     "camera_title": "Camera & photos",
     "camera_description": "Photograph equipment directly in the app or upload images from your gallery.",
     "camera_allow": "Allow camera",
- 
     "analytics_title": "Usage analytics",
     "analytics_description": "May RigFlow collect anonymised usage data? It helps us improve the app – without us knowing who you are.",
     "analytics_allow": "Yes, happy to help",
- 
     "skip": "Not now"
   },
   "condition": {
@@ -1893,7 +2238,8 @@
       "mode": "Choose mode",
       "context": "Enter details",
       "scan": "Scan items",
-      "summary": "Summary"
+      "summary": "Summary",
+      "progress": "Step {{current}} of {{total}}"
     },
     "mode": {
       "verleih": {
@@ -1926,7 +2272,8 @@
       "project_empty": "Project has no items yet",
       "condition_hint_title": "Condition during strike",
       "condition_hint_desc": "You can set the condition of each item in the summary.",
-      "next_button": "Next – open scanner"
+      "next_button": "Next – open scanner",
+      "project_load_error": "Could not load project items"
     },
     "scan": {
       "all_scanned": "All project items scanned!",
@@ -1936,7 +2283,9 @@
       "scanned_count": "{{count}} item(s) scanned",
       "not_in_project_warning_one": "1 item is not in project \"{{project}}\"",
       "not_in_project_warning_other": "{{count}} items are not in project \"{{project}}\"",
-      "to_summary": "Go to summary ({{count}})"
+      "to_summary": "Go to summary ({{count}})",
+      "remove_entry": "Remove {{name}}",
+      "inventur_hint": "A scan opens the item's detail view directly."
     },
     "summary": {
       "action_label": "Action",
@@ -1949,7 +2298,11 @@
       "cond_missing": "? Missing",
       "inventur_hint": "Inventory does not change any status — it only logs what was scanned.",
       "saving": "Saving…",
-      "confirm": "Confirm"
+      "confirm": "Confirm",
+      "project_label": "Project",
+      "condition_ok": "OK",
+      "condition_damaged": "Damaged",
+      "condition_missing": "Missing"
     },
     "confirm": {
       "booked_verleih": "Lending booked",
@@ -1970,6 +2323,33 @@
       "no_items_desc": "Scan at least one item.",
       "save_error_title": "Error saving",
       "save_error_unknown": "Unknown error"
+    },
+    "camera": {
+      "hint": "Hold the QR code inside the frame",
+      "error_title": "Camera unavailable",
+      "error": {
+        "unsupported": "Your browser doesn't support camera access. Enter the code manually.",
+        "denied": "Camera access was denied. Allow it in your browser or app settings and try again.",
+        "not_found": "No camera was found.",
+        "in_use": "The camera is being used by another app.",
+        "unknown": "The camera could not be started."
+      }
+    },
+    "manual": {
+      "toggle": "Enter code"
+    },
+    "result": {
+      "done": "Done",
+      "added": "Added to list",
+      "added_not_in_project": "Added – not in project",
+      "not_in_project_badge": "Not in project",
+      "invalid_title": "Not a RigFlow code",
+      "invalid_desc": "This QR code doesn't contain an item ID.",
+      "no_projects": "Not assigned to any project"
+    },
+    "empty_inventory": {
+      "title": "No items in your inventory yet",
+      "description": "Add items and print their QR labels first – then you can scan them here."
     }
   },
   "appearance": {
@@ -2015,10 +2395,22 @@
       "label": "Color blindness mode",
       "description": "Adapts the color palette for different types of color blindness.",
       "modes": {
-        "none":         { "label": "None",         "desc": "Default color rendering" },
-        "deuteranopia": { "label": "Deuteranopia", "desc": "Red-green deficiency (most common)" },
-        "protanopia":   { "label": "Protanopia",   "desc": "Red blindness" },
-        "tritanopia":   { "label": "Tritanopia",   "desc": "Blue-yellow deficiency" }
+        "none": {
+          "label": "None",
+          "desc": "Default color rendering"
+        },
+        "deuteranopia": {
+          "label": "Deuteranopia",
+          "desc": "Red-green deficiency (most common)"
+        },
+        "protanopia": {
+          "label": "Protanopia",
+          "desc": "Red blindness"
+        },
+        "tritanopia": {
+          "label": "Tritanopia",
+          "desc": "Blue-yellow deficiency"
+        }
       }
     },
     "shortcuts": {
@@ -2041,6 +2433,10 @@
       "item_colorblind": "Color blindness mode: None",
       "item_shortcuts": "Keyboard shortcuts: On",
       "button": "Reset to defaults"
+    },
+    "language": {
+      "de": "Deutsch",
+      "en": "English"
     }
   },
   "notifications": {
@@ -2063,7 +2459,9 @@
     "new_members_description": "Get notified when someone joins your organisation.",
     "security_alerts_label": "Security alerts",
     "security_alerts_description": "Get notified when a new device signs in to your account.",
-    "footer_hint": "Alerts are delivered via push notifications directly to your device."
+    "footer_hint": "Alerts are delivered via push notifications directly to your device.",
+    "push_allow": "Allow",
+    "push_unsupported": "This browser does not support push notifications. Install RigFlow as an app to receive alerts."
   },
   "privacy": {
     "auth_section_title": "Authentication",
@@ -2172,87 +2570,113 @@
     "hero_title_1": "Scan –",
     "hero_title_2": "don't search.",
     "hero_description": "A single QR code scan updates your equipment status – whether for lending, setup, return, or inventory. The wizard-based scanner guides you through the complete workflow in four simple steps.",
-
     "modes": {
-      "verleih":  { "label": "Lending",           "description": "Issue equipment and mark it as lent out",                                   "target_status": "lent out"  },
-      "aufbau":   { "label": "Setup",             "description": "Mark items as \"In Use\" – optionally check against a project",            "target_status": "in use"    },
-      "abbau":    { "label": "Teardown / Return", "description": "Check items back in and capture condition while scanning",                   "target_status": "available" },
-      "inventur": { "label": "Inventory",          "description": "Record existing items and verify stock",                                    "target_status": "available" }
+      "verleih": {
+        "label": "Lending",
+        "description": "Issue equipment and mark it as lent out",
+        "target_status": "lent out"
+      },
+      "aufbau": {
+        "label": "Setup",
+        "description": "Mark items as \"In Use\" – optionally check against a project",
+        "target_status": "in use"
+      },
+      "abbau": {
+        "label": "Teardown / Return",
+        "description": "Check items back in and capture condition while scanning",
+        "target_status": "available"
+      },
+      "inventur": {
+        "label": "Inventory",
+        "description": "Record existing items and verify stock",
+        "target_status": "available"
+      }
     },
-
     "steps": {
-      "mode":    "Choose mode",
+      "mode": "Choose mode",
       "context": "Enter details",
-      "scan":    "Scan items",
+      "scan": "Scan items",
       "summary": "Summary"
     },
-
     "demo": {
-      "section_title":    "See how it works – interactive",
+      "section_title": "See how it works – interactive",
       "mode_select_label": "Choose mode",
-      "scanner_title":    "Scanner",
-      "hint":             "Select a mode on the left – the wizard on the right shows the real app flow."
+      "scanner_title": "Scanner",
+      "hint": "Select a mode on the left – the wizard on the right shows the real app flow."
     },
-
     "context_step": {
-      "lend_to_label":           "Who to lend to? *",
-      "lend_to_placeholder":     "John Doe",
-      "return_until_label":      "Return by (optional)",
+      "lend_to_label": "Who to lend to? *",
+      "lend_to_placeholder": "John Doe",
+      "return_until_label": "Return by (optional)",
       "return_until_placeholder": "05/20/2026",
-      "project_label":           "Project to check against (optional)",
-      "project_items_expected":  "{{count}} items expected in project",
-      "inventur_info":           "Inventory does not change any statuses — it only logs what was scanned.",
-      "next_button":             "Continue – open scanner"
+      "project_label": "Project to check against (optional)",
+      "project_items_expected": "{{count}} items expected in project",
+      "inventur_info": "Inventory does not change any statuses — it only logs what was scanned.",
+      "next_button": "Continue – open scanner"
     },
-
     "scan_step": {
       "project_progress": "{{scanned}} / {{total}}",
-      "scan_more":        "Scan another",
-      "items_scanned":    "{{count}} items scanned",
-      "to_summary":       "Go to summary ({{count}})"
+      "scan_more": "Scan another",
+      "items_scanned": "{{count}} items scanned",
+      "to_summary": "Go to summary ({{count}})"
     },
-
     "summary_step": {
-      "action_label":      "Action",
-      "project_info":      "Project: {{name}}",
-      "lend_info":         "To: {{name}} · until {{date}}",
-      "items_count":       "{{count}} items",
-      "condition_ok":      "✓ OK",
-      "condition_defect":  "! Defective",
+      "action_label": "Action",
+      "project_info": "Project: {{name}}",
+      "lend_info": "To: {{name}} · until {{date}}",
+      "items_count": "{{count}} items",
+      "condition_ok": "✓ OK",
+      "condition_defect": "! Defective",
       "condition_missing": "? Missing",
-      "confirm":           "Confirm"
+      "confirm": "Confirm"
     },
-
     "features": {
       "section_title": "Four modes, one workflow",
-      "verleih":  { "title": "Lending",           "desc": "After entering the borrower and return date, the item is marked as lent. Ideal for rental operations and external loans." },
-      "aufbau":   { "title": "Setup",             "desc": "Check whether all gear for an event is packed. Scanned items are immediately marked as \"In Use\", so you always know where your equipment is." },
-      "abbau":    { "title": "Teardown / Return", "desc": "Document the condition of your gear right during teardown: OK, Defective, or Missing. This helps you plan spare parts and repairs more effectively." },
-      "inventur": { "title": "Inventory",          "desc": "The scan opens an item's detail view. You can see where a device is stored and log its condition on the spot – ideal for regular stock checks." }
+      "verleih": {
+        "title": "Lending",
+        "desc": "After entering the borrower and return date, the item is marked as lent. Ideal for rental operations and external loans."
+      },
+      "aufbau": {
+        "title": "Setup",
+        "desc": "Check whether all gear for an event is packed. Scanned items are immediately marked as \"In Use\", so you always know where your equipment is."
+      },
+      "abbau": {
+        "title": "Teardown / Return",
+        "desc": "Document the condition of your gear right during teardown: OK, Defective, or Missing. This helps you plan spare parts and repairs more effectively."
+      },
+      "inventur": {
+        "title": "Inventory",
+        "desc": "The scan opens an item's detail view. You can see where a device is stored and log its condition on the spot – ideal for regular stock checks."
+      }
     },
-
     "project_integration": {
       "section_title": "Tightly integrated with your projects",
-      "check":           { "title": "Project Check",    "desc": "During setup or teardown, scan directly against a running project – scanned items are automatically marked as \"packed\"." },
-      "not_in_set":      { "title": "Not in the set?",  "desc": "Scanned items not part of the project package are immediately flagged." },
-      "location_update": { "title": "Location Update",  "desc": "During setup with a project, the device's location is automatically set to the project name." }
+      "check": {
+        "title": "Project Check",
+        "desc": "During setup or teardown, scan directly against a running project – scanned items are automatically marked as \"packed\"."
+      },
+      "not_in_set": {
+        "title": "Not in the set?",
+        "desc": "Scanned items not part of the project package are immediately flagged."
+      },
+      "location_update": {
+        "title": "Location Update",
+        "desc": "During setup with a project, the device's location is automatically set to the project name."
+      }
     },
-
     "cta": {
-      "title":  "Scan instead of type – starting today.",
+      "title": "Scan instead of type – starting today.",
       "button": "Start for free"
     },
-
     "footer": {
       "copyright": "© 2026 RigFlow",
-      "imprint":   "Imprint",
-      "privacy":   "Privacy Policy"
+      "imprint": "Imprint",
+      "privacy": "Privacy Policy"
     },
-
     "demo_items": {
-      "cat_audio":    "Audio",
+      "cat_audio": "Audio",
       "cat_lighting": "Lighting",
-      "cat_effects":  "Effects"
+      "cat_effects": "Effects"
     }
   },
   "about": {
@@ -2300,41 +2724,82 @@
         "label": "Your Data",
         "desc": "MFA, GDPR compliant, export available anytime."
       }
-      }
-  },
-  "attr": {
-    "common": {
-      "unit_price": "Unit Price",
-      "weight_kg": "Weight",
-      "dimensions_cm": "Dimensions",
-      "units_per_case": "Units per Case",
-      "connectivity": "Connectivity"
-    },
-    "audio": {
-      "frequency_range": "Frequency Range",
-      "impedance": "Impedance",
-      "connector_type": "Connector Type"
-    },
-    "video": {
-      "resolution": "Resolution"
-    },
-    "licht": {
-      "lamp_type": "Lamp Type",
-      "cooling": "Cooling",
-      "beam_angle_min": "Beam Angle (min)",
-      "beam_angle_max": "Beam Angle (max)",
-      "dmx_mode": "DMX Mode"
-    },
-    "rigging": {
-      "load_capacity": "Load Capacity",
-      "material": "Material"
-    },
-    "strom": {
-      "amperage": "Amperage",
-      "voltage": "Voltage"
-    },
-    "network": {
-      "bandwidth": "Bandwidth"
     }
+  },
+  "validation": {
+    "dmx_address_nan": "DMX address must be a number",
+    "dmx_address_min": "DMX address must be at least 1",
+    "dmx_address_max": "DMX address must be at most 512",
+    "range_start": "Start: {{error}}",
+    "range_end": "End: {{error}}",
+    "range_order": "End address must be greater than or equal to the start address",
+    "range_too_large": "Range too large: {{range}} channels (max 512)",
+    "channels_nan": "Channels must be a number",
+    "channels_min": "Channels must be at least 1",
+    "channels_max": "Channels must be at most 512",
+    "quantity_nan": "Quantity must be a number",
+    "quantity_min": "Quantity must be at least 1",
+    "quantity_max": "Quantity must be at most 9999",
+    "required": "This field is required",
+    "min_length": "At least {{min}} characters required",
+    "max_length": "At most {{max}} characters allowed",
+    "email_required": "Email address required",
+    "email_invalid": "Invalid email address",
+    "uuid_required": "UUID required",
+    "uuid_invalid": "Invalid UUID format",
+    "universe_nan": "Universe must be a number",
+    "universe_min": "Universe must be at least 1",
+    "universe_max": "Universe must be at most 500"
+  },
+  "wishlist": {
+    "new_button": "Suggest",
+    "admin_hint": "Admin view: status changes and deletion enabled",
+    "form_title": "New suggestion",
+    "title_label": "Title",
+    "title_placeholder": "Describe the feature briefly",
+    "description_label": "Details (optional)",
+    "submit": "Submit",
+    "submitting": "Submitting…",
+    "submit_error": "Suggestion could not be submitted.",
+    "submitted": "Thanks for your suggestion!",
+    "empty_title": "No suggestions yet",
+    "empty_description": "Be the first to suggest a feature.",
+    "vote": "Upvote",
+    "unvote": "Remove vote",
+    "vote_error": "Your vote could not be saved.",
+    "update_error": "Change could not be saved.",
+    "delete_title": "Delete suggestion?",
+    "delete_description": "“{{title}}” will be removed permanently.",
+    "status_label": "Status",
+    "status": {
+      "offen": "Open",
+      "geplant": "Planned",
+      "in_arbeit": "In progress",
+      "umgesetzt": "Done",
+      "abgelehnt": "Declined"
+    }
+  },
+  "feedback": {
+    "audit_load_failed": "Could not load the activity log.",
+    "loan_save_failed": "Could not save the loan.",
+    "loan_created": "Loan recorded",
+    "loan_created_desc": "{{item}} lent to {{person}}.",
+    "return_failed": "Could not record the return.",
+    "return_recorded": "Return recorded",
+    "return_recorded_desc": "Item marked as returned.",
+    "delete_failed": "Could not delete the entry.",
+    "notice": "Note",
+    "item_already_in_package": "Item is already in this package.",
+    "packages_load_failed": "Could not load packages.",
+    "projects_load_failed": "Could not load projects.",
+    "device_not_found": "Device not found",
+    "dmx_invalid_address": "Invalid DMX address (1–512)",
+    "dmx_no_room": "Needs {{channels}} channels – no room from {{start}}.",
+    "saved": "Saved",
+    "dmx_instance_saved": "Instance {{instance}}: CH {{start}}–{{end}}, universe {{universe}}",
+    "save_failed": "Could not be saved.",
+    "reset": "Reset",
+    "dmx_instance_reset": "Instance uses the default inventory address again.",
+    "dmx_no_free_block": "No free block ({{channels}} channels) in universe {{universe}}"
   }
-  }
+}

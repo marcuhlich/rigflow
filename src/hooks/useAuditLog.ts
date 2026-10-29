@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/lib/logger';
 import { Json } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
+import i18n from '@/i18n';
 
 export interface AuditLogEntry {
   id: string;
@@ -53,8 +54,8 @@ export function useAuditLog() {
       const isNetworkError = err instanceof Error && err.message.includes('Failed to fetch');
       if (!isNetworkError && isCurrent()) {
         toast({
-          title: 'Fehler',
-          description: 'Aktivitätsprotokoll konnte nicht geladen werden.',
+          title: i18n.t('common.error'),
+          description: i18n.t('feedback.audit_load_failed'),
           variant: 'destructive',
         });
       }
