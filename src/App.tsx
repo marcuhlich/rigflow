@@ -21,11 +21,10 @@ import { PublicPageLayout } from "./components/layout/PublicPageLayout";
 import { isNative } from '@/services/platform';
 import BackButtonHandler from "./components/BackButtonHandler";
 import { App as CapApp } from '@capacitor/app';
-import { hasAnalyticsConsent } from "@/lib/consentUtils";
 import ConsentScreen from "./pages/ConsentScreen";
 import { useLanguageDetection } from './hooks/useLanguageDetection';
 import { supabase } from '@/integrations/supabase/client';
-import { ONBOARDING_DONE_KEY } from '@/lib/constants';
+import { ANALYTICS_CONSENT_KEY, ONBOARDING_DONE_KEY } from '@/lib/constants';
 
 const Landing = lazy(() => import("./pages/Landing"));
 const InstallPrompt = lazy(() => import("./pages/InstallPrompt"));
@@ -96,6 +95,8 @@ function OverdueReminderInit() {
 function ProtectedLayout() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  // Session nach Passwort, aber vor dem 2FA-Code (aal1 statt aal2) darf nicht in die App
+  const [mfaVerifiedFor, setMfaVerifiedFor] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -105,13 +106,27 @@ function ProtectedLayout() {
       return;
     }
 
+    if (mfaVerifiedFor !== user.id) {
+      let active = true;
+      supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data, error }) => {
+        if (!active) return;
+        if (error) logger.error("ProtectedLayout", "AAL check failed", error);
+        if (data && data.nextLevel === "aal2" && data.currentLevel !== "aal2") {
+          navigate("/auth", { replace: true });
+          return;
+        }
+        setMfaVerifiedFor(user.id);
+      });
+      return () => { active = false; };
+    }
+
     if (isNative() && !localStorage.getItem(ONBOARDING_DONE_KEY)) {
       navigate('/native-onboarding', { replace: true });
       return;
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, mfaVerifiedFor]);
 
-  if (loading) return <PageLoader className="min-h-screen" />;
+  if (loading || (user && mfaVerifiedFor !== user.id)) return <PageLoader className="min-h-screen" />;
   if (!user) return null;
 
   return (
@@ -142,7 +157,8 @@ function AdminOnly({ children }: { children: React.ReactNode }) {
 }
 
 function ConsentGuard({ children }: { children: React.ReactNode }) {
-  const [showConsent, setShowConsent] = useState(() => !hasAnalyticsConsent());
+  // Nur fragen, solange noch keine Entscheidung gespeichert ist (auch "Nein" ist eine Entscheidung)
+  const [showConsent, setShowConsent] = useState(() => localStorage.getItem(ANALYTICS_CONSENT_KEY) === null);
   const [consentDismissed, setConsentDismissed] = useState(false);
 
   return (
