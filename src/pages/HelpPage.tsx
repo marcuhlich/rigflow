@@ -1,76 +1,28 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ReactMarkdown from "react-markdown";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/PageHeader";
+import { MarkdownDocument } from "@/components/landing/MarkdownDocument";
 
 export default function HelpPage() {
-  const [markdown, setMarkdown] = useState("");
   const navigate = useNavigate();
-  const { t, i18n } = useTranslation();
-
-  useEffect(() => {
-    const file = i18n.language.startsWith("de") ? "/hilfe.md" : "/guide.md";
-    fetch(file)
-      .then((res) => {
-        if (!res.ok) throw new Error("Network error");
-        return res.text();
-      })
-      .then((text) => setMarkdown(text))
-      .catch(() =>
-        setMarkdown(t("legal.load_error"))
-      );
-  }, []);
+  const { t } = useTranslation();
 
   return (
-    <div className="px-3 py-4 sm:px-6 sm:py-6 md:px-8 lg:px-12 xl:px-16 w-full max-w-none">
-      <Button
-        variant="ghost"
-        onClick={() => navigate(-1)}
-        className="mb-4 flex items-center gap-2"
-      >
-        <ArrowLeft className="h-4 w-4" /> {t("common.back")}
-      </Button>
-
-      <Card className="p-4 sm:p-6 md:p-8 lg:p-10 glass-card bg-background/80">
-        <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:text-foreground user-select-text">
-          <ReactMarkdown
-            components={{
-              h1: ({ node, ...props }) => (
-                <h1 className="!text-foreground font-bold text-2xl mb-2" {...props} />
-              ),
-              h2: ({ node, ...props }) => (
-                <h2 className="!text-foreground font-bold text-xl mt-6 mb-2 pb-1 border-b border-border/50" {...props} />
-              ),
-              h3: ({ node, ...props }) => (
-                <h3 className="!text-foreground font-semibold text-lg mt-3 mb-1" {...props} />
-              ),
-              p: ({ node, ...props }) => (
-                <p className="!text-foreground/90" {...props} />
-              ),
-              strong: ({ node, ...props }) => (
-                <strong className="!text-foreground font-semibold" {...props} />
-              ),
-              li: ({ node, ...props }) => (
-                <li className="!text-foreground/90" {...props} />
-              ),
-              a: ({ node, ...props }) => (
-                <a className="!text-primary hover:underline" {...props} />
-              ),
-              blockquote: ({ node, ...props }) => (
-                <blockquote className="!text-foreground/70 border-l-2 border-primary/50 pl-4 italic [&_p]:before:content-none [&_p]:after:content-none" {...props} />
-              ),
-              hr: ({ node, ...props }) => (
-                <hr className="!border-border/50 my-6" {...props} />
-              ),
-            }}
-          >
-            {markdown}
-          </ReactMarkdown>
-        </div>
-      </Card>
+    <div className="mx-auto w-full max-w-4xl">
+      <PageHeader
+        title={t("settings.help_link")}
+        actions={
+          <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
+            <ArrowLeft />
+            {t("common.back")}
+          </Button>
+        }
+      />
+      <div className="surface px-5 py-6 sm:px-8 sm:py-8">
+        <MarkdownDocument deFile="/hilfe.md" enFile="/guide.md" hideTitle />
+      </div>
     </div>
   );
 }

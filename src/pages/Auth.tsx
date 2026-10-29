@@ -1,484 +1,56 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, Loader2, Download, ChevronLeft, KeyRound, ShieldCheck, LifeBuoy } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { isNative } from "@/services/platform";
-import { z } from "zod";
-import posthog from "posthog-js";
-import { ONBOARDING_DONE_KEY, ANALYTICS_CONSENT_KEY } from '@/lib/constants';
-import { useTranslation } from 'react-i18next';
-
-function getAuthErrorMessage(rawMessage: string, t: (key: string) => string): string {
-  const map: Record<string, string> = {
-    "Email rate limit exceeded": t('auth.errors.rate_limit'),
-    "Email not confirmed":       t('auth.errors.email_not_confirmed'),
-    "Invalid login credentials": t('auth.errors.invalid_credentials'),
-  };
-  for (const [key, value] of Object.entries(map)) {
-    if (rawMessage.includes(key)) return value;
-  }
-  return t('auth.errors.unknown');
-}
-
-const getAuthSchema = (t: (key: string) => string) =>
-  z.object({
-    email:    z.string().email(t('auth.errors.invalid_email')),
-    password: z.string().min(6, t('auth.errors.password_too_short')),
-  });
-
-function getPostLoginRoute(): string {
-  if (isNative() && !localStorage.getItem(ONBOARDING_DONE_KEY)) {
-    return '/native-onboarding';
-  }
-  return '/install-prompt';
-}
-
-// ─── Logo Header ──────────────────────────────────────────────────────────────
-
-const LogoHeader = () => (
-  <div className="flex items-center justify-center gap-3 mb-8">
-    <div className="p-2.5 rounded-xl bg-primary/10 pulse-glow">
-      <img src="/logo-transparent.png" className="h-7 w-7 text-primary" />
-    </div>
-    <div className="text-center">
-      <h1 className="text-2xl font-bold tracking-tight">
-        RigFlow <span className="gradient-text">Inventory</span>
-      </h1>
-    </div>
-  </div>
-);
-
-// ─── Step 1: Email + Password ─────────────────────────────────────────────────
-
-interface LoginStepProps {
-  onMfaRequired: () => void;
-  onSuccess: () => void;
-}
-
-const LoginStep = ({ onMfaRequired, onSuccess }: LoginStepProps) => {
-  const { t } = useTranslation();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  const { signIn } = useAuth();
-  const { toast } = useToast();
-
-  const validateForm = () => {
-    try {
-      getAuthSchema(t).parse({ email, password });
-      setErrors({});
-      return true;
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const fieldErrors: { email?: string; password?: string } = {};
-        error.errors.forEach((err) => {
-          if (err.path[0] === "email") fieldErrors.email = err.message;
-          if (err.path[0] === "password") fieldErrors.password = err.message;
-        });
-        setErrors(fieldErrors);
-      }
-      return false;
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-    setIsLoading(true);
-    try {
-      const { error } = await signIn(email, password);
-      if (error) {
-        toast({
-          title: t('common.error'),
-          description: getAuthErrorMessage(error.message, t),
-          variant: "destructive",
-        });
-        return;
-      }
-      const { data: factors } = await supabase.auth.mfa.listFactors();
-      const has2FA = (factors?.totp?.length ?? 0) > 0;
-
-      if (has2FA) {
-        onMfaRequired();
-      } else {
-        const consent = localStorage.getItem(ANALYTICS_CONSENT_KEY);
-        if (consent === 'true') {
-          posthog.capture("user_logged_in");
-        }
-        toast({
-          title: t('auth.login.welcome_back'),
-          description: t('auth.login.success_description'),
-        });
-        onSuccess();
-      }
-    } catch {
-      toast({
-        title: t('common.error'),
-        description: t('auth.errors.unexpected'),
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <>
-      <h2 className="text-xl font-semibold text-center mb-2">{t('auth.login.title')}</h2>
-      <p className="text-sm text-muted-foreground text-center mb-6">
-        {t('auth.login.subtitle')}
-      </p>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">{t('auth.email')}</Label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-            <Input
-              id="email"
-              type="email"
-              placeholder={t('auth.email_placeholder')}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="pl-10 glass-input"
-              required
-            />
-          </div>
-          {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">{t('auth.password')}</Label>
-            <Link to="/forgot-password" className="text-xs text-primary hover:underline">
-              {t('auth.login.forgot_password')}
-            </Link>
-          </div>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-            <Input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="pl-10 pr-10 glass-input"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              tabIndex={-1}
-              aria-label={showPassword ? t('auth.login.hide_password') : t('auth.login.show_password')}
-            >
-              {showPassword ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                  <line x1="1" y1="1" x2="23" y2="23" />
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              )}
-            </button>
-          </div>
-          {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
-        </div>
-
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? (
-            <><Loader2 className="h-4 w-4 animate-spin mr-2" />{t('common.please_wait')}</>
-          ) : t('auth.login.title')}
-        </Button>
-      </form>
-
-      <div className="relative my-6">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-border" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">{t('common.or')}</span>
-        </div>
-      </div>
-
-      <div className="mt-6 text-center">
-        <Link to="/register" className="text-sm text-primary font-medium hover:underline">
-          {t('auth.login.no_account')}
-        </Link>
-      </div>
-      {!isNative() && (
-        <div className="mt-4 text-center">
-          <Link to="/install" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <Download className="h-3.5 w-3.5" />
-            {t('auth.login.install_app')}
-          </Link>
-        </div>
-      )}
-    </>
-  );
-};
-
-// ─── Step 2: TOTP + Recovery ──────────────────────────────────────────────────
-
-interface MfaStepProps {
-  onSuccess: (method: "totp" | "recovery") => void;
-  onBack: () => void;
-}
-
-const FOCUS_DELAY_MS = 100;
-
-const MfaStep = ({ onSuccess, onBack }: MfaStepProps) => {
-  const { t } = useTranslation();
-  const [code, setCode] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [useRecovery, setUseRecovery] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
-
-  const handleVerify = useCallback(async () => {
-    if (isLoading) return;
-    if (!useRecovery && code.length !== 6) return;
-    if (useRecovery && code.length < 11) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      if (useRecovery) {
-        const { data: { session } } = await supabase.auth.getSession();
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-
-        const res = await fetch(`${supabaseUrl}/functions/v1/mfa-recovery-codes`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "apikey": supabaseKey,
-            "Authorization": `Bearer ${session?.access_token ?? ""}`,
-          },
-          body: JSON.stringify({ action: "verify", code }),
-        });
-
-        const data = await res.json();
-
-        if (!data.valid) {
-          setError(t('auth.mfa.recovery_invalid'));
-          setCode("");
-          inputRef.current?.focus();
-          return;
-        }
-
-        toast({
-          title: t('auth.mfa.recovery_accepted_title'),
-          description: t('auth.mfa.recovery_accepted_description'),
-        });
-        onSuccess("recovery");
-
-      } else {
-        const { data: factors } = await supabase.auth.mfa.listFactors();
-        const totpFactor = factors?.totp?.[0];
-        if (!totpFactor) {
-          setError(t('auth.mfa.no_factor'));
-          return;
-        }
-        const { data: challenge, error: challengeError } =
-          await supabase.auth.mfa.challenge({ factorId: totpFactor.id });
-        if (challengeError || !challenge) {
-          setError(t('auth.mfa.challenge_failed'));
-          return;
-        }
-        const { error: verifyError } = await supabase.auth.mfa.verify({
-          factorId: totpFactor.id,
-          challengeId: challenge.id,
-          code,
-        });
-        if (verifyError) {
-          setError(t('auth.mfa.totp_invalid'));
-          setCode("");
-          inputRef.current?.focus();
-        } else {
-          toast({
-            title: t('auth.login.welcome_back'),
-            description: t('auth.login.success_description'),
-          });
-          onSuccess("totp");
-        }
-      }
-    } catch {
-      setError(t('auth.errors.unexpected'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isLoading, useRecovery, code, toast, onSuccess, t]);
-
-  useEffect(() => {
-    setTimeout(() => inputRef.current?.focus(), FOCUS_DELAY_MS);
-  }, []);
-
-  useEffect(() => {
-    if (!useRecovery && code.length === 6) handleVerify();
-  }, [code, useRecovery, handleVerify]);
-
-  const switchMode = (recovery: boolean) => {
-    setUseRecovery(recovery);
-    setCode("");
-    setError(null);
-    setTimeout(() => inputRef.current?.focus(), FOCUS_DELAY_MS);
-  };
-
-  return (
-    <>
-      <div className="flex justify-center mb-6">
-        <div className={`p-4 rounded-2xl border ${useRecovery ? "bg-amber-500/10 border-amber-500/20" : "bg-primary/10 border-primary/20"}`}>
-          {useRecovery
-            ? <LifeBuoy className="h-8 w-8 text-amber-500" />
-            : <ShieldCheck className="h-8 w-8 text-primary" />
-          }
-        </div>
-      </div>
-
-      <h2 className="text-xl font-semibold text-center mb-2">
-        {useRecovery ? t('auth.mfa.recovery_title') : t('auth.mfa.totp_title')}
-      </h2>
-      <p className="text-sm text-muted-foreground text-center mb-8">
-        {useRecovery ? t('auth.mfa.recovery_subtitle') : t('auth.mfa.totp_subtitle')}
-      </p>
-
-      <div className="space-y-4">
-        <div className="relative">
-          <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-          <Input
-            ref={inputRef}
-            type="text"
-            inputMode={useRecovery ? "text" : "numeric"}
-            maxLength={useRecovery ? 11 : 6}
-            placeholder={useRecovery ? "XXXXX-XXXXX" : "000000"}
-            value={code}
-            onChange={(e) => {
-              setError(null);
-              if (useRecovery) {
-                let val = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "");
-                if (val.length === 5 && !val.includes("-") && e.target.value.length > code.length) {
-                  val += "-";
-                }
-                setCode(val.slice(0, 11));
-              } else {
-                setCode(e.target.value.replace(/\D/g, ""));
-              }
-            }}
-            className={`pl-10 glass-input text-center font-mono text-lg ${
-              useRecovery ? "tracking-widest uppercase" : "tracking-[0.5em]"
-            }`}
-          />
-        </div>
-
-        {error && (
-          <p className="text-sm text-destructive text-center">{error}</p>
-        )}
-
-        <Button
-          className="w-full"
-          onClick={handleVerify}
-          disabled={
-            isLoading ||
-            (!useRecovery && code.length !== 6) ||
-            (useRecovery && code.length < 11)
-          }
-        >
-          {isLoading ? (
-            <><Loader2 className="h-4 w-4 animate-spin mr-2" />{t('auth.mfa.verifying')}</>
-          ) : t('auth.mfa.confirm')}
-        </Button>
-
-        <button
-          onClick={() => switchMode(!useRecovery)}
-          className="w-full text-sm text-primary hover:opacity-70 transition-opacity text-center pt-1"
-        >
-          {useRecovery ? t('auth.mfa.back_to_totp') : t('auth.mfa.use_recovery')}
-        </button>
-
-        <button
-          onClick={onBack}
-          className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors text-center"
-        >
-          {t('auth.mfa.back_to_login')}
-        </button>
-      </div>
-    </>
-  );
-};
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
+import { AuthShell } from "@/components/auth/AuthShell";
+import { LoginForm } from "@/components/auth/LoginForm";
+import { MfaForm } from "@/components/auth/MfaForm";
+import { getPostLoginRoute } from "@/components/auth/authUtils";
 
 const Auth = () => {
   const [step, setStep] = useState<"login" | "mfa">("login");
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      if (!loading && user) {
-        const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        const requiredLevel = data?.nextLevel === "aal2" ? "aal2" : "aal1";
-        if (data?.currentLevel === requiredLevel) {
-          navigate(getPostLoginRoute());
-        }
-      }
-    };
-    checkAuth();
-  }, [user, loading, navigate]);
-
   const { t } = useTranslation();
 
-  return (
-    <div className="min-h-screen relative flex justify-center p-4 pt-[calc(env(safe-area-inset-top)+4rem)] sm:items-center sm:pt-4 bg-gradient-to-br from-background via-background to-primary/5">
-      {step === "login" && (
-        <div className="absolute left-4 top-[calc(env(safe-area-inset-top)+1rem)] z-50">
-          <Link
-            to="/landing"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            <span className="text-sm">{t('common.back')}</span>
-          </Link>
-        </div>
-      )}
+  // Already signed in with the required assurance level: skip the form.
+  useEffect(() => {
+    if (loading || !user) return;
+    let cancelled = false;
+    supabase.auth.mfa
+      .getAuthenticatorAssuranceLevel()
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        const requiredLevel = data.nextLevel === "aal2" ? "aal2" : "aal1";
+        if (data.currentLevel === requiredLevel) navigate(getPostLoginRoute(), { replace: true });
+        else setStep("mfa");
+      })
+      .catch(() => {
+        // Stay on the login form; the user can sign in again.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, loading, navigate]);
 
-      <div className="w-full max-w-md animate-scale-in">
-        <div className="glass-card p-8">
-          <LogoHeader />
-          {step === "login" ? (
-            <LoginStep
-              onMfaRequired={() => setStep("mfa")}
-              onSuccess={() => navigate(getPostLoginRoute())}
-            />
-          ) : (
-            <MfaStep
-              onSuccess={(method) => {
-                if (method === "recovery") {
-                  navigate("/settings/privacy-security");
-                } else {
-                  navigate(getPostLoginRoute());
-                }
-              }}
-              onBack={() => setStep("login")}
-            />
-          )}
-        </div>
-      </div>
-    </div>
+  const backToLogin = async () => {
+    // Drop the half-authenticated (aal1) session so it can't linger.
+    await supabase.auth.signOut().catch(() => undefined);
+    setStep("login");
+  };
+
+  return (
+    <AuthShell back={step === "login" ? { to: "/landing", label: t("common.back") } : undefined}>
+      {step === "login" ? (
+        <LoginForm onMfaRequired={() => setStep("mfa")} onSuccess={() => navigate(getPostLoginRoute())} />
+      ) : (
+        <MfaForm
+          onSuccess={(method) => navigate(method === "recovery" ? "/settings/privacy-security" : getPostLoginRoute())}
+          onBack={backToLogin}
+        />
+      )}
+    </AuthShell>
   );
 };
 

@@ -1,187 +1,180 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Lock, Loader2, CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { CheckCircle2, Link2Off, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { PageLoader } from "@/components/QueryState";
+import { AuthHeading, AuthShell } from "@/components/auth/AuthShell";
+import { AuthStatus, Field, FormError, PasswordInput } from "@/components/auth/FormFields";
+
+type LinkState = "verifying" | "ready" | "invalid";
+type FieldErrors = { password?: string; confirm?: string };
+
+/** How long we wait for Supabase to establish the recovery session from the link. */
+const LINK_TIMEOUT_MS = 10_000;
+const REDIRECT_DELAY_MS = 3000;
 
 const ResetPassword = () => {
+  const navigate = useNavigate();
+  const { t } = useTranslation();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [done, setDone] = useState(false);
-  const [errors, setErrors] = useState<{ password?: string; confirm?: string }>({});
-  const [sessionReady, setSessionReady] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [linkState, setLinkState] = useState<LinkState>("verifying");
+  const mounted = useRef(true);
 
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const { t } = useTranslation();
-
-  const passwordSchema = z
-    .object({
-      password: z.string().min(6, t("auth.errors.password_too_short")),
-      confirm: z.string(),
-    })
-    .refine((d) => d.password === d.confirm, {
-      message: t("auth.passwords_dont_match"),
-      path: ["confirm"],
-    });
-
-  // Supabase sends the user back with an access_token in the URL hash.
-  // We need to wait for the SIGNED_IN event that fires automatically.
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setSessionReady(true);
-      }
-    });
-    return () => subscription.unsubscribe();
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
   }, []);
 
+  // The recovery link signs the user in. The PASSWORD_RECOVERY event can fire
+  // before this page mounts, so also accept an already existing session.
+  useEffect(() => {
+    let settled = false;
+    const markReady = () => {
+      settled = true;
+      setLinkState("ready");
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || (session && event !== "SIGNED_OUT")) markReady();
+    });
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (data.session) markReady();
+      })
+      .catch(() => undefined);
+
+    const timeout = window.setTimeout(() => {
+      if (!settled) setLinkState("invalid");
+    }, LINK_TIMEOUT_MS);
+
+    return () => {
+      subscription.unsubscribe();
+      window.clearTimeout(timeout);
+    };
+  }, []);
+
+  // Redirect to login a few seconds after success.
+  useEffect(() => {
+    if (!done) return;
+    const id = window.setTimeout(() => navigate("/auth", { replace: true }), REDIRECT_DELAY_MS);
+    return () => window.clearTimeout(id);
+  }, [done, navigate]);
+
   const validate = () => {
-    try {
-      passwordSchema.parse({ password, confirm });
+    const schema = z
+      .object({ password: z.string().min(6, t("auth.errors.password_too_short")), confirm: z.string() })
+      .refine((d) => d.password === d.confirm, { message: t("auth.passwords_dont_match"), path: ["confirm"] });
+    const result = schema.safeParse({ password, confirm });
+    if (result.success) {
       setErrors({});
       return true;
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        const fieldErrors: { password?: string; confirm?: string } = {};
-        err.errors.forEach((e) => {
-          if (e.path[0] === "password") fieldErrors.password = e.message;
-          if (e.path[0] === "confirm") fieldErrors.confirm = e.message;
-        });
-        setErrors(fieldErrors);
-      }
-      return false;
     }
+    const next: FieldErrors = {};
+    for (const issue of result.error.issues) {
+      if (issue.path[0] === "password") next.password ??= issue.message;
+      if (issue.path[0] === "confirm") next.confirm ??= issue.message;
+    }
+    setErrors(next);
+    return false;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
+    setFormError(null);
     if (!validate()) return;
 
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password });
-      if (error) {
-        toast({
-          title: t("common.error"),
-          description: t("auth.change_password_error"),
-          variant: "destructive",
-        });
-      } else {
-        setDone(true);
-        setTimeout(() => navigate("/auth"), 3000);
-      }
+      if (!mounted.current) return;
+      if (error) setFormError(t("auth.change_password_error"));
+      else setDone(true);
+    } catch {
+      if (mounted.current) setFormError(t("auth.change_password_error"));
     } finally {
-      setIsLoading(false);
+      if (mounted.current) setIsLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen relative flex justify-center p-4 pt-[calc(env(safe-area-inset-top)+4rem)] sm:items-center sm:pt-4 bg-gradient-to-br from-background via-background to-primary/5">
-      <div className="w-full max-w-md animate-scale-in">
-        <div className="glass-card p-8">
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="p-2.5 rounded-xl bg-primary/10 pulse-glow">
-              <img src="/logo-transparent.png" className="h-7 w-7 text-primary" />
-            </div>
-            <div className="text-center">
-              <h1 className="text-2xl font-bold tracking-tight">
-                RigFlow <span className="gradient-text">Inventory</span>
-              </h1>
-            </div>
-          </div>
-
-          {done ? (
-            <div className="text-center space-y-4">
-              <div className="flex justify-center">
-                <CheckCircle2 className="h-12 w-12 text-green-500" />
-              </div>
-              <h2 className="text-xl font-semibold">{t("auth.password_changed_title")}</h2>
-              <p className="text-sm text-muted-foreground">
-                {t("auth.password_changed_description")}
-              </p>
-            </div>
-          ) : !sessionReady ? (
-            <div className="text-center space-y-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-              <p className="text-sm text-muted-foreground">{t("auth.verifying_link")}</p>
-            </div>
-          ) : (
-            <>
-              <h2 className="text-xl font-semibold text-center mb-2">
-                {t("auth.reset_password_title")}
-              </h2>
-              <p className="text-sm text-muted-foreground text-center mb-6">
-                {t("auth.reset_password_description")}
-              </p>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password">{t("auth.new_password_label")}</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 glass-input"
-                      required
-                    />
-                  </div>
-                  {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirm">{t("auth.confirm_password_label")}</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-                    <Input
-                      id="confirm"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={confirm}
-                      onChange={(e) => setConfirm(e.target.value)}
-                      className="pl-10 glass-input"
-                      required
-                    />
-                  </div>
-                  {errors.confirm && <p className="text-sm text-destructive">{errors.confirm}</p>}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showPassword ? t("auth.hide_passwords") : t("auth.show_passwords")}
-                </button>
-
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      {t("common.please_wait")}
-                    </>
-                  ) : (
-                    t("auth.save_password")
-                  )}
-                </Button>
-              </form>
-            </>
-          )}
-        </div>
+  let content: React.ReactNode;
+  if (done) {
+    content = (
+      <AuthStatus
+        icon={<CheckCircle2 className="h-[18px] w-[18px] text-success" strokeWidth={1.75} />}
+        title={t("auth.password_changed_title")}
+        description={t("auth.password_changed_description")}
+      />
+    );
+  } else if (linkState === "verifying") {
+    content = (
+      <div className="text-center">
+        <PageLoader className="min-h-0 py-6" />
+        <p className="text-sm text-muted-foreground">{t("auth.verifying_link")}</p>
       </div>
-    </div>
-  );
+    );
+  } else if (linkState === "invalid") {
+    content = (
+      <AuthStatus
+        icon={<Link2Off className="h-[18px] w-[18px] text-destructive" strokeWidth={1.75} />}
+        title={t("auth.callback_error")}
+      >
+        <Button className="w-full" asChild>
+          <Link to="/forgot-password">{t("auth.request_new_link")}</Link>
+        </Button>
+      </AuthStatus>
+    );
+  } else {
+    content = (
+      <>
+        <AuthHeading title={t("auth.reset_password_title")} description={t("auth.reset_password_description")} />
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <FormError>{formError}</FormError>
+          <Field id="password" label={t("auth.new_password_label")} error={errors.password}>
+            <PasswordInput
+              id="password"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? "password-error" : undefined}
+              disabled={isLoading}
+              autoFocus
+            />
+          </Field>
+          <Field id="confirm" label={t("auth.confirm_password_label")} error={errors.confirm}>
+            <PasswordInput
+              id="confirm"
+              autoComplete="new-password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              aria-invalid={!!errors.confirm}
+              aria-describedby={errors.confirm ? "confirm-error" : undefined}
+              disabled={isLoading}
+            />
+          </Field>
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading && <Loader2 className="animate-spin" />}
+            {isLoading ? t("common.please_wait") : t("auth.save_password")}
+          </Button>
+        </form>
+      </>
+    );
+  }
+
+  return <AuthShell back={{ to: "/auth", label: t("auth.back_to_login") }}>{content}</AuthShell>;
 };
 
 export default ResetPassword;

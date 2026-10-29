@@ -1,9 +1,10 @@
-import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
-import { PackageX, ArrowLeft, Home } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { Logo } from "@/components/layout/Logo";
 
 const NotFound = () => {
   const location = useLocation();
@@ -11,63 +12,39 @@ const NotFound = () => {
   const { t } = useTranslation();
 
   useEffect(() => {
-    logger.warn(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname
-    );
+    logger.warn("404 Error: User attempted to access non-existent route:", location.pathname);
   }, [location.pathname]);
 
+  const goBack = () => (location.key === "default" ? navigate("/") : navigate(-1));
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="flex flex-col items-center gap-6 text-center max-w-md">
+    <div className="flex min-h-screen flex-col bg-background px-4 pb-safe pt-safe">
+      <div className="mx-auto w-full max-w-md py-6">
+        <Link to="/" className="inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Logo />
+        </Link>
+      </div>
 
-        <div className="relative flex items-center justify-center w-24 h-24 rounded-2xl bg-muted border border-border">
-          <PackageX className="w-10 h-10 text-muted-foreground" />
-          <span className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-[11px] font-bold text-destructive-foreground">
-            !
-          </span>
-        </div>
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center pb-24">
+        <p className="tech text-sm text-muted-foreground">404</p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight">{t("notfound.title")}</h1>
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+          {t("notfound.description_prefix")}{" "}
+          <code className="break-all rounded border border-border bg-surface-sunken px-1.5 py-0.5 font-mono text-xs text-foreground">
+            {location.pathname}
+          </code>{" "}
+          {t("notfound.description_suffix")}
+        </p>
 
-        <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-xs text-muted-foreground font-mono">
-          <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
-          {t("notfound.badge")}
-        </div>
-
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t("notfound.title")}
-          </h1>
-
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {t("notfound.description_prefix")}{" "}
-            <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-foreground border border-border">
-              {location.pathname}
-            </code>{" "}
-            {t("notfound.description_suffix")}
-          </p>
-        </div>
-
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate(-1)}
-            className="gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
+        <div className="mt-8 flex gap-2">
+          <Button variant="outline" onClick={goBack}>
+            <ArrowLeft />
             {t("common.back")}
           </Button>
-
-          <Button
-            size="sm"
-            onClick={() => navigate("/")}
-            className="gap-2"
-          >
-            <Home className="w-4 h-4" />
-            {t("nav.dashboard")}
+          <Button asChild>
+            <Link to="/">{t("nav.dashboard")}</Link>
           </Button>
         </div>
-
       </div>
     </div>
   );

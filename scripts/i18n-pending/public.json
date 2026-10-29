@@ -1,0 +1,20 @@
+{
+  "landing.nav.label": { "de": "Hauptnavigation", "en": "Main navigation" },
+  "landing.nav.service": { "de": "Service", "en": "Service" },
+  "landing.home.how.eyebrow": { "de": "So funktioniert's", "en": "How it works" },
+  "landing.home.how.title": { "de": "In drei Schritten startklar.", "en": "Up and running in three steps." },
+  "landing.home.how.step1_title": { "de": "Inventar anlegen", "en": "Add your inventory" },
+  "landing.home.how.step1_desc": { "de": "Erfasse dein Equipment mit Kategorie, Seriennummer und Lagerort.", "en": "Add your gear with category, serial number and storage location." },
+  "landing.home.how.step2_title": { "de": "QR-Codes anbringen", "en": "Label with QR codes" },
+  "landing.home.how.step2_desc": { "de": "Generiere für jedes Gerät einen QR-Code und kleb ihn auf Gerät oder Case.", "en": "Generate a QR code for every item and stick it on the device or case." },
+  "landing.home.how.step3_title": { "de": "Scannen und packen", "en": "Scan and pack" },
+  "landing.home.how.step3_desc": { "de": "Scanne bei Verleih, Aufbau und Abbau – der Status aktualisiert sich sofort.", "en": "Scan when lending, loading in and loading out – the status updates instantly." },
+  "register.title": { "de": "Konto erstellen", "en": "Create your account" },
+  "register.subtitle": { "de": "Kostenlos und ohne Kreditkarte. In einer Minute startklar.", "en": "Free, no credit card. Ready in a minute." },
+  "register.label_name": { "de": "Dein Name", "en": "Your name" },
+  "register.label_warehouse": { "de": "Name deines Lagers", "en": "Warehouse name" },
+  "register.submit": { "de": "Konto erstellen", "en": "Create account" },
+  "register.terms_notice": { "de": "Mit der Registrierung akzeptierst du die <terms>Nutzungsbedingungen</terms> und die <privacy>Datenschutzerklärung</privacy>.", "en": "By signing up you accept the <terms>Terms of Use</terms> and the <privacy>Privacy Policy</privacy>." },
+  "auth.request_new_link": { "de": "Neuen Link anfordern", "en": "Request a new link" },
+  "consent.private_title_plain": { "de": "Ohne Analytik:", "en": "Without analytics:" }
+}

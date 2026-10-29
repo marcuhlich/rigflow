@@ -1,143 +1,97 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Mail, Loader2, ChevronLeft, CheckCircle2 } from "lucide-react";
+import { Loader2, MailCheck } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useTranslation } from "react-i18next";
+import { AuthHeading, AuthShell } from "@/components/auth/AuthShell";
+import { AuthStatus, Field, FormError } from "@/components/auth/FormFields";
+
+const EMAIL_RE = /\S+@\S+\.\S+/;
 
 const ForgotPassword = () => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const { toast } = useToast();
-  const { t } = useTranslation();
+  const [fieldError, setFieldError] = useState<string>();
+  const [formError, setFormError] = useState<string | null>(null);
+  const mounted = useRef(true);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (isLoading) return;
+    setFormError(null);
+    const value = email.trim();
+    if (!EMAIL_RE.test(value)) {
+      setFieldError(t("auth.errors.invalid_email"));
+      return;
+    }
+    setFieldError(undefined);
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(value, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
-
-      if (error) {
-        toast({
-          title: t("common.error"),
-          description: t("auth.reset_email_error"),
-          variant: "destructive",
-        });
-      } else {
-        setSent(true);
-      }
+      if (!mounted.current) return;
+      if (error) setFormError(t("auth.reset_email_error"));
+      else setSent(true);
+    } catch {
+      if (mounted.current) setFormError(t("auth.reset_email_error"));
     } finally {
-      setIsLoading(false);
+      if (mounted.current) setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen relative flex justify-center p-4 pt-[calc(env(safe-area-inset-top)+4rem)] sm:items-center sm:pt-4 bg-gradient-to-br from-background via-background to-primary/5">
-      
-      <div className="absolute left-4 top-[calc(env(safe-area-inset-top)+1rem)] z-50">
-        <Link
-          to="/auth"
-          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+    <AuthShell back={{ to: "/auth", label: t("auth.back_to_login") }}>
+      {sent ? (
+        <AuthStatus
+          icon={<MailCheck className="h-[18px] w-[18px] text-success" strokeWidth={1.75} />}
+          title={t("auth.reset_email_sent_title")}
+          description={t("auth.reset_email_sent_description", { email: email.trim() })}
         >
-          <ChevronLeft className="h-4 w-4" />
-          <span className="text-sm">{t("auth.back_to_login")}</span>
-        </Link>
-      </div>
-
-      <div className="w-full max-w-md animate-scale-in">
-        <div className="glass-card p-8">
-
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="p-2.5 rounded-xl bg-primary/10 pulse-glow">
-              <img src="/logo-transparent.png" className="h-7 w-7 text-primary" />
-            </div>
-            <div className="text-center">
-              <h1 className="text-2xl font-bold tracking-tight">
-                RigFlow <span className="gradient-text">Inventory</span>
-              </h1>
-            </div>
-          </div>
-
-          {sent ? (
-            <div className="text-center space-y-4">
-              <div className="flex justify-center">
-                <CheckCircle2 className="h-12 w-12 text-green-500" />
-              </div>
-
-              <h2 className="text-xl font-semibold">
-                {t("auth.reset_email_sent_title")}
-              </h2>
-
-              <p className="text-sm text-muted-foreground">
-                {t("auth.reset_email_sent_description", {
-                  email,
-                })}
-              </p>
-
-              <Button variant="outline" className="w-full mt-4" asChild>
-                <Link to="/auth">
-                  {t("auth.back_to_login")}
-                </Link>
-              </Button>
-            </div>
-          ) : (
-            <>
-              <h2 className="text-xl font-semibold text-center mb-2">
-                {t("auth.forgot_password_title")}
-              </h2>
-
-              <p className="text-sm text-muted-foreground text-center mb-6">
-                {t("auth.forgot_password_description")}
-              </p>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">
-                    {t("auth.email")}
-                  </Label>
-
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder={t("auth.email_placeholder")}
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10 glass-input"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      {t("auth.sending")}
-                    </>
-                  ) : (
-                    t("auth.send_reset_link")
-                  )}
-                </Button>
-
-              </form>
-            </>
-          )}
-
-        </div>
-      </div>
-    </div>
+          <Button variant="outline" className="w-full" asChild>
+            <Link to="/auth">{t("auth.back_to_login")}</Link>
+          </Button>
+        </AuthStatus>
+      ) : (
+        <>
+          <AuthHeading title={t("auth.forgot_password_title")} description={t("auth.forgot_password_description")} />
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <FormError>{formError}</FormError>
+            <Field id="email" label={t("auth.email")} error={fieldError}>
+              <Input
+                id="email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                placeholder={t("auth.email_placeholder")}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                aria-invalid={!!fieldError}
+                aria-describedby={fieldError ? "email-error" : undefined}
+                disabled={isLoading}
+                autoFocus
+              />
+            </Field>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <Loader2 className="animate-spin" />}
+              {isLoading ? t("auth.sending") : t("auth.send_reset_link")}
+            </Button>
+          </form>
+        </>
+      )}
+    </AuthShell>
   );
 };
 
