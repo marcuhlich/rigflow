@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Package, QrCode, Shield, SlidersHorizontal, Wifi, Wrench } from "lucide-react";
+import { Package, QrCode, Shield, SlidersHorizontal, Wifi, Wrench, Github } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Logo } from "@/components/layout/Logo";
 import { SettingsPage, SettingsRow, SettingsSection } from "@/components/settings/SettingsSection";
@@ -32,10 +32,19 @@ export default function AboutRigFlow() {
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-border bg-surface-sunken">
           <Logo withWordmark={false} rivets markClassName="h-8 w-8" />
         </span>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-base font-semibold tracking-tight">RigFlow</p>
           <p className="tech text-xs text-muted-foreground">{t("about.version", { version: APP_VERSION })}</p>
           <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{t("about.hero_description")}</p>
+          <a
+            href="https://github.com/marcuhlich/rigflow"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+          >
+            <Github className="h-3.5 w-3.5" />
+            github.com/marcuhlich/rigflow
+          </a>
         </div>
       </section>
 
